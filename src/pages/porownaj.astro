@@ -1,0 +1,214 @@
+---
+import Baza from '../layouts/Baza.astro';
+import podsumowanie from '../../public/dane/podsumowanie.json';
+
+const miasta = podsumowanie.bdl.miasta;
+const grupy = [...new Set(podsumowanie.bdl.wskazniki.map((w) => w.grupa))];
+---
+
+<Baza
+  strona="porownaj"
+  tytul="Porównaj miasta"
+  opis="Poznań zestawiony z Warszawą, Krakowem, Wrocławiem, Łodzią i Gdańskiem na tych samych wskaźnikach GUS."
+>
+  <section style="margin-top:44px">
+    <p class="nadtytul">Poznań na tle innych</p>
+    <h1>Sześć miast, ten sam miernik</h1>
+    <p class="lid">
+      Pojedyncze liczby niewiele mówią, dopóki nie ma ich do czego przyłożyć. Tu Poznań stoi obok
+      pięciu największych polskich miast, mierzony dokładnie tą samą metodą GUS — bez przeliczeń,
+      bez korekt, bez wyboru wygodnego roku.
+    </p>
+  </section>
+
+  <section>
+    <div class="karta cien" style="padding:18px 20px">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+        <label class="pole" style="flex:1;min-width:280px">Wskaźnik
+          <select id="wskaznik">
+            {grupy.map((g) => (
+              <optgroup label={g}>
+                {podsumowanie.bdl.wskazniki.filter((w) => w.grupa === g).map((w) => (
+                  <option value={w.klucz}>{w.nazwa}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+        <label class="pole" style="min-width:190px">Ujęcie
+          <select id="ujecie">
+            <option value="wartosc">wartości bezwzględne</option>
+            <option value="indeks">indeks (pierwszy rok = 100)</option>
+          </select>
+        </label>
+      </div>
+      <div id="miasta-pigulki" style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px">
+        {miasta.map((m) => (
+          <button class="pigulka" data-miasto={m.klucz} aria-pressed="true">{m.nazwa}</button>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="tytul-wykresu">—</h2>
+    <p class="drobne" id="opis-wykresu" style="margin-top:-8px"></p>
+    <div class="karta cien">
+      <div id="wykres"><p class="ladowanie">…</p></div>
+      <div id="wykres-legenda"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ranking w ostatnim wspólnym roku</h2>
+    <div class="karta cien"><div id="ranking"></div></div>
+  </section>
+
+  <section>
+    <h2>Pojedynek: Poznań kontra…</h2>
+    <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px">
+      <label class="pole" style="min-width:220px">Przeciwnik
+        <select id="rywal">
+          {miasta.filter((m) => m.klucz !== 'poznan').map((m, i) => (
+            <option value={m.klucz} selected={i === 0}>{m.nazwa}</option>
+          ))}
+        </select>
+      </label>
+      <p class="drobne" style="margin:0 0 6px">Wszystkie wskaźniki naraz, dla najnowszego roku dostępnego w obu miastach.</p>
+    </div>
+    <div class="tabela-otok">
+      <table>
+        <thead>
+          <tr>
+            <th>Wskaźnik</th>
+            <th class="num">Poznań</th>
+            <th class="num" id="naglowek-rywala">—</th>
+            <th class="num">Różnica</th>
+            <th>Rok</th>
+          </tr>
+        </thead>
+        <tbody id="pojedynek"><tr><td colspan="5" class="ladowanie">…</td></tr></tbody>
+      </table>
+    </div>
+    <p class="drobne">
+      Różnica podana jako procent wartości dla miasta porównywanego. Zielony oznacza wyższą wartość
+      w Poznaniu — to nie zawsze znaczy „lepiej": przy stopie bezrobocia czy zadłużeniu jest odwrotnie.
+    </p>
+  </section>
+
+  <script>
+    import { liniowy, ranking, legenda, fmt, podmien, PALETA } from '../lib/wykresy.js';
+
+    const bdl = await (await fetch('/dane/bdl.json')).json();
+    const miasta = Object.values(bdl.miasta);
+    const kolory = Object.fromEntries(miasta.map((m, i) => [m.klucz, m.klucz === 'poznan' ? PALETA[0] : PALETA[(i % (PALETA.length - 1)) + 1]]));
+
+    const $ = (s) => document.querySelector(s);
+    let wybrane = new Set(miasta.map((m) => m.klucz));
+
+    const formatDla = (jednostka) => {
+      if (jednostka === 'zł') return fmt.skrot;
+      if (jednostka === '%' || jednostka === '‰' || jednostka?.startsWith('%')) return (n) => fmt.liczba(n, 1);
+      return (n) => fmt.skrot(n);
+    };
+
+    function rysuj() {
+      const klucz = $('#wskaznik').value;
+      const indeks = $('#ujecie').value === 'indeks';
+      const wzor = miasta.find((m) => m.wskazniki[klucz])?.wskazniki[klucz];
+      if (!wzor) return;
+
+      $('#tytul-wykresu').textContent = wzor.nazwa;
+      $('#opis-wykresu').textContent = `Jednostka: ${wzor.jednostka} · źródło: GUS Bank Danych Lokalnych · aktualizacja ${(wzor.aktualizacja || '').slice(0, 10)}`;
+
+      const serie = miasta
+        .filter((m) => wybrane.has(m.klucz) && m.wskazniki[klucz])
+        .map((m) => {
+          const w = m.wskazniki[klucz].wartosci;
+          const lata = Object.keys(w).sort();
+          const baza = w[lata[0]];
+          return {
+            nazwa: m.nazwa,
+            kolor: kolory[m.klucz],
+            punkty: lata.map((r) => [r, indeks && baza ? (w[r] / baza) * 100 : w[r]]),
+          };
+        });
+
+      const formatY = indeks ? (n) => fmt.liczba(n, 0) : formatDla(wzor.jednostka);
+      podmien('#wykres', liniowy(serie, { wysokosc: 330, formatY, zeroBaseline: !indeks && wzor.jednostka === 'zł' }));
+      podmien('#wykres-legenda', legenda(serie));
+
+      // ranking w ostatnim wspólnym roku
+      const zestawy = miasta.filter((m) => wybrane.has(m.klucz) && m.wskazniki[klucz]);
+      const wspolne = zestawy
+        .map((m) => new Set(Object.keys(m.wskazniki[klucz].wartosci)))
+        .reduce((a, b) => new Set([...a].filter((x) => b.has(x))), new Set(Object.keys(zestawy[0]?.wskazniki[klucz].wartosci ?? {})));
+      const rok = [...wspolne].sort().pop();
+      const dane = zestawy
+        .map((m) => ({ nazwa: m.nazwa, wartosc: m.wskazniki[klucz].wartosci[rok] }))
+        .filter((d) => d.wartosc != null)
+        .sort((a, b) => b.wartosc - a.wartosc);
+      const formatW = wzor.jednostka === 'zł' ? fmt.kwota : (n) => `${fmt.liczba(n, Math.abs(n) < 100 ? 1 : 0)} ${wzor.jednostka === '—' ? '' : wzor.jednostka}`.trim();
+      const box = document.createElement('div');
+      const h = document.createElement('p');
+      h.className = 'drobne';
+      h.textContent = `${wzor.nazwa} — rok ${rok}`;
+      box.append(h, ranking(dane, { formatW, kolor: PALETA[1], maxEtykieta: 20 }));
+      podmien('#ranking', box);
+    }
+
+    function pojedynek() {
+      const rywalKlucz = $('#rywal').value;
+      const rywal = bdl.miasta[rywalKlucz];
+      const poznan = bdl.miasta.poznan;
+      $('#naglowek-rywala').textContent = rywal.nazwa;
+
+      const wiersze = Object.values(poznan.wskazniki).map((w) => {
+        const wr = rywal.wskazniki[w.klucz];
+        if (!wr) return null;
+        const wspolne = Object.keys(w.wartosci).filter((r) => wr.wartosci[r] != null).sort();
+        const rok = wspolne[wspolne.length - 1];
+        if (!rok) return null;
+        const a = w.wartosci[rok];
+        const b = wr.wartosci[rok];
+        return { nazwa: w.nazwa, jednostka: w.jednostka, rok, a, b, roznica: b ? ((a - b) / Math.abs(b)) * 100 : null };
+      }).filter(Boolean);
+
+      const format = (v, jednostka) =>
+        jednostka === 'zł' ? fmt.kwota(v) : `${fmt.liczba(v, Math.abs(v) < 100 ? 1 : 0)}${jednostka === '—' ? '' : ' ' + jednostka}`;
+
+      const tbody = $('#pojedynek');
+      tbody.replaceChildren(...wiersze.map((w) => {
+        const tr = document.createElement('tr');
+        const kolor = w.roznica == null ? 'inherit' : w.roznica >= 0 ? 'var(--zielen)' : 'var(--czerwien)';
+        tr.innerHTML = `
+          <td>${w.nazwa}</td>
+          <td class="num" style="font-weight:600">${format(w.a, w.jednostka)}</td>
+          <td class="num">${format(w.b, w.jednostka)}</td>
+          <td class="num" style="color:${kolor};font-weight:600">${w.roznica == null ? '—' : `${w.roznica >= 0 ? '+' : ''}${fmt.liczba(w.roznica, 1)}%`}</td>
+          <td class="drobne">${w.rok}</td>`;
+        return tr;
+      }));
+    }
+
+    $('#wskaznik').addEventListener('change', rysuj);
+    $('#ujecie').addEventListener('change', rysuj);
+    $('#rywal').addEventListener('change', pojedynek);
+    $('#miasta-pigulki').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-miasto]');
+      if (!btn) return;
+      const k = btn.dataset.miasto;
+      if (wybrane.has(k)) {
+        if (wybrane.size === 1) return; // co najmniej jedno miasto musi zostać
+        wybrane.delete(k);
+      } else {
+        wybrane.add(k);
+      }
+      btn.setAttribute('aria-pressed', String(wybrane.has(k)));
+      rysuj();
+    });
+
+    rysuj();
+    pojedynek();
+  </script>
+</Baza>

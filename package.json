@@ -1,0 +1,26 @@
+{
+  "name": "poznan-dane",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Poznań w danych — przeglądarka danych publicznych o mieście",
+  "scripts": {
+    "etl": "npm run etl:umowy && npm run etl:bdl && npm run etl:badam && npm run etl:katalog && npm run etl:build",
+    "etl:umowy": "node etl/fetch-umowy.mjs 2014 2026",
+    "etl:bdl": "node etl/fetch-bdl.mjs",
+    "etl:badam": "node etl/fetch-badam.mjs",
+    "etl:katalog": "node etl/fetch-opendata.mjs",
+    "etl:build": "node etl/build-aggregates.mjs",
+    "etl:sprawdz": "node etl/sprawdz.mjs",
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "devDependencies": {
+    "astro": "^5.2.5"
+  },
+  "dependencies": {
+    "@fontsource-variable/space-grotesk": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0"
+  }
+}

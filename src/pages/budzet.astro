@@ -1,0 +1,239 @@
+---
+import Baza from '../layouts/Baza.astro';
+import bdl from '../../public/dane/bdl.json';
+import badam from '../../public/dane/badam.json';
+
+const p = bdl.miasta.poznan;
+const lataBudzetu = Object.keys(p.wskazniki.dochodyOgolem.wartosci).sort();
+const ostatni = lataBudzetu[lataBudzetu.length - 1];
+
+const wart = (klucz, rok = ostatni) => p.wskazniki[klucz]?.wartosci[rok] ?? null;
+const dochody = wart('dochodyOgolem');
+const wydatki = wart('wydatkiOgolem');
+const wynik = dochody - wydatki;
+const inwestycje = wart('wydatkiInwestycyjne');
+
+const mld = (n) => (n / 1e9).toLocaleString('pl-PL', { maximumFractionDigits: 2 });
+const mln = (n) => (n / 1e6).toLocaleString('pl-PL', { maximumFractionDigits: 0 });
+
+const budzetBadam = badam.tematy.find((t) => t.temat.includes('Budżet'));
+// lata z tabel badam, od najnowszego
+const lataBadam = [...new Set(budzetBadam.pozycje.flatMap((x) => Object.keys(x.wartosci)))].sort().reverse();
+---
+
+<Baza
+  strona="budzet"
+  tytul="Budżet miasta"
+  opis="Dochody i wydatki Poznania od 1995 roku, struktura wg działów klasyfikacji budżetowej, deficyt i inwestycje."
+>
+  <section style="margin-top:44px">
+    <p class="nadtytul">Finanse miasta</p>
+    <h1>Budżet Poznania pod lupą</h1>
+    <p class="lid">
+      Wykonanie budżetu od 1995 roku według sprawozdawczości GUS, zestawione z tabelami
+      Urzędu Miasta. Dwa niezależne źródła w jednym miejscu — jeśli się rozjeżdżają, widać to od razu.
+    </p>
+  </section>
+
+  <section class="siatka k4">
+    <div class="karta kpi">
+      <span class="etykieta">Dochody {ostatni}</span>
+      <span class="wartosc">{mld(dochody)} mld</span>
+      <span class="opis">{Math.round(wart('dochodyNaMieszkanca')).toLocaleString('pl-PL')} zł na mieszkańca</span>
+    </div>
+    <div class="karta kpi">
+      <span class="etykieta">Wydatki {ostatni}</span>
+      <span class="wartosc">{mld(wydatki)} mld</span>
+      <span class="opis">{Math.round(wart('wydatkiNaMieszkanca')).toLocaleString('pl-PL')} zł na mieszkańca</span>
+    </div>
+    <div class="karta kpi">
+      <span class="etykieta">Wynik budżetu</span>
+      <span class="wartosc" style={`color:${wynik >= 0 ? 'var(--zielen)' : 'var(--czerwien)'}`}>
+        {wynik >= 0 ? '+' : '−'}{mln(Math.abs(wynik))} mln
+      </span>
+      <span class="opis">{wynik >= 0 ? 'nadwyżka' : 'deficyt'} w {ostatni} r.</span>
+    </div>
+    <div class="karta kpi">
+      <span class="etykieta">Inwestycje</span>
+      <span class="wartosc">{((inwestycje / wydatki) * 100).toLocaleString('pl-PL', { maximumFractionDigits: 1 })}%</span>
+      <span class="opis">{mln(inwestycje)} mln zł wydatków majątkowych inwestycyjnych</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Trzydzieści lat budżetu</h2>
+    <div class="karta cien">
+      <div id="w-linia"><p class="ladowanie">…</p></div>
+      <div id="w-linia-legenda"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Nadwyżka czy deficyt</h2>
+    <p class="drobne" style="margin-top:-8px">
+      Różnica dochodów i wydatków w danym roku. Słupki w dół to lata, w których miasto wydało więcej, niż zebrało.
+    </p>
+    <div class="karta cien"><div id="w-wynik"><p class="ladowanie">…</p></div></div>
+  </section>
+
+  <section>
+    <h2>Skąd miasto bierze pieniądze</h2>
+    <div class="karta cien">
+      <div id="w-dochody-struktura"><p class="ladowanie">…</p></div>
+      <p class="drobne" style="margin-top:14px">
+        Dochody własne (podatki i opłaty lokalne, udziały w PIT i CIT), subwencja ogólna z budżetu państwa
+        oraz dotacje celowe. Udział dochodów własnych to miara samodzielności finansowej samorządu.
+      </p>
+    </div>
+    <div class="karta cien" style="margin-top:18px">
+      <h3>Udział dochodów własnych w dochodach ogółem</h3>
+      <div id="w-samodzielnosc"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Na co idą pieniądze</h2>
+    <div style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">
+      <label class="pole" style="max-width:190px">Rok
+        <select id="rok-dzialy"></select>
+      </label>
+      <p class="drobne" style="margin:0 0 6px">Wydatki wg działów klasyfikacji budżetowej (GUS BDL).</p>
+    </div>
+    <div class="karta cien"><div id="w-dzialy"><p class="ladowanie">…</p></div></div>
+    <div class="karta cien" style="margin-top:18px">
+      <h3>Cztery największe działy w czasie</h3>
+      <div id="w-dzialy-czas"></div>
+      <div id="w-dzialy-czas-legenda"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Weryfikacja: GUS kontra Urząd Miasta</h2>
+    <p class="lid" style="font-size:1rem">
+      Poniżej tabela budżetowa z miejskiego portalu <a href="https://badam.poznan.pl/" rel="noopener">badam.poznan.pl</a>
+      (w mln zł). Wartości pochodzą z innego łańcucha sprawozdawczego niż szeregi GUS powyżej — zestawienie
+      pozwala sprawdzić, czy obie instytucje mówią to samo.
+    </p>
+    <div class="tabela-otok">
+      <table>
+        <thead>
+          <tr>
+            <th>Pozycja</th>
+            {lataBadam.map((r) => <th class="num">{r}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {budzetBadam.pozycje.map((poz) => (
+            <tr>
+              <td>{poz.etykieta}</td>
+              {lataBadam.map((r) => (
+                <td class="num">
+                  {poz.wartosci[r] != null
+                    ? poz.wartosci[r].toLocaleString('pl-PL', { maximumFractionDigits: 1 })
+                    : (poz.teksty[r] ?? '—')}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="drobne">
+      Źródło: badam.poznan.pl, tabele „Budżet Miasta Poznania" (roczniki {lataBadam[lataBadam.length - 1]}–{lataBadam[0]}).
+      Puste pola oznaczają, że pozycja nie występowała w tabeli z danego roku.
+    </p>
+  </section>
+
+  <script>
+    import { liniowy, slupkowy, ranking, struktura, legenda, fmt, podmien, PALETA } from '../lib/wykresy.js';
+
+    const bdl = await (await fetch('/dane/bdl.json')).json();
+    const p = bdl.miasta.poznan;
+    const w = p.wskazniki;
+
+    const mlnZl = (n) => `${fmt.liczba(n / 1e6, 0)} mln`;
+
+    // ---- dochody / wydatki / inwestycje ----
+    const serie = [
+      { nazwa: 'Dochody ogółem', punkty: Object.entries(w.dochodyOgolem.wartosci), kolor: PALETA[1] },
+      { nazwa: 'Wydatki ogółem', punkty: Object.entries(w.wydatkiOgolem.wartosci), kolor: PALETA[0] },
+      { nazwa: 'Wydatki inwestycyjne', punkty: Object.entries(w.wydatkiInwestycyjne.wartosci), kolor: PALETA[2] },
+    ];
+    podmien('#w-linia', liniowy(serie, { wysokosc: 320 }));
+    podmien('#w-linia-legenda', legenda(serie));
+
+    // ---- wynik budżetu ----
+    const lata = Object.keys(w.dochodyOgolem.wartosci)
+      .filter((r) => w.wydatkiOgolem.wartosci[r] != null)
+      .sort();
+    podmien('#w-wynik', slupkowy(
+      lata.map((r) => [r, w.dochodyOgolem.wartosci[r] - w.wydatkiOgolem.wartosci[r]]),
+      { wysokosc: 240, formatY: fmt.skrot, kolor: '#1f6b4f', kolorUjemny: '#b4132c' },
+    ));
+
+    // ---- struktura dochodów ----
+    const ostatniRok = lata[lata.length - 1];
+    const rokStruktury = [ostatniRok, ...lata.slice().reverse()]
+      .find((r) => w.dochodyWlasne.wartosci[r] != null && w.subwencja.wartosci[r] != null);
+    if (rokStruktury) {
+      const wlasne = w.dochodyWlasne.wartosci[rokStruktury];
+      const subw = w.subwencja.wartosci[rokStruktury];
+      const dot = w.dotacje.wartosci[rokStruktury] ?? 0;
+      const ogol = w.dochodyOgolem.wartosci[rokStruktury];
+      const pozostale = Math.max(0, ogol - wlasne - subw - dot);
+      const dane = [
+        { nazwa: 'Dochody własne', wartosc: wlasne },
+        { nazwa: 'Subwencja ogólna', wartosc: subw },
+        { nazwa: 'Dotacje', wartosc: dot },
+        ...(pozostale > ogol * 0.005 ? [{ nazwa: 'Pozostałe', wartosc: pozostale }] : []),
+      ];
+      const box = document.createElement('div');
+      const tytul = document.createElement('h3');
+      tytul.textContent = `Struktura dochodów w ${rokStruktury} r.`;
+      box.append(tytul, struktura(dane));
+      podmien('#w-dochody-struktura', box);
+    }
+
+    // ---- samodzielność finansowa ----
+    const udzial = lata
+      .filter((r) => w.dochodyWlasne.wartosci[r] != null)
+      .map((r) => [r, (w.dochodyWlasne.wartosci[r] / w.dochodyOgolem.wartosci[r]) * 100]);
+    podmien('#w-samodzielnosc', liniowy(
+      [{ nazwa: 'Udział dochodów własnych', punkty: udzial, kolor: PALETA[3] }],
+      { wysokosc: 200, formatY: (n) => `${fmt.liczba(n, 0)}%` },
+    ));
+
+    // ---- wydatki wg działów ----
+    const dzialy = Object.entries(p.dzialy)
+      .filter(([k]) => k !== 'd_ogolem')
+      .map(([, v]) => v);
+    const lataDzialow = [...new Set(dzialy.flatMap((d) => Object.keys(d.wartosci)))].sort().reverse();
+    const wybor = document.querySelector('#rok-dzialy');
+    for (const r of lataDzialow) wybor.append(new Option(r, r));
+
+    function rysujDzialy() {
+      const rok = wybor.value;
+      const dane = dzialy
+        .map((d) => ({ nazwa: d.nazwa.replace(/^(\d+) — /, '$1 · '), wartosc: d.wartosci[rok] ?? 0 }))
+        .filter((d) => d.wartosc > 0)
+        .sort((a, b) => b.wartosc - a.wartosc);
+      podmien('#w-dzialy', ranking(dane, { formatW: mlnZl, kolor: PALETA[0], maxEtykieta: 52 }));
+    }
+    wybor.addEventListener('change', rysujDzialy);
+    rysujDzialy();
+
+    // ---- cztery największe działy w czasie ----
+    const najRok = lataDzialow[0];
+    const czolowka = dzialy
+      .filter((d) => d.klucz !== 'd926b')
+      .sort((a, b) => (b.wartosci[najRok] ?? 0) - (a.wartosci[najRok] ?? 0))
+      .slice(0, 4)
+      .map((d, i) => ({
+        nazwa: d.nazwa.replace(/^\d+ — /, ''),
+        punkty: Object.entries(d.wartosci),
+        kolor: PALETA[i],
+      }));
+    podmien('#w-dzialy-czas', liniowy(czolowka, { wysokosc: 260, formatY: fmt.skrot }));
+    podmien('#w-dzialy-czas-legenda', legenda(czolowka));
+  </script>
+</Baza>

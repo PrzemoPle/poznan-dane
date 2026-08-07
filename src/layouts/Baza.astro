@@ -1,0 +1,121 @@
+---
+import '@fontsource-variable/space-grotesk';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/600.css';
+import '../styles/global.css';
+
+const { tytul, opis, strona } = Astro.props;
+const pelnyTytul = tytul ? `${tytul} — Poznań w danych` : 'Poznań w danych';
+
+const menu = [
+  { href: '/', etykieta: 'Pulpit', klucz: 'pulpit' },
+  { href: '/umowy/', etykieta: 'Rejestr umów', klucz: 'umowy' },
+  { href: '/budzet/', etykieta: 'Budżet', klucz: 'budzet' },
+  { href: '/statystyki/', etykieta: 'Statystyki', klucz: 'statystyki' },
+  { href: '/porownaj/', etykieta: 'Porównaj miasta', klucz: 'porownaj' },
+  { href: '/zrodla/', etykieta: 'Źródła', klucz: 'zrodla' },
+];
+---
+
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pelnyTytul}</title>
+    <meta name="description" content={opis ?? 'Przeglądarka danych publicznych o Poznaniu: rejestr umów, budżet miasta, statystyki i porównania z innymi miastami.'} />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content={pelnyTytul} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pl_PL" />
+  </head>
+  <body>
+    <header class="szczyt">
+      <div class="otoczka szczyt-rzad">
+        <a class="logo" href="/"><span class="znak" aria-hidden="true"></span>Poznań w danych</a>
+        <nav class="nawigacja" aria-label="Główna">
+          {menu.map((m) => (
+            <a href={m.href} aria-current={strona === m.klucz ? 'page' : undefined}>{m.etykieta}</a>
+          ))}
+        </nav>
+      </div>
+    </header>
+
+    <main class="otoczka">
+      <slot />
+    </main>
+
+    <footer class="stopka">
+      <div class="otoczka siatka k3">
+        <div>
+          <h4>O serwisie</h4>
+          <p>
+            Niezależna przeglądarka danych publicznych o Poznaniu. Wszystkie liczby pochodzą
+            z oficjalnych rejestrów i są podlinkowane do źródła — każdą można sprawdzić.
+          </p>
+        </div>
+        <div>
+          <h4>Źródła danych</h4>
+          <ul>
+            <li><a href="https://bip.poznan.pl/bip/rejestr-umow/" rel="noopener">Rejestr umów Miasta Poznania (BIP)</a></li>
+            <li><a href="https://rejestrumow.gov.pl/" rel="noopener">Centralny Rejestr Umów JSFP</a></li>
+            <li><a href="https://badam.poznan.pl/" rel="noopener">badam.poznan.pl</a></li>
+            <li><a href="https://www.poznan.pl/opendata" rel="noopener">Poznań — Otwarte Dane</a></li>
+            <li><a href="https://bdl.stat.gov.pl/" rel="noopener">GUS Bank Danych Lokalnych</a></li>
+            <li><a href="https://dane.gov.pl/" rel="noopener">dane.gov.pl</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Zastrzeżenia</h4>
+          <p>
+            Serwis nie jest powiązany z Urzędem Miasta Poznania. Dane przetwarzane są automatycznie;
+            w razie rozbieżności rozstrzygające jest źródło pierwotne.
+            <a href="/zrodla/">Metodologia i zakres danych</a>.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Count-up dla wartości KPI — odpala się raz, gdy karta wjedzie w viewport.
+      // Parsuje polską notację ("6,66 mld zł", "534 239", "−3 mln") i animuje
+      // samą liczbę, zachowując jednostkę. Gaszone przy prefers-reduced-motion.
+      const bezRuchu = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!bezRuchu) {
+        const wzor = /^([−-]?)([\d\s ]+(?:,\d+)?)/;
+        const cele = document.querySelectorAll('.kpi .wartosc, .hero-liczba');
+        const obserwator = new IntersectionObserver((wpisy) => {
+          for (const w of wpisy) {
+            if (!w.isIntersecting) continue;
+            obserwator.unobserve(w.target);
+            const el = w.target;
+            const tekst = el.textContent.trim();
+            const m = tekst.match(wzor);
+            if (!m) continue;
+            const znak = m[1];
+            // końcowe spacje zostają w "reszcie", żeby nie skleić liczby z jednostką
+            const cyfry = m[2].replace(/\s+$/, '');
+            const cel = parseFloat(cyfry.replace(/[\s ]/g, '').replace(',', '.'));
+            if (!Number.isFinite(cel) || cel === 0) continue;
+            const miejsca = (cyfry.match(/,(\d+)/) || ['', ''])[1].length;
+            const reszta = tekst.slice(znak.length + cyfry.length);
+            const start = performance.now();
+            const czas = 850;
+            const krok = (t) => {
+              const p = Math.min(1, (t - start) / czas);
+              const zjazd = 1 - Math.pow(1 - p, 3); // easeOutCubic
+              const v = cel * zjazd;
+              el.textContent = znak + v.toLocaleString('pl-PL', {
+                minimumFractionDigits: miejsca, maximumFractionDigits: miejsca,
+              }) + reszta;
+              if (p < 1) requestAnimationFrame(krok);
+            };
+            requestAnimationFrame(krok);
+          }
+        }, { threshold: 0.4 });
+        for (const el of cele) obserwator.observe(el);
+      }
+    </script>
+  </body>
+</html>

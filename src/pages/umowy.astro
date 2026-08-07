@@ -1,0 +1,369 @@
+---
+import Baza from '../layouts/Baza.astro';
+import agregaty from '../../public/dane/umowy-agregaty.json';
+
+const lata = agregaty.lata.map((l) => l.rok).sort((a, b) => b - a);
+const mld = (n) => (n / 1e9).toLocaleString('pl-PL', { maximumFractionDigits: 2 });
+const licz = (n) => n.toLocaleString('pl-PL');
+---
+
+<Baza
+  strona="umowy"
+  tytul="Rejestr umów"
+  opis="Przeglądarka rejestru umów Miasta Poznania: filtrowanie po jednostce, kontrahencie, kwocie i przedmiocie."
+>
+  <section style="margin-top:44px">
+    <p class="nadtytul">Rejestr umów Miasta Poznania</p>
+    <h1>Kto, za co i za ile</h1>
+    <p class="lid">
+      {licz(agregaty.podsumowanie.liczba)} umów zawartych w latach
+      {agregaty.podsumowanie.odRoku}–{agregaty.podsumowanie.doRoku} przez Urząd Miasta i {' '}
+      {licz(agregaty.podsumowanie.liczbaJednostek - 1)} jednostek miejskich — od przedszkola po zarząd
+      transportu — z {licz(agregaty.podsumowanie.liczbaKontrahentow)} kontrahentami. Łączna ujawniona
+      wartość: {mld(agregaty.podsumowanie.suma)} mld zł.
+    </p>
+    <p class="drobne" style="max-width:70ch">
+      Uwaga metodologiczna: wartość umowy wieloletniej zapisana jest w całości w roku jej zawarcia,
+      więc roczne sumy nie są równoważne wydatkom budżetu z tego roku. Dlatego obok sumy podajemy medianę.
+      Umowy zawarte od 1 lipca 2026 r. trafiają do
+      <a href="https://rejestrumow.gov.pl/" rel="noopener">Centralnego Rejestru Umów</a>, a nie do BIP-u miasta.
+    </p>
+  </section>
+
+  <section>
+    <div class="karta cien" style="padding:18px 20px">
+      <div class="siatka" style="grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px">
+        <label class="pole">Rocznik
+          <select id="f-rok">
+            {lata.map((r, i) => <option value={r} selected={i === 0}>{r}</option>)}
+            <option value="wszystkie">wszystkie lata (~27 MB, wolniej)</option>
+          </select>
+        </label>
+        <label class="pole" style="grid-column:span 2">Szukaj w przedmiocie, kontrahencie, numerze
+          <input type="search" id="f-fraza" placeholder="np. remont, oświetlenie, Aquanet" autocomplete="off" />
+        </label>
+        <label class="pole">Jednostka
+          <select id="f-jednostka"><option value="">wszystkie</option></select>
+        </label>
+        <label class="pole">Rodzaj umowy
+          <select id="f-rodzaj"><option value="">wszystkie</option></select>
+        </label>
+        <label class="pole">Kwota od (zł)
+          <input type="number" id="f-od" placeholder="0" min="0" step="1000" />
+        </label>
+        <label class="pole">Kwota do (zł)
+          <input type="number" id="f-do" placeholder="bez limitu" min="0" step="1000" />
+        </label>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center">
+        <button id="f-reset">Wyczyść filtry</button>
+        <button id="f-csv">Pobierz wynik (CSV)</button>
+        <span id="f-podsumowanie" class="drobne" style="margin-left:auto"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="wyniki-sekcja">
+    <div class="siatka k4" style="margin-bottom:18px">
+      <div class="karta kpi"><span class="etykieta">Znaleziono</span><span class="wartosc" id="k-liczba">—</span><span class="opis">umów</span></div>
+      <div class="karta kpi"><span class="etykieta">Suma wartości</span><span class="wartosc" id="k-suma">—</span><span class="opis" id="k-bezkwoty"></span></div>
+      <div class="karta kpi"><span class="etykieta">Mediana</span><span class="wartosc" id="k-mediana">—</span><span class="opis">typowa umowa</span></div>
+      <div class="karta kpi"><span class="etykieta">Największa</span><span class="wartosc" id="k-max">—</span><span class="opis" id="k-max-kto"></span></div>
+    </div>
+
+    <div class="siatka k2">
+      <div class="karta">
+        <h3>Jednostki wg wartości umów</h3>
+        <div id="wykres-jednostki"><p class="ladowanie">…</p></div>
+      </div>
+      <div class="karta">
+        <h3>Kontrahenci wg wartości umów</h3>
+        <div id="wykres-kontrahenci"><p class="ladowanie">…</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+      <h2 style="margin-bottom:.2em">Wyniki</h2>
+      <span class="drobne">kliknij nagłówek, by posortować · numer umowy prowadzi do wpisu w BIP</span>
+    </div>
+    <div class="tabela-otok" style="max-height:70vh;overflow-y:auto">
+      <table id="tabela">
+        <thead>
+          <tr>
+            <th class="sortowalna" data-pole="d" data-kier="desc">Data</th>
+            <th class="sortowalna" data-pole="k">Kontrahent</th>
+            <th>Przedmiot</th>
+            <th class="sortowalna" data-pole="j">Jednostka</th>
+            <th class="num sortowalna" data-pole="w">Wartość</th>
+            <th>Nr</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"><tr><td colspan="6" class="ladowanie">Wczytywanie rejestru…</td></tr></tbody>
+      </table>
+    </div>
+    <div style="text-align:center;margin-top:16px">
+      <button id="wiecej" class="glowny" hidden>Pokaż kolejne 100</button>
+    </div>
+  </section>
+
+  <hr class="rozdz" />
+
+  <section>
+    <h2>Największe umowy w całym rejestrze</h2>
+    <p class="drobne" style="margin-top:-8px">Niezależnie od ustawionych filtrów. Wartość dotyczy całego okresu obowiązywania umowy.</p>
+    <div class="tabela-otok">
+      <table>
+        <thead><tr><th>Data</th><th>Kontrahent</th><th>Przedmiot</th><th class="num">Wartość</th></tr></thead>
+        <tbody>
+          {agregaty.najwiekszeUmowy.slice(0, 15).map((u) => (
+            <tr>
+              <td style="white-space:nowrap">{u.data.split('-').reverse().join('.')}</td>
+              <td>{u.kontrahent}</td>
+              <td style="color:var(--tekst-2)">
+                <a href={u.link} rel="noopener nofollow">{u.przedmiot}</a>
+              </td>
+              <td class="num" style="font-weight:600">{(u.wartosc / 1e6).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} mln</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Liczba i wartość umów w kolejnych latach</h2>
+    <div class="siatka k2">
+      <div class="karta"><h3>Liczba umów</h3><div id="wykres-lata-liczba"></div></div>
+      <div class="karta"><h3>Suma wartości</h3><div id="wykres-lata-suma"></div></div>
+    </div>
+  </section>
+
+  <script>
+    import { ranking, slupkowy, fmt, podmien, PALETA } from '../lib/wykresy.js';
+
+    const agregaty = await (await fetch('/dane/umowy-agregaty.json')).json();
+    const lata = agregaty.lata.map((l) => l.rok).sort((a, b) => b - a);
+
+    // ---------- wykresy roczne (niezależne od filtrów) ----------
+    podmien('#wykres-lata-liczba', slupkowy(
+      agregaty.lata.map((l) => [String(l.rok), l.liczba]),
+      { wysokosc: 200, formatY: (n) => fmt.liczba(n), kolor: PALETA[1] },
+    ));
+    podmien('#wykres-lata-suma', slupkowy(
+      agregaty.lata.map((l) => [String(l.rok), l.suma]),
+      { wysokosc: 200, formatY: fmt.skrot },
+    ));
+
+    // ---------- ładowanie roczników ----------
+    const bufor = new Map();
+    async function rocznik(rok) {
+      if (!bufor.has(rok)) {
+        bufor.set(rok, fetch(`/dane/umowy/${rok}.json`).then((r) => r.json()));
+      }
+      return bufor.get(rok);
+    }
+
+    const $ = (s) => document.querySelector(s);
+    const pola = {
+      rok: $('#f-rok'), fraza: $('#f-fraza'), jednostka: $('#f-jednostka'),
+      rodzaj: $('#f-rodzaj'), od: $('#f-od'), do: $('#f-do'),
+    };
+
+    let zbior = [];      // aktualnie załadowany rocznik / całość
+    let wynik = [];      // po filtrach
+    let pokazane = 100;
+    let sort = { pole: 'd', kier: 'desc' };
+
+    function bezOgonkow(s) {
+      return (s || '').toLowerCase()
+        .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e').replace(/ł/g, 'l')
+        .replace(/ń/g, 'n').replace(/ó/g, 'o').replace(/ś/g, 's').replace(/[żź]/g, 'z');
+    }
+
+    function uzupelnijSlowniki() {
+      for (const [pole, klucz] of [[pola.jednostka, 'j'], [pola.rodzaj, 'r']]) {
+        const biezaca = pole.value;
+        const wartosci = [...new Set(zbior.map((u) => u[klucz]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pl'));
+        pole.replaceChildren(new Option('wszystkie', ''));
+        for (const v of wartosci) pole.append(new Option(v.length > 60 ? v.slice(0, 59) + '…' : v, v));
+        if (wartosci.includes(biezaca)) pole.value = biezaca;
+      }
+    }
+
+    function filtruj() {
+      const fraza = bezOgonkow(pola.fraza.value.trim());
+      const jednostka = pola.jednostka.value;
+      const rodzaj = pola.rodzaj.value;
+      const od = pola.od.value === '' ? null : Number(pola.od.value);
+      const doK = pola.do.value === '' ? null : Number(pola.do.value);
+
+      wynik = zbior.filter((u) => {
+        if (jednostka && u.j !== jednostka) return false;
+        if (rodzaj && u.r !== rodzaj) return false;
+        if (od != null && !(u.w >= od)) return false;
+        if (doK != null && !(u.w != null && u.w <= doK)) return false;
+        if (fraza) {
+          u._s ??= bezOgonkow(`${u.k} ${u.p} ${u.n}`);
+          if (!u._s.includes(fraza)) return false;
+        }
+        return true;
+      });
+
+      sortuj();
+      pokazane = 100;
+      rysuj();
+    }
+
+    function sortuj() {
+      const { pole, kier } = sort;
+      const znak = kier === 'asc' ? 1 : -1;
+      wynik.sort((a, b) => {
+        const x = a[pole], y = b[pole];
+        if (x == null && y == null) return 0;
+        if (x == null) return 1;   // braki zawsze na końcu
+        if (y == null) return -1;
+        if (typeof x === 'number') return (x - y) * znak;
+        return String(x).localeCompare(String(y), 'pl') * znak;
+      });
+    }
+
+    function statystyki() {
+      const kwoty = wynik.map((u) => u.w).filter((v) => v != null && v > 0).sort((a, b) => a - b);
+      const suma = kwoty.reduce((s, v) => s + v, 0);
+      const mediana = kwoty.length ? kwoty[Math.floor(kwoty.length / 2)] : null;
+      const najw = wynik.filter((u) => u.w != null).sort((a, b) => b.w - a.w)[0];
+      $('#k-liczba').textContent = fmt.liczba(wynik.length);
+      $('#k-suma').textContent = fmt.kwota(suma);
+      $('#k-bezkwoty').textContent = `${fmt.liczba(wynik.length - kwoty.length)} bez podanej kwoty`;
+      $('#k-mediana').textContent = mediana == null ? '—' : fmt.kwota(mediana);
+      $('#k-max').textContent = najw ? fmt.kwota(najw.w) : '—';
+      $('#k-max-kto').textContent = najw ? najw.k.slice(0, 48) : '';
+    }
+
+    function agreguj(klucz, n = 12) {
+      const mapa = new Map();
+      for (const u of wynik) {
+        const k = u[klucz];
+        if (!k) continue;
+        mapa.set(k, (mapa.get(k) || 0) + (u.w || 0));
+      }
+      return [...mapa.entries()]
+        .map(([nazwa, wartosc]) => ({ nazwa, wartosc }))
+        .filter((d) => d.wartosc > 0)
+        .sort((a, b) => b.wartosc - a.wartosc)
+        .slice(0, n);
+    }
+
+    function wierszHTML(u) {
+      const tr = document.createElement('tr');
+      const kwota = u.w != null
+        ? fmt.kwota(u.w)
+        : `<span title="w rejestrze zapisano: ${u.wr ?? 'brak'}" style="color:var(--tekst-3)">${u.wr ?? '—'}</span>`;
+      tr.innerHTML = `
+        <td style="white-space:nowrap">${fmt.data(u.d)}</td>
+        <td>${escapuj(u.k)}</td>
+        <td style="color:var(--tekst-2);max-width:38ch">${escapuj(u.p)}</td>
+        <td style="color:var(--tekst-2);max-width:22ch">${escapuj(u.j)}</td>
+        <td class="num" style="font-weight:600">${kwota}</td>
+        <td class="drobne" style="white-space:nowrap">${u.l ? `<a href="${u.l}" rel="noopener nofollow">${escapuj(u.n || 'wpis')}</a>` : escapuj(u.n)}</td>`;
+      return tr;
+    }
+
+    function escapuj(s) {
+      return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+
+    function rysuj() {
+      statystyki();
+      const tbody = $('#tbody');
+      if (!wynik.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="ladowanie">Brak umów spełniających kryteria.</td></tr>';
+      } else {
+        const frag = document.createDocumentFragment();
+        for (const u of wynik.slice(0, pokazane)) frag.append(wierszHTML(u));
+        tbody.replaceChildren(frag);
+      }
+      const wiecej = $('#wiecej');
+      wiecej.hidden = wynik.length <= pokazane;
+      wiecej.textContent = `Pokaż kolejne 100 (z ${fmt.liczba(wynik.length - pokazane)} pozostałych)`;
+
+      podmien('#wykres-jednostki', ranking(agreguj('j'), { kolor: PALETA[1], maxEtykieta: 40 }));
+      podmien('#wykres-kontrahenci', ranking(agreguj('k'), { kolor: PALETA[0], maxEtykieta: 40 }));
+
+      const zakres = pola.rok.value === 'wszystkie' ? `${Math.min(...lata)}–${Math.max(...lata)}` : pola.rok.value;
+      $('#f-podsumowanie').textContent = `Zbiór: ${fmt.liczba(zbior.length)} umów (${zakres})`;
+    }
+
+    async function wczytaj() {
+      $('#tbody').innerHTML = '<tr><td colspan="6" class="ladowanie">Wczytywanie rejestru…</td></tr>';
+      const wybor = pola.rok.value;
+      if (wybor === 'wszystkie') {
+        const paczki = await Promise.all(lata.map(rocznik));
+        zbior = paczki.flat();
+      } else {
+        zbior = await rocznik(Number(wybor));
+      }
+      uzupelnijSlowniki();
+      filtruj();
+      zapiszURL();
+    }
+
+    // ---------- adres URL jako stan ----------
+    function zapiszURL() {
+      const p = new URLSearchParams();
+      for (const [k, el] of Object.entries(pola)) if (el.value) p.set(k, el.value);
+      history.replaceState(null, '', p.toString() ? `?${p}` : location.pathname);
+    }
+    function odczytajURL() {
+      const p = new URLSearchParams(location.search);
+      for (const [k, el] of Object.entries(pola)) if (p.has(k)) el.value = p.get(k);
+    }
+
+    // ---------- eksport ----------
+    function csv() {
+      const naglowki = ['data', 'kontrahent', 'przedmiot', 'jednostka', 'rodzaj', 'wartosc', 'numer', 'link'];
+      const cytat = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const tresc = [naglowki.join(';'), ...wynik.map((u) =>
+        [u.d, u.k, u.p, u.j, u.r ?? '', u.w ?? u.wr ?? '', u.n, u.l].map(cytat).join(';'))].join('\n');
+      const blob = new Blob(['﻿' + tresc], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `umowy-poznan-${pola.rok.value}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    // ---------- zdarzenia ----------
+    let timer;
+    pola.fraza.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => { filtruj(); zapiszURL(); }, 180);
+    });
+    for (const el of [pola.jednostka, pola.rodzaj, pola.od, pola.do]) {
+      el.addEventListener('change', () => { filtruj(); zapiszURL(); });
+    }
+    pola.rok.addEventListener('change', wczytaj);
+    $('#wiecej').addEventListener('click', () => { pokazane += 100; rysuj(); });
+    $('#f-csv').addEventListener('click', csv);
+    $('#f-reset').addEventListener('click', () => {
+      for (const el of Object.values(pola)) if (el !== pola.rok) el.value = '';
+      filtruj();
+      zapiszURL();
+    });
+    for (const th of document.querySelectorAll('th.sortowalna')) {
+      th.addEventListener('click', () => {
+        const pole = th.dataset.pole;
+        sort = { pole, kier: sort.pole === pole && sort.kier === 'desc' ? 'asc' : 'desc' };
+        for (const inny of document.querySelectorAll('th.sortowalna')) inny.removeAttribute('data-kier');
+        th.dataset.kier = sort.kier;
+        sortuj();
+        rysuj();
+      });
+    }
+
+    odczytajURL();
+    await wczytaj();
+  </script>
+</Baza>

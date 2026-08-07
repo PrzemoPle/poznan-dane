@@ -1,0 +1,204 @@
+---
+import Baza from '../layouts/Baza.astro';
+import badam from '../../public/dane/badam.json';
+import podsumowanie from '../../public/dane/podsumowanie.json';
+
+const tematy = badam.tematy.map((t) => ({ temat: t.temat, pozycji: t.pozycje.length }));
+const zBadam = tematy.reduce((s, t) => s + t.pozycji, 0);
+const razem = zBadam + podsumowanie.bdl.wskazniki.length;
+---
+
+<Baza
+  strona="statystyki"
+  tytul="Statystyki miasta"
+  opis="Kilkaset szeregów statystycznych o Poznaniu: demografia, rynek pracy, mieszkalnictwo, środowisko, edukacja, kultura, bezpieczeństwo."
+>
+  <section style="margin-top:44px">
+    <p class="nadtytul">Statystyka miejska</p>
+    <h1>{razem} szeregów o Poznaniu</h1>
+    <p class="lid">
+      Tabele statystyczne Urzędu Miasta z portalu badam.poznan.pl, sklejone w ciągłe szeregi czasowe,
+      plus długie serie GUS sięgające lat 90. Wybierz dział, przeszukaj albo po prostu przewijaj —
+      każdy wskaźnik ma wykres i wskazane źródło.
+    </p>
+  </section>
+
+  <section>
+    <div class="karta cien" style="padding:16px 20px">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
+        <label class="pole" style="flex:1;min-width:260px">Szukaj wskaźnika
+          <input type="search" id="szukaj" placeholder="np. rowery, przedszkola, przestępstwa, powietrze" autocomplete="off" />
+        </label>
+        <label class="pole" style="min-width:150px">Sortuj
+          <select id="sortuj">
+            <option value="alfa">alfabetycznie</option>
+            <option value="zmiana">największa zmiana</option>
+            <option value="spadek">największy spadek</option>
+            <option value="dlugosc">najdłuższy szereg</option>
+          </select>
+        </label>
+      </div>
+      <div id="dzialy" style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px">
+        <button class="pigulka" data-dzial="" aria-pressed="true">Wszystkie ({razem})</button>
+        <button class="pigulka" data-dzial="__gus" aria-pressed="false">GUS — długie szeregi ({podsumowanie.bdl.wskazniki.length})</button>
+        {tematy.map((t) => (
+          <button class="pigulka" data-dzial={t.temat} aria-pressed="false">{t.temat} ({t.pozycji})</button>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="drobne" id="licznik"></p>
+    <div id="lista" class="siatka k2"><p class="ladowanie">Wczytywanie szeregów…</p></div>
+    <div style="text-align:center;margin-top:20px">
+      <button id="wiecej" class="glowny" hidden>Pokaż więcej</button>
+    </div>
+  </section>
+
+  <script>
+    import { liniowy, fmt, PALETA } from '../lib/wykresy.js';
+
+    const [badam, bdl] = await Promise.all([
+      fetch('/dane/badam.json').then((r) => r.json()),
+      fetch('/dane/bdl.json').then((r) => r.json()),
+    ]);
+
+    // Ujednolicony model: { dzial, nazwa, sekcja, wartosci, zrodlo, link }
+    const szeregi = [];
+    for (const t of badam.tematy) {
+      for (const poz of t.pozycje) {
+        szeregi.push({
+          dzial: t.temat,
+          nazwa: poz.etykieta,
+          sekcja: poz.sekcja,
+          wartosci: poz.wartosci,
+          zrodlo: 'badam.poznan.pl',
+          link: poz.zrodla[0],
+        });
+      }
+    }
+    for (const w of Object.values(bdl.miasta.poznan.wskazniki)) {
+      szeregi.push({
+        dzial: '__gus',
+        dzialEtykieta: `GUS · ${w.grupa}`,
+        nazwa: w.nazwa,
+        sekcja: w.jednostka,
+        wartosci: w.wartosci,
+        zrodlo: 'GUS BDL',
+        link: 'https://bdl.stat.gov.pl/',
+      });
+    }
+
+    for (const s of szeregi) {
+      const lata = Object.keys(s.wartosci).sort();
+      s.lata = lata;
+      s.pierwszyRok = lata[0];
+      s.ostatniRok = lata[lata.length - 1];
+      s.pierwsza = s.wartosci[s.pierwszyRok];
+      s.ostatnia = s.wartosci[s.ostatniRok];
+      s.zmiana = s.pierwsza ? ((s.ostatnia - s.pierwsza) / Math.abs(s.pierwsza)) * 100 : null;
+      s.szukaj = `${s.nazwa} ${s.sekcja ?? ''} ${s.dzialEtykieta ?? s.dzial}`.toLowerCase();
+    }
+
+    const $ = (s) => document.querySelector(s);
+    let dzial = '';
+    let widoczne = 24;
+    let wynik = [];
+
+    function filtruj() {
+      const fraza = $('#szukaj').value.trim().toLowerCase();
+      wynik = szeregi.filter((s) => {
+        if (dzial && s.dzial !== dzial) return false;
+        if (fraza && !s.szukaj.includes(fraza)) return false;
+        return true;
+      });
+
+      const tryb = $('#sortuj').value;
+      const porownanie = {
+        alfa: (a, b) => a.nazwa.localeCompare(b.nazwa, 'pl'),
+        zmiana: (a, b) => (b.zmiana ?? -Infinity) - (a.zmiana ?? -Infinity),
+        spadek: (a, b) => (a.zmiana ?? Infinity) - (b.zmiana ?? Infinity),
+        dlugosc: (a, b) => b.lata.length - a.lata.length,
+      }[tryb];
+      wynik.sort(porownanie);
+
+      widoczne = 24;
+      rysuj();
+    }
+
+    function karta(s) {
+      const box = document.createElement('article');
+      box.className = 'karta';
+      const kier = s.zmiana == null ? '' : s.zmiana >= 0 ? 'var(--zielen)' : 'var(--czerwien)';
+      const strzalka = s.zmiana == null ? '' : s.zmiana >= 0 ? '▲' : '▼';
+
+      const glowa = document.createElement('div');
+      glowa.innerHTML = `
+        <h3 style="font-size:1rem;margin-bottom:.25em">${escapuj(s.nazwa)}</h3>
+        <p class="drobne" style="margin-bottom:.7em">
+          ${escapuj(s.dzialEtykieta ?? s.dzial)}${s.sekcja ? ` · ${escapuj(s.sekcja)}` : ''}
+        </p>
+        <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:.6em">
+          <strong style="font-family:var(--serif);font-size:1.5rem">${fmt.liczba(s.ostatnia, Math.abs(s.ostatnia) < 100 ? 1 : 0)}</strong>
+          <span class="drobne">w ${s.ostatniRok}</span>
+          ${s.zmiana == null ? '' : `<span style="color:${kier};font-weight:600;font-size:.85rem">${strzalka} ${fmt.liczba(Math.abs(s.zmiana), 1)}% od ${s.pierwszyRok}</span>`}
+        </div>`;
+      box.append(glowa);
+
+      box.append(liniowy(
+        [{ nazwa: s.nazwa, punkty: Object.entries(s.wartosci), kolor: PALETA[0] }],
+        { wysokosc: 165, szerokosc: 430, formatY: (n) => fmt.skrot(n), zeroBaseline: false },
+      ));
+
+      const stopka = document.createElement('p');
+      stopka.className = 'drobne';
+      stopka.style.marginTop = '10px';
+      stopka.innerHTML = `${s.lata.length} lat pomiaru · <a href="${s.link}" rel="noopener nofollow">${escapuj(s.zrodlo)}</a>`;
+      box.append(stopka);
+      return box;
+    }
+
+    function escapuj(s) {
+      return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+
+    function rysuj() {
+      const lista = $('#lista');
+      if (!wynik.length) {
+        lista.replaceChildren(Object.assign(document.createElement('p'), {
+          className: 'ladowanie', textContent: 'Nic nie pasuje do tych kryteriów.',
+        }));
+        $('#wiecej').hidden = true;
+        $('#licznik').textContent = '';
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      for (const s of wynik.slice(0, widoczne)) frag.append(karta(s));
+      lista.replaceChildren(frag);
+      $('#licznik').textContent = `Pokazano ${Math.min(widoczne, wynik.length)} z ${fmt.liczba(wynik.length)} szeregów`;
+      const wiecej = $('#wiecej');
+      wiecej.hidden = wynik.length <= widoczne;
+      wiecej.textContent = `Pokaż więcej (pozostało ${fmt.liczba(wynik.length - widoczne)})`;
+    }
+
+    let timer;
+    $('#szukaj').addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(filtruj, 160);
+    });
+    $('#sortuj').addEventListener('change', filtruj);
+    $('#wiecej').addEventListener('click', () => { widoczne += 24; rysuj(); });
+    $('#dzialy').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-dzial]');
+      if (!btn) return;
+      dzial = btn.dataset.dzial;
+      for (const b of document.querySelectorAll('#dzialy button')) {
+        b.setAttribute('aria-pressed', String(b === btn));
+      }
+      filtruj();
+    });
+
+    filtruj();
+  </script>
+</Baza>

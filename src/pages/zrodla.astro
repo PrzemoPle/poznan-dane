@@ -1,0 +1,227 @@
+---
+import Baza from '../layouts/Baza.astro';
+import katalog from '../../public/dane/katalog.json';
+import podsumowanie from '../../public/dane/podsumowanie.json';
+
+const zbiory = katalog.poznanOpendata.zbiory;
+const kategorie = katalog.poznanOpendata.kategorie;
+const krajowe = katalog.daneGovPl;
+
+const zrodla = [
+  {
+    nazwa: 'Rejestr umów Miasta Poznania',
+    gospodarz: 'Biuletyn Informacji Publicznej UM Poznania',
+    url: 'https://bip.poznan.pl/bip/rejestr-umow/',
+    api: 'https://bip.poznan.pl/api-json/bip/rejestr-umow/',
+    zakres: `${podsumowanie.umowy.liczba.toLocaleString('pl-PL')} umów, lata ${Math.min(...podsumowanie.umowy.lata)}–${Math.max(...podsumowanie.umowy.lata)}`,
+    metoda: 'Zapytania POST z filtrem rocznym, stronicowanie po 100 rekordów; osobne przejście po rodzajach umów, bo API nie zwraca tego pola w rekordzie.',
+    zastrzezenia: 'Wartość umowy wieloletniej jest zapisana w całości w roku zawarcia. Rejestr obejmuje umowy do 30.06.2026 — późniejsze trafiają do Centralnego Rejestru Umów JSFP.',
+  },
+  {
+    nazwa: 'GUS Bank Danych Lokalnych',
+    gospodarz: 'Główny Urząd Statystyczny',
+    url: 'https://bdl.stat.gov.pl/',
+    api: 'https://bdl.stat.gov.pl/api/v1/',
+    zakres: `${podsumowanie.bdl.wskazniki.length} wskaźników × ${podsumowanie.bdl.miasta.length} miast, szeregi od 1995 r.`,
+    metoda: 'Pobranie po jednostce terytorialnej (Poznań: gmina 023016264011, powiat grodzki 023016264000) dla wskazanych identyfikatorów zmiennych.',
+    zastrzezenia: 'Część wskaźników GUS publikuje wyłącznie na poziomie powiatu — stąd dwa poziomy zapytań. Dane roczne bywają publikowane z opóźnieniem 6–12 miesięcy.',
+  },
+  {
+    nazwa: 'badam.poznan.pl',
+    gospodarz: 'Wydział Rozwoju Miasta UM Poznania',
+    url: 'https://badam.poznan.pl/',
+    api: null,
+    zakres: `${podsumowanie.badam.tematy.reduce((s, t) => s + t.pozycji, 0)} szeregów w ${podsumowanie.badam.tematy.length} działach`,
+    metoda: 'Portal nie udostępnia API — tabele statystyczne odczytywane są z 95 podstron HTML i sklejane w szeregi czasowe po nazwie pozycji.',
+    zastrzezenia: 'Każdy rocznik to migawka dwóch lat. Etykiety pozycji bywają zmieniane między latami, co może rozdzielić szereg na dwa.',
+  },
+  {
+    nazwa: 'Poznań — Otwarte Dane',
+    gospodarz: 'Biuro Cyfryzacji i Cyberbezpieczeństwa UM Poznania',
+    url: 'https://www.poznan.pl/opendata',
+    api: 'https://www.poznan.pl/opendata/graphql',
+    zakres: `${zbiory.length} publicznych zbiorów, ${katalog.poznanOpendata.statystyki.apiCount} API`,
+    metoda: 'Zapytania GraphQL o katalog zbiorów, kategorie i metadane.',
+    zastrzezenia: 'Serwis wykorzystuje katalog do nawigacji po źródłach; treści samych zbiorów (np. rozkłady jazdy) nie są tu kopiowane.',
+  },
+  {
+    nazwa: 'dane.gov.pl',
+    gospodarz: 'Ministerstwo Cyfryzacji',
+    url: 'https://dane.gov.pl/pl/institution/47,urzad-miasta-poznania',
+    api: 'https://api.dane.gov.pl/1.4/',
+    zakres: `${krajowe.length} zbiorów Urzędu Miasta Poznania`,
+    metoda: 'REST API 1.4, filtr po instytucji nr 47.',
+    zastrzezenia: 'Krajowy katalog zawiera głównie zbiory administracyjne (uchwały, radni, zamówienia), rzadziej dane liczbowe.',
+  },
+  {
+    nazwa: 'Centralny Rejestr Umów JSFP',
+    gospodarz: 'Ministerstwo Finansów',
+    url: 'https://rejestrumow.gov.pl/',
+    api: null,
+    zakres: 'Umowy jednostek sektora finansów publicznych od 1 lipca 2026 r.',
+    metoda: 'Jeszcze nie zintegrowany — MF udostępniło API do publikacji umów przez jednostki, ale publiczne API odczytu nie jest dostępne bez klucza.',
+    zastrzezenia: 'Po 1.07.2026 nowe umowy Poznania nie pojawiają się już w BIP-ie miasta. Do czasu integracji rejestr trzeba przeglądać bezpośrednio.',
+  },
+];
+---
+
+<Baza
+  strona="zrodla"
+  tytul="Źródła i metodologia"
+  opis="Wykaz źródeł danych, sposób pobrania i znane ograniczenia. Katalog zbiorów danych o Poznaniu."
+>
+  <section style="margin-top:44px">
+    <p class="nadtytul">Metodologia</p>
+    <h1>Skąd to wszystko wiemy</h1>
+    <p class="lid">
+      Serwis nie tworzy własnych danych — wyłącznie porządkuje cudze. Poniżej każde źródło
+      z adresem, sposobem pobrania i tym, czego z niego wyczytać nie można. Ta ostatnia kolumna
+      jest najważniejsza.
+    </p>
+  </section>
+
+  <section>
+    <h2>Źródła użyte w serwisie</h2>
+    <div class="siatka" style="gap:16px">
+      {zrodla.map((z) => (
+        <article class="karta">
+          <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:baseline">
+            <h3 style="margin-bottom:.15em"><a href={z.url} rel="noopener">{z.nazwa}</a></h3>
+            <span class="znacznik">{z.zakres}</span>
+          </div>
+          <p class="drobne" style="margin-bottom:.9em">{z.gospodarz}</p>
+          <div class="siatka k2" style="gap:14px">
+            <div>
+              <p style="font-size:.86rem;margin-bottom:.4em"><strong>Jak pobieramy:</strong> {z.metoda}</p>
+              {z.api && <p class="drobne" style="font-family:var(--mono);word-break:break-all">{z.api}</p>}
+            </div>
+            <p style="font-size:.86rem;color:var(--tekst-2);border-left:2px solid var(--czerwien);padding-left:12px;margin:0">
+              <strong style="color:var(--tekst)">Czego nie mówi:</strong> {z.zastrzezenia}
+            </p>
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section>
+    <h2>Jak liczymy</h2>
+    <div class="siatka k3">
+      <div class="karta">
+        <h3>Suma kontra mediana</h3>
+        <p style="font-size:.9rem;color:var(--tekst-2)">
+          Roczne sumy wartości umów potrafią być zdominowane przez jeden kontrakt ramowy
+          (np. 12,2 mld zł za usługi przewozowe MPK na 15 lat). Dlatego wszędzie obok sumy
+          podajemy medianę — ona pokazuje, jak wygląda typowa umowa.
+        </p>
+      </div>
+      <div class="karta">
+        <h3>Scalanie kontrahentów</h3>
+        <p style="font-size:.9rem;color:var(--tekst-2)">
+          Ta sama firma bywa wpisana na kilka sposobów („Sp. z o.o.", „spółka z ograniczoną
+          odpowiedzialnością", z adresem albo bez). Nazwy normalizujemy przed zliczeniem,
+          ale automat nie wyłapie wszystkiego — rankingi kontrahentów traktuj jako przybliżenie.
+        </p>
+      </div>
+      <div class="karta">
+        <h3>Braki danych</h3>
+        <p style="font-size:.9rem;color:var(--tekst-2)">
+          Część umów ma wartość zapisaną słownie albo pustą. Takie rekordy zostają w tabeli,
+          ale nie wchodzą do sum i median — ich liczba jest podana przy każdym zestawieniu.
+          Nic nie jest po cichu pomijane.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Katalog zbiorów danych o Poznaniu</h2>
+    <p class="lid" style="font-size:1rem">
+      Pełna lista tego, co miasto i państwo udostępniają publicznie — również zbiorów, których
+      ten serwis jeszcze nie wykorzystuje. Jeśli szukasz danych, których tu nie ma, zacznij stąd.
+    </p>
+
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin:20px 0 16px">
+      <label class="pole" style="flex:1;min-width:260px">Szukaj w katalogu
+        <input type="search" id="szukaj-zbior" placeholder="np. rowery, powietrze, parkingi, budżet" autocomplete="off" />
+      </label>
+      <label class="pole" style="min-width:180px">Kategoria
+        <select id="kat-zbior">
+          <option value="">wszystkie</option>
+          {kategorie.map((k) => <option value={k.name}>{k.name} ({k.datasetsCount})</option>)}
+          <option value="__krajowe">dane.gov.pl ({krajowe.length})</option>
+        </select>
+      </label>
+    </div>
+
+    <p class="drobne" id="licznik-zbior"></p>
+    <div id="lista-zbiorow" class="siatka k2"></div>
+  </section>
+
+  <script>
+    const katalog = await (await fetch('/dane/katalog.json')).json();
+
+    const pozycje = [
+      ...katalog.poznanOpendata.zbiory.map((z) => ({
+        nazwa: z.nazwa,
+        opis: z.opis,
+        kategorie: z.kategorie,
+        formaty: z.formaty,
+        aktualizacja: z.aktualizacja,
+        organizacja: z.organizacja,
+        url: z.url,
+        zrodlo: 'Poznań Otwarte Dane',
+      })),
+      ...katalog.daneGovPl.map((z) => ({
+        nazwa: z.nazwa,
+        opis: z.opis,
+        kategorie: ['__krajowe', z.kategoria].filter(Boolean),
+        formaty: [],
+        aktualizacja: null,
+        organizacja: 'Urząd Miasta Poznania',
+        url: z.url,
+        zrodlo: 'dane.gov.pl',
+      })),
+    ];
+    for (const p of pozycje) p.szukaj = `${p.nazwa} ${p.opis} ${p.kategorie.join(' ')}`.toLowerCase();
+
+    const $ = (s) => document.querySelector(s);
+
+    function escapuj(s) {
+      return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+
+    function rysuj() {
+      const fraza = $('#szukaj-zbior').value.trim().toLowerCase();
+      const kat = $('#kat-zbior').value;
+      const wynik = pozycje.filter((p) => {
+        if (kat && !p.kategorie.includes(kat)) return false;
+        if (fraza && !p.szukaj.includes(fraza)) return false;
+        return true;
+      });
+
+      $('#licznik-zbior').textContent = `${wynik.length} z ${pozycje.length} zbiorów`;
+      $('#lista-zbiorow').replaceChildren(...wynik.map((p) => {
+        const a = document.createElement('a');
+        a.className = 'karta';
+        a.href = p.url;
+        a.rel = 'noopener';
+        a.style.cssText = 'text-decoration:none;color:inherit;display:block';
+        a.innerHTML = `
+          <h3 style="font-size:1rem;margin-bottom:.3em">${escapuj(p.nazwa)}</h3>
+          <p style="font-size:.86rem;color:var(--tekst-2);margin-bottom:.7em">${escapuj((p.opis || '').slice(0, 190))}${(p.opis || '').length > 190 ? '…' : ''}</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="znacznik">${escapuj(p.zrodlo)}</span>
+            ${p.formaty.map((f) => `<span class="znacznik">${escapuj(f)}</span>`).join('')}
+            ${p.aktualizacja ? `<span class="znacznik">akt. ${escapuj(p.aktualizacja.toLowerCase())}</span>` : ''}
+          </div>`;
+        return a;
+      }));
+    }
+
+    let timer;
+    $('#szukaj-zbior').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(rysuj, 150); });
+    $('#kat-zbior').addEventListener('change', rysuj);
+    rysuj();
+  </script>
+</Baza>

@@ -1,0 +1,9 @@
+# public/dane/ celowo w repo — to gotowe agregaty, bez nich strona się nie zbuduje;
+# surowe pobrania (data/raw) są odtwarzalne przez `npm run etl`.
+node_modules/
+dist/
+.astro/
+data/raw/
+data/*.log
+.DS_Store
+.wrangler/

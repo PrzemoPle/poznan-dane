@@ -1,0 +1,186 @@
+---
+import Baza from '../layouts/Baza.astro';
+import podsumowanie from '../../public/dane/podsumowanie.json';
+import bdl from '../../public/dane/bdl.json';
+
+const p = bdl.miasta.poznan;
+const ostatniRok = (klucz) => {
+  const s = p.wskazniki[klucz];
+  if (!s) return null;
+  const lata = Object.keys(s.wartosci).sort();
+  const rok = lata[lata.length - 1];
+  return { rok, val: s.wartosci[rok], jednostka: s.jednostka };
+};
+
+const dochody = ostatniRok('dochodyOgolem');
+const wydatki = ostatniRok('wydatkiOgolem');
+const ludnosc = ostatniRok('ludnosc');
+const bezrobocie = ostatniRok('stopaBezrobocia');
+const wynik = dochody && wydatki ? dochody.val - wydatki.val : null;
+
+const mln = (n) => (n / 1e6).toLocaleString('pl-PL', { maximumFractionDigits: 0 });
+const mld = (n) => (n / 1e9).toLocaleString('pl-PL', { maximumFractionDigits: 2 });
+const licz = (n) => n.toLocaleString('pl-PL');
+
+const sekcje = [
+  {
+    href: '/umowy/',
+    tytul: 'Rejestr umów',
+    opis: `${licz(podsumowanie.umowy.liczba)} umów zawartych przez miasto i jego jednostki. Filtruj po jednostce, kontrahencie, kwocie i przedmiocie.`,
+    metryka: `${mld(podsumowanie.umowy.suma)} mld zł łącznej wartości`,
+  },
+  {
+    href: '/budzet/',
+    tytul: 'Budżet miasta',
+    opis: 'Dochody i wydatki od 1995 r., struktura wg działów klasyfikacji budżetowej, deficyt i inwestycje.',
+    metryka: `${podsumowanie.bdl.wskazniki.filter((w) => w.grupa === 'Budżet').length} wskaźników budżetowych`,
+  },
+  {
+    href: '/statystyki/',
+    tytul: 'Statystyki miasta',
+    opis: 'Demografia, rynek pracy, mieszkalnictwo, środowisko, edukacja, kultura, bezpieczeństwo — szeregi czasowe z portalu badam.poznan.pl i GUS.',
+    metryka: `${podsumowanie.badam.tematy.reduce((s, t) => s + t.pozycji, 0)} szeregów w ${podsumowanie.badam.tematy.length} działach`,
+  },
+  {
+    href: '/porownaj/',
+    tytul: 'Porównaj miasta',
+    opis: 'Poznań zestawiony z Warszawą, Krakowem, Wrocławiem, Łodzią i Gdańskiem na tych samych wskaźnikach GUS.',
+    metryka: `${podsumowanie.bdl.miasta.length} miasta · ${podsumowanie.bdl.wskazniki.length} wskaźników`,
+  },
+  {
+    href: '/zrodla/',
+    tytul: 'Katalog źródeł',
+    opis: 'Wykaz zbiorów danych i API, z których zbudowany jest ten serwis — z linkami i metodologią.',
+    metryka: `${podsumowanie.katalog.poznan + podsumowanie.katalog.krajowe} zbiorów · ${podsumowanie.katalog.poznanApi} API`,
+  },
+];
+---
+
+<Baza
+  strona="pulpit"
+  tytul={null}
+  opis="Rejestr umów, budżet, statystyki i porównania — dane publiczne o Poznaniu w jednym miejscu."
+>
+  <section class="hero">
+    <div>
+      <p class="nadtytul">Składnica danych publicznych</p>
+      <h1 style="max-width:14ch">Poznań sprawdzony liczba po liczbie</h1>
+      <p class="lid">
+        Rejestr umów miasta, budżet od 1995 roku, kilkaset szeregów statystycznych i porównania
+        z pięcioma największymi polskimi miastami. Wszystko z oficjalnych źródeł, z linkiem
+        do każdego rekordu — żeby dało się zweryfikować, a nie tylko uwierzyć.
+      </p>
+      <div class="hero-cta">
+        <a class="przycisk glowny" href="/umowy/">Przeglądaj rejestr umów <span class="strzalka">→</span></a>
+        <a class="przycisk" href="/budzet/">Zobacz budżet</a>
+      </div>
+    </div>
+    <aside class="hero-panel karta cien" aria-label="Dochody budżetu miasta">
+      <span class="kpi etykieta" style="font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--tekst-3);font-weight:600">
+        Dochody miasta {dochody.rok}
+      </span>
+      <span class="hero-liczba">{mld(dochody.val)} mld zł</span>
+      <div id="hero-spark"></div>
+      <span class="drobne">Dochody budżetu 1995–{dochody.rok} · GUS BDL</span>
+    </aside>
+  </section>
+
+  <section class="siatka k4">
+    {dochody && (
+      <div class="karta kpi">
+        <span class="etykieta">Dochody budżetu {dochody.rok}</span>
+        <span class="wartosc">{mld(dochody.val)} mld zł</span>
+        <span class="opis">{licz(Math.round(dochody.val / ludnosc.val))} zł na mieszkańca</span>
+        <span class="zrodlo">GUS BDL</span>
+      </div>
+    )}
+    {wydatki && (
+      <div class="karta kpi">
+        <span class="etykieta">Wydatki budżetu {wydatki.rok}</span>
+        <span class="wartosc">{mld(wydatki.val)} mld zł</span>
+        <span class="opis">
+          {wynik >= 0 ? 'Nadwyżka ' : 'Deficyt '}
+          {mln(Math.abs(wynik))} mln zł
+        </span>
+        <span class="zrodlo">GUS BDL</span>
+      </div>
+    )}
+    {ludnosc && (
+      <div class="karta kpi">
+        <span class="etykieta">Mieszkańcy {ludnosc.rok}</span>
+        <span class="wartosc">{licz(ludnosc.val)}</span>
+        <span class="opis">
+          Bezrobocie {bezrobocie?.val.toLocaleString('pl-PL', { minimumFractionDigits: 1 })}% ({bezrobocie?.rok})
+        </span>
+        <span class="zrodlo">GUS BDL</span>
+      </div>
+    )}
+    <div class="karta kpi">
+      <span class="etykieta">Umowy w rejestrze</span>
+      <span class="wartosc">{licz(podsumowanie.umowy.liczba)}</span>
+      <span class="opis">
+        Lata {Math.min(...podsumowanie.umowy.lata)}–{Math.max(...podsumowanie.umowy.lata)},
+        {' '}{mld(podsumowanie.umowy.suma)} mld zł
+      </span>
+      <span class="zrodlo">BIP Poznań</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Dochody i wydatki miasta</h2>
+    <p class="drobne" style="margin-top:-6px">
+      Wykonanie budżetu w cenach bieżących, wg sprawozdawczości GUS. Kliknij punkt, by zobaczyć wartość.
+    </p>
+    <div class="karta cien">
+      <div id="wykres-budzet"><p class="ladowanie">Wczytywanie wykresu…</p></div>
+      <div id="legenda-budzet"></div>
+    </div>
+    <p style="margin-top:12px"><a href="/budzet/">Pełny rozbiór budżetu — dochody, wydatki, działy, inwestycje →</a></p>
+  </section>
+
+  <section>
+    <h2>Co mówią dane</h2>
+    <div class="siatka k3">
+      {podsumowanie.ciekawostki.map((c) => (
+        <article class="karta">
+          <h3 style="font-size:1.05rem;margin-bottom:.35em">{c.tytul}</h3>
+          <p style="font-size:.9rem;color:var(--tekst-2);margin-bottom:.6em">{c.tresc}</p>
+          <span class="znacznik">{c.zrodlo}</span>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section>
+    <h2>Przeglądaj dalej</h2>
+    <div class="siatka k2">
+      {sekcje.map((s) => (
+        <a href={s.href} class="karta" style="text-decoration:none;color:inherit;display:block">
+          <h3 style="margin-bottom:.3em">{s.tytul}</h3>
+          <p style="font-size:.9rem;color:var(--tekst-2);margin-bottom:.5em">{s.opis}</p>
+          <span class="znacznik">{s.metryka}</span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <script>
+    import { liniowy, legenda, fmt, podmien, PALETA } from '../lib/wykresy.js';
+
+    const bdl = await (await fetch('/dane/bdl.json')).json();
+    const w = bdl.miasta.poznan.wskazniki;
+    const serie = [
+      { nazwa: 'Dochody ogółem', punkty: Object.entries(w.dochodyOgolem.wartosci), kolor: PALETA[1] },
+      { nazwa: 'Wydatki ogółem', punkty: Object.entries(w.wydatkiOgolem.wartosci), kolor: PALETA[0] },
+      { nazwa: 'w tym inwestycyjne', punkty: Object.entries(w.wydatkiInwestycyjne.wartosci), kolor: PALETA[2] },
+    ];
+    podmien('#wykres-budzet', liniowy(serie, { wysokosc: 300, formatY: fmt.skrot }));
+    podmien('#legenda-budzet', legenda(serie));
+
+    // sparkline w panelu hero — sam przebieg dochodów, bez osi ozdób
+    podmien('#hero-spark', liniowy(
+      [{ nazwa: 'Dochody ogółem', punkty: Object.entries(w.dochodyOgolem.wartosci), kolor: PALETA[0] }],
+      { wysokosc: 150, szerokosc: 460, formatY: fmt.skrot, kropki: false },
+    ));
+  </script>
+</Baza>
