@@ -101,7 +101,7 @@ a { color: var(--blekit); text-decoration-thickness: 1px; text-underline-offset:
 a:hover { color: var(--czerwien); }
 :focus-visible { outline: 2px solid var(--czerwien); outline-offset: 2px; border-radius: 2px; }
 
-.otoczka { max-width: var(--szer); margin: 0 auto; padding: 0 24px; }
+.otoczka { max-width: var(--szer); margin: 0 auto; padding: 0 clamp(24px, 4.5vw, 44px); }
 .waska { max-width: 760px; }
 
 /* ---------- przejścia między stronami (cross-document view transitions) ---------- */
@@ -126,14 +126,18 @@ a:hover { color: var(--czerwien); }
   color: var(--atrament); text-decoration: none; white-space: nowrap;
   display: flex; align-items: center; gap: 10px;
 }
-.logo .znak {
-  width: 22px; height: 22px; border-radius: 4px;
-  background: linear-gradient(160deg, var(--czerwien) 0 50%, var(--atrament) 50% 100%);
-  flex: none;
-  transition: transform .35s cubic-bezier(.16, 1, .3, 1);
+/* znak: dwa trykające się koziołki (« ») — lewy atrament, prawy czerwień */
+.logo .znak { flex: none; overflow: visible; }
+.logo .znak path {
+  fill: none; stroke-width: 4.6;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: translate .3s cubic-bezier(.16, 1, .3, 1);
 }
-.logo:hover .znak { transform: rotate(90deg); }
-.nawigacja { display: flex; gap: 2px; margin-left: auto; flex-wrap: wrap; }
+.logo .znak .koziol-l { stroke: var(--atrament); }
+.logo .znak .koziol-p { stroke: var(--czerwien); }
+.logo:hover .znak .koziol-l { translate: 1.8px 0; }
+.logo:hover .znak .koziol-p { translate: -1.8px 0; }
+.nawigacja { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
 .nawigacja a {
   position: relative;
   color: var(--tekst-2); text-decoration: none; font-size: .875rem;
@@ -237,7 +241,7 @@ a:hover { color: var(--czerwien); }
   transition: transform .25s cubic-bezier(.16, 1, .3, 1), box-shadow .25s ease, border-color .25s ease;
 }
 .karta.cien { box-shadow: var(--cien); }
-a.karta { display: block; text-decoration: none; color: inherit; }
+a.karta { display: block; text-decoration: none; color: inherit; position: relative; }
 a.karta:hover {
   transform: translateY(-3px);
   box-shadow: var(--cien-hover);
@@ -245,8 +249,37 @@ a.karta:hover {
 }
 a.karta h3 { transition: color .15s ease; }
 a.karta:hover h3 { color: var(--czerwien); }
+/* czerwona linia rośnie od lewej po najechaniu — sygnał "to jest klikalne" */
+a.karta:not(.hero-panel)::before {
+  content: '';
+  position: absolute; top: -1px; left: -1px; height: 2px; width: 0;
+  background: var(--czerwien); border-radius: 2px 0 0 0;
+  transition: width .32s cubic-bezier(.16, 1, .3, 1);
+}
+a.karta:not(.hero-panel):hover::before { width: calc(100% + 2px); }
+
+/* strzałka w rogu klikalnych kart KPI */
+a.karta.kpi::after {
+  content: '→';
+  position: absolute; top: 16px; right: 18px;
+  color: var(--czerwien); font-weight: 600;
+  opacity: 0; translate: -6px 0;
+  transition: opacity .2s ease, translate .25s cubic-bezier(.16, 1, .3, 1);
+}
+a.karta.kpi:hover::after { opacity: 1; translate: 0 0; }
+
+/* stopka karty "wejdź →" */
+.idz {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: .7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .12em;
+  color: var(--czerwien); margin-top: 12px;
+}
+.idz .strzalka { transition: translate .22s cubic-bezier(.16, 1, .3, 1); }
+a.karta:hover .idz .strzalka { translate: 4px 0; }
 
 .kpi { display: flex; flex-direction: column; gap: 2px; }
+a.karta.kpi { display: flex; } /* a.karta ustawia block — KPI ma zostać kolumną */
 .kpi .etykieta {
   font-family: var(--mono);
   font-size: .68rem; text-transform: uppercase; letter-spacing: .12em;
@@ -396,7 +429,28 @@ svg.wykres text { font-family: var(--mono); font-size: 10.5px; fill: var(--tekst
   .hero { grid-template-columns: 1fr; margin-top: 36px; }
 }
 @media (max-width: 720px) {
-  .szczyt-rzad { height: auto; flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 0; }
-  .nawigacja { margin-left: -12px; }
+  /* uwaga: tylko padding-block — poziomy padding musi zostać z .otoczka,
+     inaczej logo i menu kleją się do krawędzi ekranu */
+  .szczyt-rzad { height: auto; flex-direction: column; align-items: stretch; gap: 4px; padding-block: 12px 0; }
+  /* menu: jeden przewijany rząd zamiast trzech ciasnych linii przy krawędzi */
+  .nawigacja {
+    margin: 0 calc(-1 * clamp(24px, 4.5vw, 44px));
+    padding: 4px clamp(24px, 4.5vw, 44px) 12px;
+    flex-wrap: nowrap; overflow-x: auto; gap: 6px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 26px), transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 26px), transparent);
+  }
+  .nawigacja::-webkit-scrollbar { display: none; }
+  .nawigacja a {
+    white-space: nowrap;
+    border: 1px solid var(--linia); background: var(--papier-2);
+    padding: 7px 13px;
+  }
+  .nawigacja a::after { display: none; }
+  .nawigacja a[aria-current='page'] {
+    background: var(--atrament); color: var(--papier); border-color: var(--atrament);
+  }
   section { margin: 40px 0; }
 }
