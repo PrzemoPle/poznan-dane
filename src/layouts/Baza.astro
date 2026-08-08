@@ -33,7 +33,12 @@ const menu = [
   <body>
     <header class="szczyt">
       <div class="otoczka szczyt-rzad">
-        <a class="logo" href="/"><span class="znak" aria-hidden="true"></span>Poznań w danych</a>
+        <a class="logo" href="/">
+          <svg class="znak" viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">
+            <path class="koziol-l" d="M6.5 8.5 L14.3 16 L6.5 23.5" />
+            <path class="koziol-p" d="M25.5 8.5 L17.7 16 L25.5 23.5" />
+          </svg>
+          Poznań w danych</a>
         <nav class="nawigacja" aria-label="Główna">
           {menu.map((m) => (
             <a href={m.href} aria-current={strona === m.klucz ? 'page' : undefined}>{m.etykieta}</a>
