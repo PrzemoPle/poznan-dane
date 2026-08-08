@@ -2,6 +2,7 @@
 import Baza from '../layouts/Baza.astro';
 import podsumowanie from '../../public/dane/podsumowanie.json';
 import bdl from '../../public/dane/bdl.json';
+import agregaty from '../../public/dane/umowy-agregaty.json';
 
 const p = bdl.miasta.poznan;
 const ostatniRok = (klucz) => {
@@ -21,6 +22,23 @@ const wynik = dochody && wydatki ? dochody.val - wydatki.val : null;
 const mln = (n) => (n / 1e6).toLocaleString('pl-PL', { maximumFractionDigits: 0 });
 const mld = (n) => (n / 1e9).toLocaleString('pl-PL', { maximumFractionDigits: 2 });
 const licz = (n) => n.toLocaleString('pl-PL');
+const kwota = (n) =>
+  n >= 1e9 ? `${(n / 1e9).toLocaleString('pl-PL', { maximumFractionDigits: 2 })} mld zł`
+  : n >= 1e6 ? `${(n / 1e6).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} mln zł`
+  : `${licz(Math.round(n))} zł`;
+
+const najwieksze = agregaty.najwiekszeUmowy.slice(0, 5);
+// link w agregatach wskazuje na wariant api=json — do klikania dajemy widok HTML
+const bipLink = (l) => l.replace('&api=json', '');
+
+// ciekawostki nie mają pola link — kierujemy po treści do właściwego działu
+const linkCiekawostki = (c) => {
+  const t = `${c.tytul} ${c.tresc}`.toLowerCase();
+  if (t.includes('umow') || t.includes('kontrahent')) return '/umowy/';
+  if (t.includes('budżet') || t.includes('deficyt') || t.includes('nadwyżk') || t.includes('dochod') || t.includes('wydatk') || t.includes('inwestyc')) return '/budzet/';
+  if (t.includes('warszaw') || t.includes('krakow') || t.includes('krakó') || t.includes('wrocław') || t.includes('gdańsk') || t.includes('łodz') || t.includes('łódź')) return '/porownaj/';
+  return '/statystyki/';
+};
 
 const sekcje = [
   {
@@ -75,27 +93,28 @@ const sekcje = [
         <a class="przycisk" href="/budzet/">Zobacz budżet</a>
       </div>
     </div>
-    <aside class="hero-panel karta cien" aria-label="Dochody budżetu miasta">
+    <a class="hero-panel karta cien" href="/budzet/" aria-label="Dochody budżetu miasta — zobacz pełny budżet">
       <span class="kpi etykieta" style="font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.12em;color:var(--tekst-3);font-weight:600">
         Dochody miasta {dochody.rok}
       </span>
       <span class="hero-liczba">{mld(dochody.val)} mld zł</span>
       <div id="hero-spark"></div>
       <span class="drobne">Dochody budżetu 1995–{dochody.rok} · GUS BDL</span>
-    </aside>
+      <span class="idz">Zobacz budżet <span class="strzalka">→</span></span>
+    </a>
   </section>
 
   <section class="siatka k4">
     {dochody && (
-      <div class="karta kpi">
+      <a href="/budzet/" class="karta kpi">
         <span class="etykieta">Dochody budżetu {dochody.rok}</span>
         <span class="wartosc">{mld(dochody.val)} mld zł</span>
         <span class="opis">{licz(Math.round(dochody.val / ludnosc.val))} zł na mieszkańca</span>
         <span class="zrodlo">GUS BDL</span>
-      </div>
+      </a>
     )}
     {wydatki && (
-      <div class="karta kpi">
+      <a href="/budzet/" class="karta kpi">
         <span class="etykieta">Wydatki budżetu {wydatki.rok}</span>
         <span class="wartosc">{mld(wydatki.val)} mld zł</span>
         <span class="opis">
@@ -103,19 +122,19 @@ const sekcje = [
           {mln(Math.abs(wynik))} mln zł
         </span>
         <span class="zrodlo">GUS BDL</span>
-      </div>
+      </a>
     )}
     {ludnosc && (
-      <div class="karta kpi">
+      <a href="/statystyki/" class="karta kpi">
         <span class="etykieta">Mieszkańcy {ludnosc.rok}</span>
         <span class="wartosc">{licz(ludnosc.val)}</span>
         <span class="opis">
           Bezrobocie {bezrobocie?.val.toLocaleString('pl-PL', { minimumFractionDigits: 1 })}% ({bezrobocie?.rok})
         </span>
         <span class="zrodlo">GUS BDL</span>
-      </div>
+      </a>
     )}
-    <div class="karta kpi">
+    <a href="/umowy/" class="karta kpi">
       <span class="etykieta">Umowy w rejestrze</span>
       <span class="wartosc">{licz(podsumowanie.umowy.liczba)}</span>
       <span class="opis">
@@ -123,7 +142,7 @@ const sekcje = [
         {' '}{mld(podsumowanie.umowy.suma)} mld zł
       </span>
       <span class="zrodlo">BIP Poznań</span>
-    </div>
+    </a>
   </section>
 
   <section>
@@ -139,14 +158,49 @@ const sekcje = [
   </section>
 
   <section>
+    <h2>Największe umowy w rejestrze</h2>
+    <p class="drobne" style="margin-top:-6px">
+      Rekordy z rejestru umów miasta — kliknij kontrahenta, by zobaczyć wpis źródłowy w BIP.
+    </p>
+    <div class="tabela-otok">
+      <table>
+        <thead>
+          <tr>
+            <th>Kontrahent i przedmiot</th>
+            <th>Jednostka</th>
+            <th class="num">Rok</th>
+            <th class="num">Wartość</th>
+          </tr>
+        </thead>
+        <tbody>
+          {najwieksze.map((u) => (
+            <tr>
+              <td>
+                <a href={bipLink(u.link)} rel="noopener">{u.kontrahent}</a>
+                <br /><span class="drobne">{u.przedmiot}</span>
+              </td>
+              <td>{u.jednostka}</td>
+              <td class="num">{u.rok}</td>
+              <td class="num"><strong>{kwota(u.wartosc)}</strong></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:12px"><a href="/umowy/">Przeszukaj wszystkie {licz(podsumowanie.umowy.liczba)} umów — filtry, jednostki, CSV →</a></p>
+  </section>
+
+  <section>
     <h2>Co mówią dane</h2>
+    <p class="drobne" style="margin-top:-6px">Każda ciekawostka prowadzi do działu, w którym można ją sprawdzić.</p>
     <div class="siatka k3">
       {podsumowanie.ciekawostki.map((c) => (
-        <article class="karta">
+        <a href={linkCiekawostki(c)} class="karta">
           <h3 style="font-size:1.05rem;margin-bottom:.35em">{c.tytul}</h3>
           <p style="font-size:.9rem;color:var(--tekst-2);margin-bottom:.6em">{c.tresc}</p>
           <span class="znacznik">{c.zrodlo}</span>
-        </article>
+          <br /><span class="idz">Sprawdź <span class="strzalka">→</span></span>
+        </a>
       ))}
     </div>
   </section>
@@ -155,10 +209,11 @@ const sekcje = [
     <h2>Przeglądaj dalej</h2>
     <div class="siatka k2">
       {sekcje.map((s) => (
-        <a href={s.href} class="karta" style="text-decoration:none;color:inherit;display:block">
+        <a href={s.href} class="karta">
           <h3 style="margin-bottom:.3em">{s.tytul}</h3>
           <p style="font-size:.9rem;color:var(--tekst-2);margin-bottom:.5em">{s.opis}</p>
           <span class="znacznik">{s.metryka}</span>
+          <br /><span class="idz">Wejdź <span class="strzalka">→</span></span>
         </a>
       ))}
     </div>
