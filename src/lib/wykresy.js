@@ -27,14 +27,21 @@ export const fmt = {
     return fmt.liczba(n, a < 10 ? 1 : 0);
   },
   data: (s) => (s ? s.split('-').reverse().join('.') : '—'),
+  /**
+   * Polska odmiana przez liczbę: formy = [pojedyncza, mnoga, dopełniaczowa].
+   * ['osoba','osoby','osób'] → 1 osoba, 2 osoby, 5 osób, 22 osoby, 112 osób.
+   */
+  odmien: (n, [jedna, kilka, wiele]) => {
+    const c = Math.abs(Math.round(n));
+    if (c === 1) return jedna;
+    const ost = c % 10;
+    const dwie = c % 100;
+    return ost >= 2 && ost <= 4 && !(dwie >= 12 && dwie <= 14) ? kilka : wiele;
+  },
   /** Odmiana „rok" po polsku: 1 rok, 2 lata, 5 lat, 22 lata, 25 lat. */
   lata: (dni) => {
     const n = Math.round(dni / 365.25);
-    if (n === 1) return '1 rok';
-    const ost = n % 10;
-    const dwie = n % 100;
-    const mnoga = ost >= 2 && ost <= 4 && !(dwie >= 12 && dwie <= 14);
-    return `${n} ${mnoga ? 'lata' : 'lat'}`;
+    return `${n} ${fmt.odmien(n, ['rok', 'lata', 'lat'])}`;
   },
   proc: (n, frac = 1) => (n == null ? '—' : `${fmt.liczba(n, frac)}%`),
 };
@@ -68,9 +75,9 @@ function podzialka(min, max, ile = 5) {
  * serie: [{ nazwa, punkty: [[etykietaX, wartość], …], kolor? }]
  */
 export function liniowy(serie, { wysokosc = 260, szerokosc = 900, formatY = fmt.skrot, zeroBaseline = true, kropki = true } = {}) {
-  // szerokosc dobieramy do realnej szerokości kontenera: viewBox jest skalowany do 100%,
-  // więc zbyt szeroki viewBox w wąskiej karcie zmniejsza podpisy do nieczytelności.
-  const svg = el('svg', { class: 'wykres', viewBox: `0 0 ${szerokosc} ${wysokosc}`, preserveAspectRatio: 'none', role: 'img' });
+  // szerokość dobieramy do realnej szerokości kontenera, żeby viewBox był 1:1
+  // i podpisy renderowały się w zadeklarowanym rozmiarze, a nie skalowane w dół
+  const svg = el('svg', { class: 'wykres', viewBox: `0 0 ${szerokosc} ${wysokosc}`, role: 'img' });
   const M = { g: 14, p: 58, d: 30, l: 8 };
   const W = szerokosc - M.p - M.l;
   const H = wysokosc - M.g - M.d;
@@ -133,10 +140,14 @@ export function liniowy(serie, { wysokosc = 260, szerokosc = 900, formatY = fmt.
 }
 
 /** Pionowe słupki: dane = [[etykieta, wartość], …] */
-export function slupkowy(dane, { wysokosc = 240, formatY = fmt.skrot, kolor = PALETA[0], kolorUjemny = '#1f5d8c' } = {}) {
-  const svg = el('svg', { class: 'wykres', viewBox: `0 0 900 ${wysokosc}`, role: 'img' });
+export function slupkowy(dane, {
+  wysokosc = 240, szerokosc = 900, formatY = fmt.skrot,
+  kolor = PALETA[0], kolorUjemny = '#1f5d8c',
+} = {}) {
+  // szerokość dobieramy do kontenera — inaczej podpisy osi kurczą się razem z rysunkiem
+  const svg = el('svg', { class: 'wykres', viewBox: `0 0 ${szerokosc} ${wysokosc}`, role: 'img' });
   const M = { g: 14, p: 58, d: 30, l: 8 };
-  const W = 900 - M.p - M.l;
+  const W = szerokosc - M.p - M.l;
   const H = wysokosc - M.g - M.d;
   if (!dane.length) return svg;
 
@@ -174,32 +185,43 @@ export function slupkowy(dane, { wysokosc = 240, formatY = fmt.skrot, kolor = PA
   return svg;
 }
 
-/** Ranking poziomy: dane = [{ nazwa, wartosc }] */
-export function ranking(dane, { formatW = fmt.kwota, kolor = PALETA[0], maxEtykieta = 46 } = {}) {
-  const wysWiersza = 26;
-  const wysokosc = Math.max(40, dane.length * wysWiersza + 8);
-  const svg = el('svg', { class: 'wykres', viewBox: `0 0 900 ${wysokosc}`, role: 'img' });
-  const lewa = 330;
-  const W = 900 - lewa - 130;
+/**
+ * Ranking poziomy: dane = [{ nazwa, wartosc }].
+ *
+ * Świadomie NIE jest to SVG. To lista z proporcjonalnymi paskami, a nie wykres —
+ * a w SVG tekst skaluje się razem z rysunkiem, więc przy wąskim kontenerze etykiety
+ * schodziły do 4 px. W HTML-u tekst ma rozmiar dziedziczony ze strony, zawija się,
+ * da się go zaznaczyć i nie trzeba ucinać nazw.
+ */
+export function ranking(dane, { formatW = fmt.kwota, kolor = PALETA[0] } = {}) {
+  const lista = document.createElement('ol');
+  lista.className = 'ranking';
   const max = Math.max(...dane.map((d) => d.wartosc), 1);
 
   dane.forEach((d, i) => {
-    const y = i * wysWiersza + 6;
-    const etykieta = d.nazwa.length > maxEtykieta ? `${d.nazwa.slice(0, maxEtykieta - 1)}…` : d.nazwa;
-    const t = el('text', { x: lewa - 12, y: y + 13, 'text-anchor': 'end', 'font-size': 12.5 }, etykieta);
-    t.append(el('title', {}, d.nazwa));
-    svg.append(t);
-    const szer = Math.max(2, (d.wartosc / max) * W);
-    const r = el('rect', {
-      x: lewa, y: y + 3, width: szer, height: 14, fill: kolor, rx: 1,
-      'fill-opacity': 0.88, class: 'r-slupek', style: `--i:${i}`,
-    });
-    r.append(el('title', {}, `${d.nazwa}: ${formatW(d.wartosc)}`));
-    svg.append(r);
-    svg.append(el('text', { x: lewa + szer + 8, y: y + 14, 'font-size': 12, 'font-weight': 600 }, formatW(d.wartosc)));
+    const wiersz = document.createElement('li');
+    wiersz.style.setProperty('--i', i);
+
+    const nazwa = document.createElement('span');
+    nazwa.className = 'r-nazwa';
+    nazwa.textContent = d.nazwa;
+
+    const pasek = document.createElement('span');
+    pasek.className = 'r-pasek';
+    const wypelnienie = document.createElement('i');
+    wypelnienie.style.width = `${Math.max(1.5, (d.wartosc / max) * 100)}%`;
+    wypelnienie.style.background = kolor;
+    pasek.append(wypelnienie);
+
+    const wartosc = document.createElement('span');
+    wartosc.className = 'r-wartosc';
+    wartosc.textContent = formatW(d.wartosc);
+
+    wiersz.append(nazwa, pasek, wartosc);
+    lista.append(wiersz);
   });
 
-  return svg;
+  return lista;
 }
 
 /** Struktura udziałów jako pasek skumulowany. */
@@ -244,8 +266,39 @@ export function legenda(serie) {
   return box;
 }
 
-export function podmien(selektor, wezel) {
+/**
+ * Wstawia wykres do kontenera.
+ *
+ * Przyjmuje albo gotowy węzeł, albo funkcję `(szerokosc) => węzeł`. W drugim wariancie
+ * mierzy kontener i podaje jego rzeczywistą szerokość — dzięki temu viewBox może być
+ * budowany 1:1 i podpisy renderują się w zadeklarowanym rozmiarze, zamiast kurczyć się
+ * razem z rysunkiem. Przy zmianie szerokości okna wykres jest przerysowywany.
+ */
+export function podmien(selektor, cos) {
   const cel = typeof selektor === 'string' ? document.querySelector(selektor) : selektor;
   if (!cel) return;
-  cel.replaceChildren(wezel);
+
+  if (typeof cos !== 'function') {
+    cel.replaceChildren(cos);
+    return;
+  }
+
+  let ostatniaSzerokosc = 0;
+  const przerysuj = () => {
+    const szerokosc = Math.round(cel.clientWidth);
+    // próg 8 px chroni przed przerysowywaniem w kółko przy drobnych drganiach układu
+    if (!szerokosc || Math.abs(szerokosc - ostatniaSzerokosc) < 8) return;
+    ostatniaSzerokosc = szerokosc;
+    cel.replaceChildren(cos(szerokosc));
+  };
+
+  przerysuj();
+
+  if (typeof ResizeObserver === 'function') {
+    let timer;
+    new ResizeObserver(() => {
+      clearTimeout(timer);
+      timer = setTimeout(przerysuj, 150);
+    }).observe(cel);
+  }
 }

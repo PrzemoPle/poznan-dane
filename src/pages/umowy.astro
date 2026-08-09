@@ -210,13 +210,13 @@ const licz = (n) => n.toLocaleString('pl-PL');
     }
 
     // ---------- wykresy roczne (niezależne od filtrów) ----------
-    podmien('#wykres-lata-liczba', slupkowy(
+    podmien('#wykres-lata-liczba', (szer) => slupkowy(
       agregaty.lata.map((l) => [String(l.rok), l.liczba]),
-      { wysokosc: 200, formatY: (n) => fmt.liczba(n), kolor: PALETA[1] },
+      { wysokosc: 200, szerokosc: szer, formatY: (n) => fmt.liczba(n), kolor: PALETA[1] },
     ));
-    podmien('#wykres-lata-suma', slupkowy(
+    podmien('#wykres-lata-suma', (szer) => slupkowy(
       agregaty.lata.map((l) => [String(l.rok), l.suma]),
-      { wysokosc: 200, formatY: fmt.skrot },
+      { wysokosc: 200, szerokosc: szer, formatY: fmt.skrot },
     ));
 
     // ---------- rytm roku budżetowego ----------
@@ -225,9 +225,9 @@ const licz = (n) => n.toLocaleString('pl-PL');
     const SKROTY = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
     const sez = Object.entries(agregaty.sezonowosc ?? {}).sort();
     if (sez.length) {
-      podmien('#wykres-sezonowosc', slupkowy(
+      podmien('#wykres-sezonowosc', (szer) => slupkowy(
         sez.map(([m, v]) => [SKROTY[+m - 1], v.liczba]),
-        { wysokosc: 230, formatY: (n) => fmt.liczba(n), kolor: PALETA[1] },
+        { wysokosc: 230, szerokosc: szer, formatY: (n) => fmt.liczba(n), kolor: PALETA[1] },
       ));
       const posort = [...sez].sort((a, b) => b[1].liczba - a[1].liczba);
       const [szczyt, dolek] = [posort[0], posort[posort.length - 1]];
@@ -256,9 +256,9 @@ const licz = (n) => n.toLocaleString('pl-PL');
         fmt.lata(najdl.wieloletnie.najdluzszaLat * 365.25);
       document.querySelector('#wl-najdluzsza-opis').textContent = `podpisana w ${najdl.rok} r.`;
 
-      podmien('#wykres-wieloletnie', slupkowy(
+      podmien('#wykres-wieloletnie', (szer) => slupkowy(
         zWl.map((l) => [String(l.rok), l.suma ? (l.wieloletnie.suma / l.suma) * 100 : 0]),
-        { wysokosc: 210, formatY: (n) => `${fmt.liczba(n, 0)}%`, kolor: PALETA[2] },
+        { wysokosc: 210, szerokosc: szer, formatY: (n) => `${fmt.liczba(n, 0)}%`, kolor: PALETA[2] },
       ));
     }
 
@@ -400,8 +400,8 @@ const licz = (n) => n.toLocaleString('pl-PL');
       wiecej.hidden = wynik.length <= pokazane;
       wiecej.textContent = `Pokaż kolejne 100 (z ${fmt.liczba(wynik.length - pokazane)} pozostałych)`;
 
-      podmien('#wykres-jednostki', ranking(agreguj('j'), { kolor: PALETA[1], maxEtykieta: 40 }));
-      podmien('#wykres-kontrahenci', ranking(agreguj('k'), { kolor: PALETA[0], maxEtykieta: 40 }));
+      podmien('#wykres-jednostki', ranking(agreguj('j'), { kolor: PALETA[1] }));
+      podmien('#wykres-kontrahenci', ranking(agreguj('k'), { kolor: PALETA[0] }));
 
       const zakres = pola.rok.value === 'wszystkie' ? `${Math.min(...lata)}–${Math.max(...lata)}` : pola.rok.value;
       $('#f-podsumowanie').textContent = `Zbiór: ${fmt.liczba(zbior.length)} umów (${zakres})`;

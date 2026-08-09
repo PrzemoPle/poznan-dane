@@ -159,16 +159,16 @@ const lataBadam = [...new Set(budzetBadam.pozycje.flatMap((x) => Object.keys(x.w
       { nazwa: 'Wydatki ogółem', punkty: Object.entries(w.wydatkiOgolem.wartosci), kolor: PALETA[0] },
       { nazwa: 'Wydatki inwestycyjne', punkty: Object.entries(w.wydatkiInwestycyjne.wartosci), kolor: PALETA[2] },
     ];
-    podmien('#w-linia', liniowy(serie, { wysokosc: 320 }));
+    podmien('#w-linia', (szer) => liniowy(serie, { wysokosc: 320, szerokosc: szer }));
     podmien('#w-linia-legenda', legenda(serie));
 
     // ---- wynik budżetu ----
     const lata = Object.keys(w.dochodyOgolem.wartosci)
       .filter((r) => w.wydatkiOgolem.wartosci[r] != null)
       .sort();
-    podmien('#w-wynik', slupkowy(
+    podmien('#w-wynik', (szer) => slupkowy(
       lata.map((r) => [r, w.dochodyOgolem.wartosci[r] - w.wydatkiOgolem.wartosci[r]]),
-      { wysokosc: 240, formatY: fmt.skrot, kolor: '#1f6b4f', kolorUjemny: '#b4132c' },
+      { wysokosc: 240, szerokosc: szer, formatY: fmt.skrot, kolor: '#1f6b4f', kolorUjemny: '#b4132c' },
     ));
 
     // ---- struktura dochodów ----
@@ -198,9 +198,9 @@ const lataBadam = [...new Set(budzetBadam.pozycje.flatMap((x) => Object.keys(x.w
     const udzial = lata
       .filter((r) => w.dochodyWlasne.wartosci[r] != null)
       .map((r) => [r, (w.dochodyWlasne.wartosci[r] / w.dochodyOgolem.wartosci[r]) * 100]);
-    podmien('#w-samodzielnosc', liniowy(
+    podmien('#w-samodzielnosc', (szer) => liniowy(
       [{ nazwa: 'Udział dochodów własnych', punkty: udzial, kolor: PALETA[3] }],
-      { wysokosc: 200, formatY: (n) => `${fmt.liczba(n, 0)}%` },
+      { wysokosc: 200, szerokosc: szer, formatY: (n) => `${fmt.liczba(n, 0)}%` },
     ));
 
     // ---- wydatki wg działów ----
@@ -217,7 +217,7 @@ const lataBadam = [...new Set(budzetBadam.pozycje.flatMap((x) => Object.keys(x.w
         .map((d) => ({ nazwa: d.nazwa.replace(/^(\d+) — /, '$1 · '), wartosc: d.wartosci[rok] ?? 0 }))
         .filter((d) => d.wartosc > 0)
         .sort((a, b) => b.wartosc - a.wartosc);
-      podmien('#w-dzialy', ranking(dane, { formatW: mlnZl, kolor: PALETA[0], maxEtykieta: 52 }));
+      podmien('#w-dzialy', ranking(dane, { formatW: mlnZl, kolor: PALETA[0] }));
     }
     wybor.addEventListener('change', rysujDzialy);
     rysujDzialy();
@@ -233,7 +233,7 @@ const lataBadam = [...new Set(budzetBadam.pozycje.flatMap((x) => Object.keys(x.w
         punkty: Object.entries(d.wartosci),
         kolor: PALETA[i],
       }));
-    podmien('#w-dzialy-czas', liniowy(czolowka, { wysokosc: 260, formatY: fmt.skrot }));
+    podmien('#w-dzialy-czas', (szer) => liniowy(czolowka, { wysokosc: 260, szerokosc: szer, formatY: fmt.skrot }));
     podmien('#w-dzialy-czas-legenda', legenda(czolowka));
   </script>
 </Baza>

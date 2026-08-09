@@ -373,6 +373,39 @@ button.pigulka[aria-pressed='true'] {
   padding: 3px 9px; border-radius: var(--r); background: var(--akcent-tlo);
   color: var(--tekst-2); border: 1px solid var(--linia);
 }
+/* ---------- ranking (lista z paskami) ----------
+   HTML zamiast SVG: w SVG tekst skalował się razem z rysunkiem i przy wąskiej
+   karcie schodził do kilku pikseli. Tu jest zwykłym tekstem strony. */
+ol.ranking { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+ol.ranking li {
+  display: grid;
+  grid-template-columns: minmax(0, 16rem) minmax(60px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  font-size: .86rem;
+}
+.r-nazwa { color: var(--tekst-2); text-wrap: pretty; line-height: 1.35; }
+.r-pasek {
+  height: 14px; background: var(--linia);
+  border-radius: 2px; overflow: hidden; min-width: 0;
+}
+.r-pasek > i { display: block; height: 100%; border-radius: 2px; opacity: .88; }
+.r-wartosc {
+  font-family: var(--mono); font-weight: 600; font-size: .8rem;
+  white-space: nowrap; color: var(--tekst);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .r-pasek > i {
+    transform-origin: left center;
+    animation: rosnij-x .6s cubic-bezier(.16, 1, .3, 1) both;
+    animation-delay: calc(var(--i, 0) * .03s);
+  }
+}
+@media (max-width: 620px) {
+  ol.ranking li { grid-template-columns: 1fr auto; gap: 4px 12px; }
+  .r-pasek { grid-column: 1 / -1; height: 10px; }
+}
+
 /* ---------- karta wskaźnika (statystyki) ----------
    Klasy zamiast stylów inline: te same reguły powtórzone przy 647 kartach
    dokładały setki kilobajtów do HTML-a. */

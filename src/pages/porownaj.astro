@@ -106,6 +106,27 @@ const grupy = [...new Set(podsumowanie.bdl.wskazniki.map((w) => w.grupa))];
     const $ = (s) => document.querySelector(s);
     let wybrane = new Set(miasta.map((m) => m.klucz));
 
+    // GUS podaje jednostki w mianowniku liczby pojedynczej („osoba"), co przy liczbach
+    // daje „1 866 729 osoba". Odmieniamy te, które faktycznie występują w zbiorze.
+    const ODMIANY = { osoba: ['osoba', 'osoby', 'osób'] };
+    // jednostki złożone to proporcje — nie odmieniają się z liczbą, ale GUS podaje je
+    // w mianowniku pojedynczym; tu poprawiamy zapis na przyjęty w polszczyźnie
+    const ZAMIENNIKI = { 'osoba/km²': 'osób/km²' };
+    // procent i promil przykleja się do liczby bez spacji
+    const BEZ_SPACJI = new Set(['%', '‰']);
+
+    const jednostkaOdmieniona = (jednostka, n) => {
+      if (!jednostka || jednostka === '—') return '';
+      if (ZAMIENNIKI[jednostka]) return ZAMIENNIKI[jednostka];
+      return ODMIANY[jednostka] ? fmt.odmien(n, ODMIANY[jednostka]) : jednostka;
+    };
+    /** Skleja liczbę z jednostką wg polskich zasad odstępu. */
+    const zJednostka = (tekst, jednostka, n) => {
+      const odm = jednostkaOdmieniona(jednostka, n);
+      if (!odm) return tekst;
+      return BEZ_SPACJI.has(odm) ? `${tekst}${odm}` : `${tekst} ${odm}`;
+    };
+
     const formatDla = (jednostka) => {
       if (jednostka === 'zł') return fmt.skrot;
       if (jednostka === '%' || jednostka === '‰' || jednostka?.startsWith('%')) return (n) => fmt.liczba(n, 1);
@@ -135,7 +156,7 @@ const grupy = [...new Set(podsumowanie.bdl.wskazniki.map((w) => w.grupa))];
         });
 
       const formatY = indeks ? (n) => fmt.liczba(n, 0) : formatDla(wzor.jednostka);
-      podmien('#wykres', liniowy(serie, { wysokosc: 330, formatY, zeroBaseline: !indeks && wzor.jednostka === 'zł' }));
+      podmien('#wykres', (szer) => liniowy(serie, { wysokosc: 330, szerokosc: szer, formatY, zeroBaseline: !indeks && wzor.jednostka === 'zł' }));
       podmien('#wykres-legenda', legenda(serie));
 
       // ranking w ostatnim wspólnym roku
@@ -148,12 +169,14 @@ const grupy = [...new Set(podsumowanie.bdl.wskazniki.map((w) => w.grupa))];
         .map((m) => ({ nazwa: m.nazwa, wartosc: m.wskazniki[klucz].wartosci[rok] }))
         .filter((d) => d.wartosc != null)
         .sort((a, b) => b.wartosc - a.wartosc);
-      const formatW = wzor.jednostka === 'zł' ? fmt.kwota : (n) => `${fmt.liczba(n, Math.abs(n) < 100 ? 1 : 0)} ${wzor.jednostka === '—' ? '' : wzor.jednostka}`.trim();
+      const formatW = wzor.jednostka === 'zł'
+        ? fmt.kwota
+        : (n) => zJednostka(fmt.liczba(n, Math.abs(n) < 100 ? 1 : 0), wzor.jednostka, n);
       const box = document.createElement('div');
       const h = document.createElement('p');
       h.className = 'drobne';
       h.textContent = `${wzor.nazwa} — rok ${rok}`;
-      box.append(h, ranking(dane, { formatW, kolor: PALETA[1], maxEtykieta: 20 }));
+      box.append(h, ranking(dane, { formatW, kolor: PALETA[1] }));
       podmien('#ranking', box);
     }
 
@@ -174,8 +197,9 @@ const grupy = [...new Set(podsumowanie.bdl.wskazniki.map((w) => w.grupa))];
         return { nazwa: w.nazwa, jednostka: w.jednostka, rok, a, b, roznica: b ? ((a - b) / Math.abs(b)) * 100 : null };
       }).filter(Boolean);
 
-      const format = (v, jednostka) =>
-        jednostka === 'zł' ? fmt.kwota(v) : `${fmt.liczba(v, Math.abs(v) < 100 ? 1 : 0)}${jednostka === '—' ? '' : ' ' + jednostka}`;
+      const format = (v, jednostka) => (jednostka === 'zł'
+        ? fmt.kwota(v)
+        : zJednostka(fmt.liczba(v, Math.abs(v) < 100 ? 1 : 0), jednostka, v));
 
       const tbody = $('#pojedynek');
       tbody.replaceChildren(...wiersze.map((w) => {

@@ -146,9 +146,9 @@ const odmienLata = (n) => {
       const d = dane[karta.dataset.klucz];
       if (!d) return;               // dane jeszcze nie dojechały — spróbujemy ponownie
       slot.dataset.gotowe = '1';    // znaczymy dopiero, gdy naprawdę rysujemy
-      slot.append(liniowy(
+      podmien(slot, (szer) => liniowy(
         [{ nazwa: d.n, punkty: Object.entries(d.w), kolor: PALETA[0] }],
-        { wysokosc: 165, szerokosc: 430, formatY: (n) => fmt.skrot(n), zeroBaseline: false },
+        { wysokosc: 165, szerokosc: szer, formatY: (n) => fmt.skrot(n), zeroBaseline: false },
       ));
     }
 
@@ -240,8 +240,9 @@ const odmienLata = (n) => {
           punkty: lata.map((r) => [r, indeks && baza ? (d.w[r] / baza) * 100 : d.w[r]]),
         };
       });
-      podmien('#wykres-zestawienia', liniowy(serie, {
+      podmien('#wykres-zestawienia', (szer) => liniowy(serie, {
         wysokosc: 300,
+        szerokosc: szer,
         formatY: indeks ? (n) => fmt.liczba(n, 0) : fmt.skrot,
         zeroBaseline: false,
       }));

@@ -122,15 +122,15 @@ const filtrURL = jestKontrahentem
 
   const { daneLat, danePartnerow } = window.__profil;
 
-  podmien('#wykres-lata', slupkowy(
+  podmien('#wykres-lata', (szer) => slupkowy(
     Object.entries(daneLat).sort().map(([rok, v]) => [rok, v.suma]),
-    { wysokosc: 220, formatY: fmt.skrot },
+    { wysokosc: 220, szerokosc: szer, formatY: fmt.skrot },
   ));
 
   if (danePartnerow.length) {
     podmien('#wykres-partnerzy', ranking(
       danePartnerow.map((p) => ({ nazwa: p.nazwa, wartosc: p.suma })),
-      { formatW: fmt.kwota, kolor: PALETA[1], maxEtykieta: 44 },
+      { formatW: fmt.kwota, kolor: PALETA[1] },
     ));
   }
 </script>

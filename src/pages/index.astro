@@ -234,13 +234,13 @@ const sekcje = [
       { nazwa: 'Wydatki ogółem', punkty: Object.entries(w.wydatkiOgolem.wartosci), kolor: PALETA[0] },
       { nazwa: 'w tym inwestycyjne', punkty: Object.entries(w.wydatkiInwestycyjne.wartosci), kolor: PALETA[2] },
     ];
-    podmien('#wykres-budzet', liniowy(serie, { wysokosc: 300, formatY: fmt.skrot }));
+    podmien('#wykres-budzet', (szer) => liniowy(serie, { wysokosc: 300, szerokosc: szer, formatY: fmt.skrot }));
     podmien('#legenda-budzet', legenda(serie));
 
     // sparkline w panelu hero — sam przebieg dochodów, bez osi ozdób
-    podmien('#hero-spark', liniowy(
+    podmien('#hero-spark', (szer) => liniowy(
       [{ nazwa: 'Dochody ogółem', punkty: Object.entries(w.dochodyOgolem.wartosci), kolor: PALETA[0] }],
-      { wysokosc: 150, szerokosc: 460, formatY: fmt.skrot, kropki: false },
+      { wysokosc: 150, szerokosc: szer, formatY: fmt.skrot, kropki: false },
     ));
   </script>
 </Baza>
