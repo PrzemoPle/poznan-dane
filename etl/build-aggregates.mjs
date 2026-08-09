@@ -158,25 +158,47 @@ async function umowy() {
     wszystkich += dane.length;
     wszystkichKwota += sumaRok;
 
-    // rocznik dla przeglądarki — okrojony do pól używanych w UI
-    await saveJSON(
-      `${WY}/umowy/${rok}.json`,
-      dane.map((u) => ({
-        i: u.id,
-        d: u.data,
-        k: u.kontrahent,
-        p: u.przedmiot,
-        w: u.wartosc,
-        wr: u.wartosc == null ? u.wartoscRaw : undefined,
-        j: u.jednostka || (u.jednostkaId === '-1' ? 'Urząd Miasta Poznania' : `Jednostka #${u.jednostkaId}`),
-        r: u.rodzaj || null,
-        n: u.nr,
-        l: u.link,
-        // czas obowiązywania: data początku + liczba dni (koniec da się odtworzyć)
-        od: u.terminOd || undefined,
-        dni: dniTrwania(u) ?? undefined,
-      })),
-    );
+    // Rocznik dla przeglądarki. Format kolumnowy zamiast listy obiektów:
+    // nazwy pól powtórzone przy 7 tys. rekordów to setki kilobajtów do sparsowania.
+    // Jednostki i rodzaje trzymamy w słownikach, link odtwarzamy z identyfikatora.
+    const slownikJednostek = [];
+    const indeksJednostek = new Map();
+    const slownikRodzajow = [];
+    const indeksRodzajow = new Map();
+    const doSlownika = (slownik, indeks, wartosc) => {
+      if (wartosc == null) return -1;
+      if (!indeks.has(wartosc)) {
+        indeks.set(wartosc, slownik.length);
+        slownik.push(wartosc);
+      }
+      return indeks.get(wartosc);
+    };
+
+    const wiersze = dane.map((u) => {
+      const jednostka = u.jednostka
+        || (u.jednostkaId === '-1' ? 'Urząd Miasta Poznania' : `Jednostka #${u.jednostkaId}`);
+      return [
+        u.id,
+        u.data,
+        u.kontrahent,
+        u.przedmiot,
+        u.wartosc,                                    // null, gdy rejestr nie podaje kwoty
+        doSlownika(slownikJednostek, indeksJednostek, jednostka),
+        doSlownika(slownikRodzajow, indeksRodzajow, u.rodzaj || null),
+        u.nr,
+        u.terminOd || null,
+        dniTrwania(u),
+        u.wartosc == null ? u.wartoscRaw : null,      // kwota zapisana słownie
+      ];
+    });
+
+    await saveJSON(`${WY}/umowy/${rok}.json`, {
+      kolumny: ['id', 'data', 'kontrahent', 'przedmiot', 'wartosc', 'jednostka',
+        'rodzaj', 'nr', 'terminOd', 'dni', 'wartoscTekst'],
+      jednostki: slownikJednostek,
+      rodzaje: slownikRodzajow,
+      umowy: wiersze,
+    });
     log(`  umowy ${rok}: ${dane.length} rekordów, ${zaokr(sumaRok / 1e6, 1)} mln zł`);
   }
 

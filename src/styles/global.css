@@ -373,6 +373,19 @@ button.pigulka[aria-pressed='true'] {
   padding: 3px 9px; border-radius: var(--r); background: var(--akcent-tlo);
   color: var(--tekst-2); border: 1px solid var(--linia);
 }
+/* ---------- karta wskaźnika (statystyki) ----------
+   Klasy zamiast stylów inline: te same reguły powtórzone przy 647 kartach
+   dokładały setki kilobajtów do HTML-a. */
+.w-tytul { font-size: 1rem; margin-bottom: .25em; }
+.w-meta { margin-bottom: .7em; }
+.w-liczby { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: .6em; }
+.w-wartosc { font-family: var(--display); font-size: 1.5rem; letter-spacing: -0.02em; }
+.w-zmiana { font-weight: 600; font-size: .85rem; }
+.w-zmiana.rosnie { color: var(--zielen); }
+.w-zmiana.spada { color: var(--czerwien); }
+.w-stopka { margin-top: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.w-stopka .do-zestawienia { margin-left: auto; padding: 3px 11px; font-size: .74rem; }
+
 .pasek { height: 7px; background: var(--linia); border-radius: 999px; overflow: hidden; }
 .pasek > i { display: block; height: 100%; background: var(--czerwien); }
 

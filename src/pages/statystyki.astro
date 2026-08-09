@@ -1,11 +1,25 @@
 ---
 import Baza from '../layouts/Baza.astro';
 import badam from '../../public/dane/badam.json';
-import podsumowanie from '../../public/dane/podsumowanie.json';
+import bdl from '../../public/dane/bdl.json';
+import { zbudujWskazniki } from '../lib/wskazniki.js';
 
-const tematy = badam.tematy.map((t) => ({ temat: t.temat, pozycji: t.pozycje.length }));
-const zBadam = tematy.reduce((s, t) => s + t.pozycji, 0);
-const razem = zBadam + podsumowanie.bdl.wskazniki.length;
+// Wskaźniki budujemy na serwerze — dzięki temu nazwy i liczby są w HTML-u,
+// a nie dopiero po wykonaniu skryptu. Wykresy dorysowuje przeglądarka,
+// dopiero gdy karta wjedzie w pole widzenia.
+const wskazniki = zbudujWskazniki(badam, bdl);
+
+const dzialy = badam.tematy.map((t) => ({ klucz: t.temat, nazwa: t.temat, ile: t.pozycje.length }));
+const ileGUS = wskazniki.filter((w) => w.dzial === '__gus').length;
+const razem = wskazniki.length;
+
+const licz = (n, frac = 0) =>
+  n == null ? '—' : n.toLocaleString('pl-PL', { maximumFractionDigits: frac, minimumFractionDigits: frac });
+const odmienLata = (n) => {
+  if (n === 1) return '1 rok';
+  const mnoga = n % 10 >= 2 && n % 10 <= 4 && !(n % 100 >= 12 && n % 100 <= 14);
+  return `${n} ${mnoga ? 'lata' : 'lat'}`;
+};
 ---
 
 <Baza
@@ -17,9 +31,9 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
     <p class="nadtytul">Statystyka miejska</p>
     <h1>{razem} wskaźników o Poznaniu</h1>
     <p class="lid">
-      Ilu poznaniaków przybywa, ile jest rowerów, przedszkoli i przestępstw — każdy wskaźnik
+      Ilu poznaniaków przybywa, ile jest przedszkoli, tramwajów i przestępstw — każdy wskaźnik
       pokazany rok po roku, z tabel Urzędu Miasta i z danych GUS sięgających lat 90.
-      Wybierz dział, wpisz, czego szukasz, albo po prostu przewijaj.
+      Wybierz dział, wpisz, czego szukasz, albo zestaw dwa wskaźniki obok siebie.
     </p>
   </section>
 
@@ -27,12 +41,12 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
     <div class="karta cien" style="padding:16px 20px">
       <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
         <label class="pole" style="flex:1;min-width:260px">Szukaj wskaźnika
-          <input type="search" id="szukaj" placeholder="np. rowery, przedszkola, przestępstwa, powietrze" autocomplete="off" />
+          <input type="search" id="szukaj" placeholder="np. przedszkola, przestępstwa, tramwaje, żłobki, biblioteki" autocomplete="off" />
         </label>
-        <label class="pole" style="min-width:150px">Sortuj
+        <label class="pole" style="min-width:170px">Sortuj
           <select id="sortuj">
             <option value="alfa">alfabetycznie</option>
-            <option value="zmiana">największa zmiana</option>
+            <option value="zmiana">największy wzrost</option>
             <option value="spadek">największy spadek</option>
             <option value="dlugosc">najdłużej mierzone</option>
           </select>
@@ -40,155 +54,230 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
       </div>
       <div id="dzialy" style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px">
         <button class="pigulka" data-dzial="" aria-pressed="true">Wszystkie ({razem})</button>
-        <button class="pigulka" data-dzial="__gus" aria-pressed="false">GUS — dane od lat 90. ({podsumowanie.bdl.wskazniki.length})</button>
-        {tematy.map((t) => (
-          <button class="pigulka" data-dzial={t.temat} aria-pressed="false">{t.temat} ({t.pozycji})</button>
+        <button class="pigulka" data-dzial="__gus" aria-pressed="false">GUS — dane od lat 90. ({ileGUS})</button>
+        {dzialy.map((d) => (
+          <button class="pigulka" data-dzial={d.klucz} aria-pressed="false">{d.nazwa} ({d.ile})</button>
         ))}
       </div>
     </div>
   </section>
 
-  <section>
-    <p class="drobne" id="licznik"></p>
-    <div id="lista" class="siatka k2"><p class="ladowanie">Wczytywanie wskaźników…</p></div>
-    <div style="text-align:center;margin-top:20px">
-      <button id="wiecej" class="glowny" hidden>Pokaż więcej</button>
+  <section id="zestawienie" hidden>
+    <h2>Zestawienie</h2>
+    <p class="drobne" style="margin-top:-6px;max-width:70ch">
+      Wskaźniki mierzy się w różnych jednostkach — osobach, złotówkach, procentach — więc
+      domyślnie pokazujemy je jako zmianę względem pierwszego wspólnego roku (= 100).
+      Dzięki temu widać, co rosło szybciej, a nie co ma większe liczby.
+    </p>
+    <div class="karta cien">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+        <label class="pole" style="min-width:210px;text-transform:none">
+          <select id="ujecie">
+            <option value="indeks">pierwszy wspólny rok = 100</option>
+            <option value="wartosc">wartości bezwzględne</option>
+          </select>
+        </label>
+        <button id="wyczysc-zestawienie" style="margin-left:auto">Wyczyść zestawienie</button>
+      </div>
+      <div id="wykres-zestawienia"></div>
+      <div id="legenda-zestawienia"></div>
     </div>
   </section>
 
+  <section>
+    <p class="drobne" id="licznik"></p>
+    <div id="lista" class="siatka k2">
+      {wskazniki.map((w, i) => (
+        <article
+          class="karta wskaznik"
+          data-klucz={w.klucz}
+          data-dzial={w.dzial}
+          data-zmiana={w.zmiana ?? ''}
+          data-dlugosc={w.lata.length}
+          hidden={i >= 24}
+        >
+          <h3 class="w-tytul">{w.nazwa}</h3>
+          <p class="drobne w-meta">{w.dzialEtykieta}{w.sekcja ? ` · ${w.sekcja}` : ''}</p>
+          <div class="w-liczby">
+            <strong class="w-wartosc">{licz(w.ostatnia, Math.abs(w.ostatnia) < 100 ? 1 : 0)}</strong>
+            <span class="drobne">w {w.ostatniRok}</span>
+            {w.zmiana != null && (
+              <span class={`w-zmiana ${w.zmiana >= 0 ? 'rosnie' : 'spada'}`}>
+                {w.zmiana >= 0 ? '▲' : '▼'} {licz(Math.abs(w.zmiana), 1)}% od {w.pierwszyRok}
+              </span>
+            )}
+          </div>
+          <div class="wykres-slot"></div>
+          <p class="drobne w-stopka">
+            <span>{odmienLata(w.lata.length)} pomiaru · <a href={w.link} rel="noopener nofollow">{w.zrodlo}</a></span>
+            <button class="pigulka do-zestawienia" aria-pressed="false" data-klucz={w.klucz}>Zestaw</button>
+          </p>
+        </article>
+      ))}
+    </div>
+    <div style="text-align:center;margin-top:20px">
+      <button id="wiecej" class="glowny">Pokaż więcej</button>
+    </div>
+  </section>
+
+
   <script>
-    import { liniowy, fmt, PALETA } from '../lib/wykresy.js';
-
-    const [badam, bdl] = await Promise.all([
-      fetch('/dane/badam.json').then((r) => r.json()),
-      fetch('/dane/bdl.json').then((r) => r.json()),
-    ]);
-
-    // Ujednolicony model: { dzial, nazwa, sekcja, wartosci, zrodlo, link }
-    const wskazniki = [];
-    for (const t of badam.tematy) {
-      for (const poz of t.pozycje) {
-        wskazniki.push({
-          dzial: t.temat,
-          nazwa: poz.etykieta,
-          sekcja: poz.sekcja,
-          wartosci: poz.wartosci,
-          zrodlo: 'badam.poznan.pl',
-          link: poz.zrodla[0],
-        });
-      }
-    }
-    for (const w of Object.values(bdl.miasta.poznan.wskazniki)) {
-      wskazniki.push({
-        dzial: '__gus',
-        dzialEtykieta: `GUS · ${w.grupa}`,
-        nazwa: w.nazwa,
-        sekcja: w.jednostka,
-        wartosci: w.wartosci,
-        zrodlo: 'GUS BDL',
-        link: 'https://bdl.stat.gov.pl/',
-      });
-    }
-
-    for (const s of wskazniki) {
-      const lata = Object.keys(s.wartosci).sort();
-      s.lata = lata;
-      s.pierwszyRok = lata[0];
-      s.ostatniRok = lata[lata.length - 1];
-      s.pierwsza = s.wartosci[s.pierwszyRok];
-      s.ostatnia = s.wartosci[s.ostatniRok];
-      s.zmiana = s.pierwsza ? ((s.ostatnia - s.pierwsza) / Math.abs(s.pierwsza)) * 100 : null;
-      s.szukaj = `${s.nazwa} ${s.sekcja ?? ''} ${s.dzialEtykieta ?? s.dzial}`.toLowerCase();
-    }
+    import { liniowy, legenda, fmt, podmien, PALETA } from '../lib/wykresy.js';
 
     const $ = (s) => document.querySelector(s);
+    // przebiegi do wykresow trzymamy poza HTML-em, zeby nie rozdymac strony
+    let dane = {};
+    const karty = [...document.querySelectorAll('.wskaznik')];
+    const lista = $('#lista');
+
     let dzial = '';
     let widoczne = 24;
-    let wynik = [];
+    let pasujace = karty;
+
+    // ---------- wykresy ----------
+    // Pierwsze karty rysujemy od razu, resztę dopiero gdy wjedzie w pole widzenia.
+    // Bez tego strona czeka na obserwatora, który w niektórych przeglądarkach
+    // (albo w ukrytej karcie) nie odpala wcale.
+    const RYSUJ_OD_RAZU = 8;
+
+    function narysuj(karta) {
+      const slot = karta.querySelector('.wykres-slot');
+      if (!slot || slot.dataset.gotowe) return;
+      const d = dane[karta.dataset.klucz];
+      if (!d) return;               // dane jeszcze nie dojechały — spróbujemy ponownie
+      slot.dataset.gotowe = '1';    // znaczymy dopiero, gdy naprawdę rysujemy
+      slot.append(liniowy(
+        [{ nazwa: d.n, punkty: Object.entries(d.w), kolor: PALETA[0] }],
+        { wysokosc: 165, szerokosc: 430, formatY: (n) => fmt.skrot(n), zeroBaseline: false },
+      ));
+    }
+
+    const rysownik = new IntersectionObserver((wpisy) => {
+      for (const w of wpisy) {
+        if (!w.isIntersecting) continue;
+        rysownik.unobserve(w.target);
+        narysuj(w.target);
+      }
+    }, { rootMargin: '400px' });
+
+    function obserwujWidoczne() {
+      const pokazane = pasujace.slice(0, widoczne);
+      pokazane.slice(0, RYSUJ_OD_RAZU).forEach(narysuj);
+      for (const k of pokazane.slice(RYSUJ_OD_RAZU)) rysownik.observe(k);
+    }
+
+    // ---------- filtrowanie i sortowanie ----------
+    // Tekst do wyszukiwania czytamy z samej karty przy pierwszym użyciu.
+    // Powielanie go w atrybucie data- kosztowałoby ~50 kB HTML-a.
+    const indeks = new WeakMap();
+    function tekstKarty(k) {
+      if (!indeks.has(k)) {
+        const nazwa = k.querySelector('.w-tytul').textContent.trim();
+        const meta = k.querySelector('.w-meta').textContent.trim();
+        indeks.set(k, { nazwa, szukaj: `${nazwa} ${meta}`.toLowerCase() });
+      }
+      return indeks.get(k);
+    }
 
     function filtruj() {
       const fraza = $('#szukaj').value.trim().toLowerCase();
-      wynik = wskazniki.filter((s) => {
-        if (dzial && s.dzial !== dzial) return false;
-        if (fraza && !s.szukaj.includes(fraza)) return false;
+      pasujace = karty.filter((k) => {
+        if (dzial && k.dataset.dzial !== dzial) return false;
+        if (fraza && !tekstKarty(k).szukaj.includes(fraza)) return false;
         return true;
       });
 
       const tryb = $('#sortuj').value;
-      const porownanie = {
-        alfa: (a, b) => a.nazwa.localeCompare(b.nazwa, 'pl'),
-        zmiana: (a, b) => (b.zmiana ?? -Infinity) - (a.zmiana ?? -Infinity),
-        spadek: (a, b) => (a.zmiana ?? Infinity) - (b.zmiana ?? Infinity),
-        dlugosc: (a, b) => b.lata.length - a.lata.length,
-      }[tryb];
-      wynik.sort(porownanie);
+      const liczba = (k, pole) => (k.dataset[pole] === '' ? null : Number(k.dataset[pole]));
+      const porownania = {
+        alfa: (a, b) => tekstKarty(a).nazwa.localeCompare(tekstKarty(b).nazwa, 'pl'),
+        zmiana: (a, b) => (liczba(b, 'zmiana') ?? -Infinity) - (liczba(a, 'zmiana') ?? -Infinity),
+        spadek: (a, b) => (liczba(a, 'zmiana') ?? Infinity) - (liczba(b, 'zmiana') ?? Infinity),
+        dlugosc: (a, b) => liczba(b, 'dlugosc') - liczba(a, 'dlugosc'),
+      };
+      pasujace.sort(porownania[tryb]);
 
       widoczne = 24;
-      rysuj();
+      pokaz();
     }
 
-    function karta(s) {
-      const box = document.createElement('article');
-      box.className = 'karta';
-      const kier = s.zmiana == null ? '' : s.zmiana >= 0 ? 'var(--zielen)' : 'var(--czerwien)';
-      const strzalka = s.zmiana == null ? '' : s.zmiana >= 0 ? '▲' : '▼';
-
-      const glowa = document.createElement('div');
-      glowa.innerHTML = `
-        <h3 style="font-size:1rem;margin-bottom:.25em">${escapuj(s.nazwa)}</h3>
-        <p class="drobne" style="margin-bottom:.7em">
-          ${escapuj(s.dzialEtykieta ?? s.dzial)}${s.sekcja ? ` · ${escapuj(s.sekcja)}` : ''}
-        </p>
-        <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:.6em">
-          <strong style="font-family:var(--serif);font-size:1.5rem">${fmt.liczba(s.ostatnia, Math.abs(s.ostatnia) < 100 ? 1 : 0)}</strong>
-          <span class="drobne">w ${s.ostatniRok}</span>
-          ${s.zmiana == null ? '' : `<span style="color:${kier};font-weight:600;font-size:.85rem">${strzalka} ${fmt.liczba(Math.abs(s.zmiana), 1)}% od ${s.pierwszyRok}</span>`}
-        </div>`;
-      box.append(glowa);
-
-      box.append(liniowy(
-        [{ nazwa: s.nazwa, punkty: Object.entries(s.wartosci), kolor: PALETA[0] }],
-        { wysokosc: 165, szerokosc: 430, formatY: (n) => fmt.skrot(n), zeroBaseline: false },
-      ));
-
-      const stopka = document.createElement('p');
-      stopka.className = 'drobne';
-      stopka.style.marginTop = '10px';
-      stopka.innerHTML = `${s.lata.length} lat pomiaru · <a href="${s.link}" rel="noopener nofollow">${escapuj(s.zrodlo)}</a>`;
-      box.append(stopka);
-      return box;
-    }
-
-    function escapuj(s) {
-      return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    }
-
-    function rysuj() {
-      const lista = $('#lista');
-      if (!wynik.length) {
-        lista.replaceChildren(Object.assign(document.createElement('p'), {
-          className: 'ladowanie', textContent: 'Nic nie pasuje do tych kryteriów.',
-        }));
-        $('#wiecej').hidden = true;
-        $('#licznik').textContent = '';
-        return;
-      }
+    function pokaz() {
+      for (const k of karty) k.hidden = true;
       const frag = document.createDocumentFragment();
-      for (const s of wynik.slice(0, widoczne)) frag.append(karta(s));
-      lista.replaceChildren(frag);
-      $('#licznik').textContent = `Pokazano ${Math.min(widoczne, wynik.length)} z ${fmt.liczba(wynik.length)} wskaźników`;
-      const wiecej = $('#wiecej');
-      wiecej.hidden = wynik.length <= widoczne;
-      wiecej.textContent = `Pokaż więcej (pozostało ${fmt.liczba(wynik.length - widoczne)})`;
+      for (const k of pasujace.slice(0, widoczne)) {
+        k.hidden = false;
+        frag.append(k);            // przeniesienie węzła ustawia też kolejność
+      }
+      lista.append(frag);
+      // reszta wraca na koniec, żeby została w DOM-ie dla wyszukiwarek
+      for (const k of pasujace.slice(widoczne)) lista.append(k);
+
+      $('#licznik').textContent = pasujace.length
+        ? `Pokazano ${Math.min(widoczne, pasujace.length)} z ${fmt.liczba(pasujace.length)} wskaźników`
+        : 'Nic nie pasuje do tych kryteriów.';
+      $('#wiecej').hidden = pasujace.length <= widoczne;
+      $('#wiecej').textContent = `Pokaż więcej (pozostało ${fmt.liczba(pasujace.length - widoczne)})`;
+      obserwujWidoczne();
     }
 
+    // ---------- zestawienie wskaźników ----------
+    const zestawione = [];
+    const MAKS = 3;
+
+    function rysujZestawienie() {
+      const sekcja = $('#zestawienie');
+      sekcja.hidden = zestawione.length === 0;
+      if (!zestawione.length) return;
+
+      const indeks = $('#ujecie').value === 'indeks';
+      const serie = zestawione.map((klucz, i) => {
+        const d = dane[klucz];
+        const lata = Object.keys(d.w).sort();
+        const baza = d.w[lata[0]];
+        return {
+          nazwa: indeks ? d.n : `${d.n}${d.j ? ` [${d.j}]` : ''}`,
+          kolor: PALETA[i],
+          punkty: lata.map((r) => [r, indeks && baza ? (d.w[r] / baza) * 100 : d.w[r]]),
+        };
+      });
+      podmien('#wykres-zestawienia', liniowy(serie, {
+        wysokosc: 300,
+        formatY: indeks ? (n) => fmt.liczba(n, 0) : fmt.skrot,
+        zeroBaseline: false,
+      }));
+      podmien('#legenda-zestawienia', legenda(serie));
+    }
+
+    function przelaczZestawienie(klucz, przycisk) {
+      const i = zestawione.indexOf(klucz);
+      if (i >= 0) {
+        zestawione.splice(i, 1);
+      } else {
+        if (zestawione.length >= MAKS) {
+          const usuniety = zestawione.shift();
+          const stary = document.querySelector(`.do-zestawienia[data-klucz="${CSS.escape(usuniety)}"]`);
+          if (stary) { stary.setAttribute('aria-pressed', 'false'); stary.textContent = 'Zestaw'; }
+        }
+        zestawione.push(klucz);
+      }
+      const wybrany = zestawione.includes(klucz);
+      przycisk.setAttribute('aria-pressed', String(wybrany));
+      przycisk.textContent = wybrany ? 'W zestawieniu' : 'Zestaw';
+      rysujZestawienie();
+      if (wybrany && zestawione.length === 1) {
+        $('#zestawienie').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // ---------- zdarzenia ----------
     let timer;
     $('#szukaj').addEventListener('input', () => {
       clearTimeout(timer);
       timer = setTimeout(filtruj, 160);
     });
     $('#sortuj').addEventListener('change', filtruj);
-    $('#wiecej').addEventListener('click', () => { widoczne += 24; rysuj(); });
+    $('#ujecie').addEventListener('change', rysujZestawienie);
+    $('#wiecej').addEventListener('click', () => { widoczne += 24; pokaz(); });
     $('#dzialy').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-dzial]');
       if (!btn) return;
@@ -198,7 +287,25 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
       }
       filtruj();
     });
+    lista.addEventListener('click', (e) => {
+      const btn = e.target.closest('.do-zestawienia');
+      if (btn) przelaczZestawienie(btn.dataset.klucz, btn);
+    });
+    $('#wyczysc-zestawienie').addEventListener('click', () => {
+      for (const klucz of [...zestawione]) {
+        const btn = document.querySelector(`.do-zestawienia[data-klucz="${CSS.escape(klucz)}"]`);
+        if (btn) { btn.setAttribute('aria-pressed', 'false'); btn.textContent = 'Zestaw'; }
+      }
+      zestawione.length = 0;
+      rysujZestawienie();
+    });
 
     filtruj();
+
+    // wykresy dorysowujemy, gdy dane dojada - karty z liczbami sa widoczne od razu
+    fetch('/wskazniki.json')
+      .then((r) => r.json())
+      .then((d) => { dane = d; obserwujWidoczne(); })
+      .catch(() => {});
   </script>
 </Baza>

@@ -191,6 +191,7 @@ const licz = (n) => n.toLocaleString('pl-PL');
 
   <script>
     import { ranking, slupkowy, fmt, podmien, PALETA } from '../lib/wykresy.js';
+    import { pobierzRocznik, DNI_WIELOLETNIA } from '../lib/rocznik.js';
 
     const [agregaty, profile] = await Promise.all([
       fetch('/dane/umowy-agregaty.json').then((r) => r.json()),
@@ -264,9 +265,7 @@ const licz = (n) => n.toLocaleString('pl-PL');
     // ---------- ładowanie roczników ----------
     const bufor = new Map();
     async function rocznik(rok) {
-      if (!bufor.has(rok)) {
-        bufor.set(rok, fetch(`/dane/umowy/${rok}.json`).then((r) => r.json()));
-      }
+      if (!bufor.has(rok)) bufor.set(rok, pobierzRocznik(rok));
       return bufor.get(rok);
     }
 
@@ -307,7 +306,7 @@ const licz = (n) => n.toLocaleString('pl-PL');
       const tylkoWieloletnie = $('#f-wieloletnie').getAttribute('aria-pressed') === 'true';
 
       wynik = zbior.filter((u) => {
-        if (tylkoWieloletnie && !(u.dni >= 400)) return false;
+        if (tylkoWieloletnie && !(u.dni >= DNI_WIELOLETNIA)) return false;
         if (jednostka && u.j !== jednostka) return false;
         if (rodzaj && u.r !== rodzaj) return false;
         if (od != null && !(u.w >= od)) return false;
@@ -370,7 +369,7 @@ const licz = (n) => n.toLocaleString('pl-PL');
         ? fmt.kwota(u.w)
         : `<span title="w rejestrze zapisano: ${u.wr ?? 'brak'}" style="color:var(--tekst-3)">${u.wr ?? '—'}</span>`;
       // umowy dłuższe niż rok dostają znacznik z czasem obowiązywania
-      const okres = u.dni >= 400
+      const okres = u.dni >= DNI_WIELOLETNIA
         ? ` <span class="znacznik" title="obowiązuje od ${fmt.data(u.od)}, przez ${fmt.liczba(u.dni)} dni">${fmt.lata(u.dni)}</span>`
         : '';
       tr.innerHTML = `

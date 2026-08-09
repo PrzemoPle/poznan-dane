@@ -11,6 +11,7 @@
 
 import { readdir } from 'node:fs/promises';
 import { saveJSON, loadJSON, log } from './lib.mjs';
+import { rozpakuj } from '../src/lib/rocznik.js';
 
 // Kontrahentów są 21 tysiące; strony budujemy dla tych, którzy realnie znaczą.
 const ILU_KONTRAHENTOW = 300;
@@ -107,7 +108,7 @@ async function main() {
 
   for (const plik of pliki) {
     const rok = plik.slice(0, 4);
-    const dane = await loadJSON(`public/dane/umowy/${plik}`, []);
+    const dane = rozpakuj(await loadJSON(`public/dane/umowy/${plik}`, { umowy: [] }));
 
     for (const u of dane) {
       const kluczK = normalizuj(u.k);
