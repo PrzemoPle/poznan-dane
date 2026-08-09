@@ -1,0 +1,42 @@
+# Auto-deploy na Cloudflare Pages po każdym pushu do main.
+# Projekt `poznan-dane` powstał jako Direct Upload, a takiego Cloudflare nie pozwala
+# już podłączyć do Gita — dlatego wdrożenie odpala się stąd, przez wrangler-action.
+#
+# ETL celowo NIE działa w CI: zaciąg rejestru umów to ~40 min zapytań do BIP-u miasta.
+# Agregaty leżą w repo (public/dane), więc build potrzebuje tylko `npm ci`.
+# Odświeżenie danych robimy lokalnie: `npm run etl && git push`.
+
+name: Deploy na Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name poznan-dane --branch main
