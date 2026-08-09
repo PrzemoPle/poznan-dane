@@ -5,4 +5,4 @@ Allow: /
 # to surowe JSON-y, treść jest na stronach.
 Disallow: /dane/
 
-Sitemap: https://poznan-dane.pages.dev/sitemap-index.xml
+Sitemap: https://poznanwdanych.pl/sitemap-index.xml

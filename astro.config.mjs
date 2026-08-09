@@ -2,7 +2,7 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
-  site: 'https://poznan-dane.pages.dev',
+  site: 'https://poznanwdanych.pl',
   build: { format: 'directory' },
   compressHTML: true,
   integrations: [
