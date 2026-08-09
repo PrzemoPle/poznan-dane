@@ -1,0 +1,136 @@
+---
+// Wspólny profil podmiotu — używany przez /kontrahent/[slug] i /jednostka/[slug].
+// Dane przychodzą gotowe z etl/build-podmioty.mjs; tu tylko renderujemy.
+const { podmiot, typ } = Astro.props;
+
+const jestKontrahentem = typ === 'kontrahent';
+const licz = (n) => n.toLocaleString('pl-PL');
+const kwota = (n) =>
+  n >= 1e9 ? `${(n / 1e9).toLocaleString('pl-PL', { maximumFractionDigits: 2 })} mld zł`
+  : n >= 1e6 ? `${(n / 1e6).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} mln zł`
+  : `${licz(Math.round(n))} zł`;
+const dataPL = (s) => (s ? s.split('-').reverse().join('.') : '—');
+const bipLink = (l) => (l || '').replace('&api=json', '');
+/** Odmiana „rok" po polsku: 1 rok, 2 lata, 5 lat, 22 lata. */
+const odmienLata = (n) => {
+  if (n === 1) return '1 rok';
+  const mnoga = n % 10 >= 2 && n % 10 <= 4 && !(n % 100 >= 12 && n % 100 <= 14);
+  return `${n} ${mnoga ? 'lata' : 'lat'}`;
+};
+const lataOpis = (dni) => odmienLata(Math.round(dni / 365.25));
+
+const lataAktywne = Object.keys(podmiot.lata).length;
+// powrót do rejestru z nałożonym filtrem — na ostatnim roku aktywności, żeby nie ciągnąć całości
+const filtrURL = jestKontrahentem
+  ? `/umowy/?rok=${podmiot.ostatniRok}&fraza=${encodeURIComponent(podmiot.nazwa)}`
+  : `/umowy/?rok=${podmiot.ostatniRok}&jednostka=${encodeURIComponent(podmiot.nazwa)}`;
+---
+
+<section style="margin-top:44px">
+  <p class="nadtytul">{jestKontrahentem ? 'Profil kontrahenta' : 'Profil jednostki miejskiej'}</p>
+  <h1 style="max-width:20ch">{podmiot.nazwa}</h1>
+  <p class="lid">
+    {jestKontrahentem
+      ? `Wszystko, co rejestr umów Miasta Poznania mówi o tym kontrahencie: ile podpisał umów, z którymi jednostkami i za ile.`
+      : `Wszystko, co rejestr umów mówi o tej jednostce: ile wydała, na co i z kim.`}
+  </p>
+</section>
+
+<section class="siatka k4">
+  <div class="karta kpi">
+    <span class="etykieta">Łączna wartość</span>
+    <span class="wartosc">{kwota(podmiot.suma)}</span>
+    <span class="opis">{podmiot.liczba === 1 ? 'z 1 umowy' : `z ${licz(podmiot.liczba)} umów`}</span>
+  </div>
+  <div class="karta kpi">
+    <span class="etykieta">Typowa umowa</span>
+    <span class="wartosc">{kwota(podmiot.mediana)}</span>
+    <span class="opis">mediana wartości</span>
+  </div>
+  <div class="karta kpi">
+    <span class="etykieta">Obecność w rejestrze</span>
+    <span class="wartosc">{podmiot.pierwszyRok}–{podmiot.ostatniRok}</span>
+    <span class="opis">{odmienLata(lataAktywne)} z umowami</span>
+  </div>
+  <div class="karta kpi">
+    <span class="etykieta">Umowy wieloletnie</span>
+    <span class="wartosc">{licz(podmiot.wieloletnie)}</span>
+    <span class="opis">obowiązujące dłużej niż rok</span>
+  </div>
+</section>
+
+<section>
+  <h2>Wartość umów rok po roku</h2>
+  <div class="karta cien"><div id="wykres-lata"><p class="ladowanie">…</p></div></div>
+</section>
+
+{podmiot.partnerzy.length > 0 && (
+  <section>
+    <h2>{jestKontrahentem ? 'Z którymi jednostkami miasta' : 'Z kim ta jednostka podpisuje umowy'}</h2>
+    <div class="karta cien"><div id="wykres-partnerzy"></div></div>
+  </section>
+)}
+
+<section>
+  <h2>Umowy</h2>
+  <p class="drobne" style="margin-top:-6px">
+    {podmiot.umowy.length < podmiot.liczba
+      ? `${podmiot.umowy.length} największych z ${licz(podmiot.liczba)}. Numer umowy prowadzi do wpisu w BIP.`
+      : `Wszystkie ${licz(podmiot.liczba)}. Numer umowy prowadzi do wpisu w BIP.`}
+  </p>
+  <div class="tabela-otok" style="max-height:70vh;overflow-y:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Przedmiot</th>
+          <th>{jestKontrahentem ? 'Jednostka' : 'Kontrahent'}</th>
+          <th class="num">Wartość</th>
+          <th>Nr</th>
+        </tr>
+      </thead>
+      <tbody>
+        {podmiot.umowy.map((u) => (
+          <tr>
+            <td style="white-space:nowrap">{dataPL(u.d)}</td>
+            <td style="color:var(--tekst-2);max-width:40ch">
+              {u.p}
+              {u.dni >= 400 && <span class="znacznik" style="margin-left:6px">{lataOpis(u.dni)}</span>}
+            </td>
+            <td style="color:var(--tekst-2);max-width:24ch">{u.x}</td>
+            <td class="num" style="font-weight:600">{u.w != null ? kwota(u.w) : '—'}</td>
+            <td class="drobne" style="white-space:nowrap">
+              {u.l ? <a href={bipLink(u.l)} rel="noopener nofollow">{u.n || 'wpis'}</a> : u.n}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <p style="margin-top:14px">
+    <a href={filtrURL}>Otwórz w rejestrze z nałożonym filtrem →</a>
+  </p>
+</section>
+
+{/* dane wykresów wstrzykiwane w HTML — bez dodatkowego zapytania sieciowego */}
+<script define:vars={{ daneLat: podmiot.lata, danePartnerow: podmiot.partnerzy }}>
+  window.__profil = { daneLat, danePartnerow };
+</script>
+
+<script>
+  import { slupkowy, ranking, fmt, podmien, PALETA } from '../lib/wykresy.js';
+
+  const { daneLat, danePartnerow } = window.__profil;
+
+  podmien('#wykres-lata', slupkowy(
+    Object.entries(daneLat).sort().map(([rok, v]) => [rok, v.suma]),
+    { wysokosc: 220, formatY: fmt.skrot },
+  ));
+
+  if (danePartnerow.length) {
+    podmien('#wykres-partnerzy', ranking(
+      danePartnerow.map((p) => ({ nazwa: p.nazwa, wartosc: p.suma })),
+      { formatW: fmt.kwota, kolor: PALETA[1], maxEtykieta: 44 },
+    ));
+  }
+</script>

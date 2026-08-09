@@ -1,6 +1,10 @@
 ---
 import Baza from '../layouts/Baza.astro';
 import agregaty from '../../public/dane/umowy-agregaty.json';
+import profile from '../../public/dane/profile.json';
+
+// nazwa → adres profilu, jeśli podmiot ma własną stronę
+const profilKontrahenta = (n) => (profile.kontrahenci[n] ? `/kontrahent/${profile.kontrahenci[n]}/` : null);
 
 const lata = agregaty.lata.map((l) => l.rok).sort((a, b) => b - a);
 const mld = (n) => (n / 1e9).toLocaleString('pl-PL', { maximumFractionDigits: 2 });
@@ -56,6 +60,7 @@ const licz = (n) => n.toLocaleString('pl-PL');
         </label>
       </div>
       <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center">
+        <button class="pigulka" id="f-wieloletnie" aria-pressed="false">Tylko wieloletnie</button>
         <button id="f-reset">Wyczyść filtry</button>
         <button id="f-csv">Pobierz wynik (CSV)</button>
         <span id="f-podsumowanie" class="drobne" style="margin-left:auto"></span>
@@ -120,7 +125,9 @@ const licz = (n) => n.toLocaleString('pl-PL');
           {agregaty.najwiekszeUmowy.slice(0, 15).map((u) => (
             <tr>
               <td style="white-space:nowrap">{u.data.split('-').reverse().join('.')}</td>
-              <td>{u.kontrahent}</td>
+              <td>{profilKontrahenta(u.kontrahent)
+                ? <a href={profilKontrahenta(u.kontrahent)}>{u.kontrahent}</a>
+                : u.kontrahent}</td>
               <td style="color:var(--tekst-2)">
                 <a href={u.link} rel="noopener nofollow">{u.przedmiot}</a>
               </td>
@@ -140,11 +147,66 @@ const licz = (n) => n.toLocaleString('pl-PL');
     </div>
   </section>
 
+  <section>
+    <h2>Rytm roku budżetowego</h2>
+    <p class="drobne" style="margin-top:-6px;max-width:70ch">
+      Ile umów miasto podpisuje w poszczególnych miesiącach — zsumowane ze wszystkich pełnych roczników.
+      Liczymy umowy, a nie złotówki: pojedynczy kontrakt wieloletni potrafi wywindować jeden miesiąc
+      o miliardy i zamazać obraz.
+    </p>
+    <div class="karta cien">
+      <div id="wykres-sezonowosc"><p class="ladowanie">…</p></div>
+      <p class="drobne" id="opis-sezonowosc" style="margin:14px 0 0"></p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Kontrakty, które wiążą miasto na lata</h2>
+    <p class="drobne" style="margin-top:-6px;max-width:70ch">
+      Umowy obowiązujące dłużej niż rok. Jest ich mało, ale to one przesądzają o wartości rejestru —
+      i to one tłumaczą, dlaczego roczne sumy skaczą.
+    </p>
+    <div class="siatka k3" style="margin-bottom:18px">
+      <div class="karta kpi">
+        <span class="etykieta">Udział w liczbie umów</span>
+        <span class="wartosc" id="wl-udzial-liczba">—</span>
+        <span class="opis" id="wl-liczba"></span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">Udział w wartości</span>
+        <span class="wartosc" id="wl-udzial-wartosc">—</span>
+        <span class="opis">tych samych umów</span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">Najdłuższa umowa</span>
+        <span class="wartosc" id="wl-najdluzsza">—</span>
+        <span class="opis" id="wl-najdluzsza-opis"></span>
+      </div>
+    </div>
+    <div class="karta cien">
+      <h3>Ile procent rocznej wartości to kontrakty wieloletnie</h3>
+      <div id="wykres-wieloletnie"></div>
+    </div>
+  </section>
+
   <script>
     import { ranking, slupkowy, fmt, podmien, PALETA } from '../lib/wykresy.js';
 
-    const agregaty = await (await fetch('/dane/umowy-agregaty.json')).json();
+    const [agregaty, profile] = await Promise.all([
+      fetch('/dane/umowy-agregaty.json').then((r) => r.json()),
+      // indeks nazwa → slug; linkujemy tylko tam, gdzie profil naprawdę istnieje
+      fetch('/dane/profile.json').then((r) => r.json()).catch(() => ({ kontrahenci: {}, jednostki: {} })),
+    ]);
     const lata = agregaty.lata.map((l) => l.rok).sort((a, b) => b - a);
+
+    /** Nazwa jako link do profilu, jeśli podmiot ma własną stronę. */
+    function linkPodmiotu(nazwa, rodzaj) {
+      const slug = profile[rodzaj]?.[nazwa];
+      const tekst = escapuj(nazwa);
+      if (!slug) return tekst;
+      const sciezka = rodzaj === 'kontrahenci' ? 'kontrahent' : 'jednostka';
+      return `<a href="/${sciezka}/${slug}/">${tekst}</a>`;
+    }
 
     // ---------- wykresy roczne (niezależne od filtrów) ----------
     podmien('#wykres-lata-liczba', slupkowy(
@@ -155,6 +217,49 @@ const licz = (n) => n.toLocaleString('pl-PL');
       agregaty.lata.map((l) => [String(l.rok), l.suma]),
       { wysokosc: 200, formatY: fmt.skrot },
     ));
+
+    // ---------- rytm roku budżetowego ----------
+    const MIESIACE = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec',
+      'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
+    const SKROTY = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
+    const sez = Object.entries(agregaty.sezonowosc ?? {}).sort();
+    if (sez.length) {
+      podmien('#wykres-sezonowosc', slupkowy(
+        sez.map(([m, v]) => [SKROTY[+m - 1], v.liczba]),
+        { wysokosc: 230, formatY: (n) => fmt.liczba(n), kolor: PALETA[1] },
+      ));
+      const posort = [...sez].sort((a, b) => b[1].liczba - a[1].liczba);
+      const [szczyt, dolek] = [posort[0], posort[posort.length - 1]];
+      const krotnosc = (szczyt[1].liczba / dolek[1].liczba).toFixed(1).replace('.', ',');
+      document.querySelector('#opis-sezonowosc').textContent =
+        `Szczyt to ${MIESIACE[+szczyt[0] - 1]} (${fmt.liczba(szczyt[1].liczba)} umów), dołek — ` +
+        `${MIESIACE[+dolek[0] - 1]} (${fmt.liczba(dolek[1].liczba)}). Różnica ${krotnosc}-krotna. ` +
+        `Grudzień domyka stary budżet, styczeń otwiera nowy.`;
+    }
+
+    // ---------- kontrakty wieloletnie ----------
+    const zWl = agregaty.lata.filter((l) => l.wieloletnie && l.pelnyRok);
+    if (zWl.length) {
+      const sumaLiczba = zWl.reduce((s, l) => s + l.wieloletnie.liczba, 0);
+      const sumaWszystkich = zWl.reduce((s, l) => s + l.liczba, 0);
+      const sumaWart = zWl.reduce((s, l) => s + l.wieloletnie.suma, 0);
+      const sumaWartWszystkich = zWl.reduce((s, l) => s + l.suma, 0);
+      const najdl = zWl.reduce((a, l) => (l.wieloletnie.najdluzszaLat > a.wieloletnie.najdluzszaLat ? l : a));
+
+      const proc = (a, b) => `${fmt.liczba((a / b) * 100, 1)}%`;
+      document.querySelector('#wl-udzial-liczba').textContent = proc(sumaLiczba, sumaWszystkich);
+      document.querySelector('#wl-liczba').textContent =
+        `${fmt.liczba(sumaLiczba)} z ${fmt.liczba(sumaWszystkich)} umów`;
+      document.querySelector('#wl-udzial-wartosc').textContent = proc(sumaWart, sumaWartWszystkich);
+      document.querySelector('#wl-najdluzsza').textContent =
+        fmt.lata(najdl.wieloletnie.najdluzszaLat * 365.25);
+      document.querySelector('#wl-najdluzsza-opis').textContent = `podpisana w ${najdl.rok} r.`;
+
+      podmien('#wykres-wieloletnie', slupkowy(
+        zWl.map((l) => [String(l.rok), l.suma ? (l.wieloletnie.suma / l.suma) * 100 : 0]),
+        { wysokosc: 210, formatY: (n) => `${fmt.liczba(n, 0)}%`, kolor: PALETA[2] },
+      ));
+    }
 
     // ---------- ładowanie roczników ----------
     const bufor = new Map();
@@ -199,7 +304,10 @@ const licz = (n) => n.toLocaleString('pl-PL');
       const od = pola.od.value === '' ? null : Number(pola.od.value);
       const doK = pola.do.value === '' ? null : Number(pola.do.value);
 
+      const tylkoWieloletnie = $('#f-wieloletnie').getAttribute('aria-pressed') === 'true';
+
       wynik = zbior.filter((u) => {
+        if (tylkoWieloletnie && !(u.dni >= 400)) return false;
         if (jednostka && u.j !== jednostka) return false;
         if (rodzaj && u.r !== rodzaj) return false;
         if (od != null && !(u.w >= od)) return false;
@@ -261,11 +369,15 @@ const licz = (n) => n.toLocaleString('pl-PL');
       const kwota = u.w != null
         ? fmt.kwota(u.w)
         : `<span title="w rejestrze zapisano: ${u.wr ?? 'brak'}" style="color:var(--tekst-3)">${u.wr ?? '—'}</span>`;
+      // umowy dłuższe niż rok dostają znacznik z czasem obowiązywania
+      const okres = u.dni >= 400
+        ? ` <span class="znacznik" title="obowiązuje od ${fmt.data(u.od)}, przez ${fmt.liczba(u.dni)} dni">${fmt.lata(u.dni)}</span>`
+        : '';
       tr.innerHTML = `
         <td style="white-space:nowrap">${fmt.data(u.d)}</td>
-        <td>${escapuj(u.k)}</td>
-        <td style="color:var(--tekst-2);max-width:38ch">${escapuj(u.p)}</td>
-        <td style="color:var(--tekst-2);max-width:22ch">${escapuj(u.j)}</td>
+        <td>${linkPodmiotu(u.k, 'kontrahenci')}</td>
+        <td style="color:var(--tekst-2);max-width:38ch">${escapuj(u.p)}${okres}</td>
+        <td style="color:var(--tekst-2);max-width:22ch">${linkPodmiotu(u.j, 'jednostki')}</td>
         <td class="num" style="font-weight:600">${kwota}</td>
         <td class="drobne" style="white-space:nowrap">${u.l ? `<a href="${u.l}" rel="noopener nofollow">${escapuj(u.n || 'wpis')}</a>` : escapuj(u.n)}</td>`;
       return tr;
@@ -347,8 +459,14 @@ const licz = (n) => n.toLocaleString('pl-PL');
     pola.rok.addEventListener('change', wczytaj);
     $('#wiecej').addEventListener('click', () => { pokazane += 100; rysuj(); });
     $('#f-csv').addEventListener('click', csv);
+    $('#f-wieloletnie').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      btn.setAttribute('aria-pressed', String(btn.getAttribute('aria-pressed') !== 'true'));
+      filtruj();
+    });
     $('#f-reset').addEventListener('click', () => {
       for (const el of Object.values(pola)) if (el !== pola.rok) el.value = '';
+      $('#f-wieloletnie').setAttribute('aria-pressed', 'false');
       filtruj();
       zapiszURL();
     });

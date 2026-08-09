@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Pliki danych są publiczne do pobrania, ale nie ma sensu ich indeksować —
+# to surowe JSON-y, treść jest na stronach.
+Disallow: /dane/
+
+Sitemap: https://poznan-dane.pages.dev/sitemap-index.xml

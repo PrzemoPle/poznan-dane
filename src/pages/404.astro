@@ -1,0 +1,34 @@
+---
+import Baza from '../layouts/Baza.astro';
+import podsumowanie from '../../public/dane/podsumowanie.json';
+
+const licz = (n) => n.toLocaleString('pl-PL');
+
+const tropy = [
+  { href: '/umowy/', tytul: 'Rejestr umów', opis: `${licz(podsumowanie.umowy.liczba)} umów miasta i jego jednostek` },
+  { href: '/budzet/', tytul: 'Budżet miasta', opis: 'Dochody i wydatki od 1995 roku' },
+  { href: '/statystyki/', tytul: 'Statystyki', opis: 'Kilkaset wskaźników o Poznaniu' },
+  { href: '/zrodla/', tytul: 'Źródła', opis: 'Skąd bierzemy dane i czego z nich nie wyczytasz' },
+];
+---
+
+<Baza strona={null} tytul="Nie ma takiej strony" opis="Pod tym adresem nic nie ma.">
+  <section style="margin-top:60px;max-width:60ch">
+    <p class="nadtytul">Błąd 404</p>
+    <h1>Pod tym adresem nic nie ma</h1>
+    <p class="lid">
+      Strona mogła zmienić adres albo nigdy nie istniała. Dane nadal są —
+      poniżej cztery miejsca, od których warto zacząć.
+    </p>
+  </section>
+
+  <section class="siatka k2">
+    {tropy.map((t) => (
+      <a href={t.href} class="karta">
+        <h3 style="margin-bottom:.3em">{t.tytul}</h3>
+        <p style="font-size:.9rem;color:var(--tekst-2);margin:0">{t.opis}</p>
+        <span class="idz">Wejdź <span class="strzalka">→</span></span>
+      </a>
+    ))}
+  </section>
+</Baza>

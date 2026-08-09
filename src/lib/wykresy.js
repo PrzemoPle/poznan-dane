@@ -27,6 +27,15 @@ export const fmt = {
     return fmt.liczba(n, a < 10 ? 1 : 0);
   },
   data: (s) => (s ? s.split('-').reverse().join('.') : '—'),
+  /** Odmiana „rok" po polsku: 1 rok, 2 lata, 5 lat, 22 lata, 25 lat. */
+  lata: (dni) => {
+    const n = Math.round(dni / 365.25);
+    if (n === 1) return '1 rok';
+    const ost = n % 10;
+    const dwie = n % 100;
+    const mnoga = ost >= 2 && ost <= 4 && !(dwie >= 12 && dwie <= 14);
+    return `${n} ${mnoga ? 'lata' : 'lat'}`;
+  },
   proc: (n, frac = 1) => (n == null ? '—' : `${fmt.liczba(n, frac)}%`),
 };
 

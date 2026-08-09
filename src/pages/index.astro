@@ -3,6 +3,7 @@ import Baza from '../layouts/Baza.astro';
 import podsumowanie from '../../public/dane/podsumowanie.json';
 import bdl from '../../public/dane/bdl.json';
 import agregaty from '../../public/dane/umowy-agregaty.json';
+import profile from '../../public/dane/profile.json';
 
 const p = bdl.miasta.poznan;
 const ostatniRok = (klucz) => {
@@ -56,8 +57,8 @@ const sekcje = [
   {
     href: '/statystyki/',
     tytul: 'Statystyki miasta',
-    opis: 'Demografia, rynek pracy, mieszkalnictwo, środowisko, edukacja, kultura, bezpieczeństwo — szeregi czasowe z portalu badam.poznan.pl i GUS.',
-    metryka: `${podsumowanie.badam.tematy.reduce((s, t) => s + t.pozycji, 0)} szeregów w ${podsumowanie.badam.tematy.length} działach`,
+    opis: 'Demografia, rynek pracy, mieszkalnictwo, środowisko, edukacja, kultura, bezpieczeństwo — dane rok po roku z portalu badam.poznan.pl i z GUS.',
+    metryka: `${podsumowanie.badam.tematy.reduce((s, t) => s + t.pozycji, 0)} wskaźników w ${podsumowanie.badam.tematy.length} działach`,
   },
   {
     href: '/porownaj/',
@@ -84,7 +85,7 @@ const sekcje = [
       <p class="nadtytul">Składnica danych publicznych</p>
       <h1 style="max-width:14ch">Poznań sprawdzony liczba po liczbie</h1>
       <p class="lid">
-        Rejestr umów miasta, budżet od 1995 roku, kilkaset szeregów statystycznych i porównania
+        Rejestr umów miasta, budżet od 1995 roku, kilkaset wskaźników o mieście i porównania
         z pięcioma największymi polskimi miastami. Wszystko z oficjalnych źródeł, z linkiem
         do każdego rekordu — żeby dało się zweryfikować, a nie tylko uwierzyć.
       </p>
@@ -176,10 +177,14 @@ const sekcje = [
           {najwieksze.map((u) => (
             <tr>
               <td>
-                <a href={bipLink(u.link)} rel="noopener">{u.kontrahent}</a>
+                {profile.kontrahenci[u.kontrahent]
+                  ? <a href={`/kontrahent/${profile.kontrahenci[u.kontrahent]}/`}>{u.kontrahent}</a>
+                  : <a href={bipLink(u.link)} rel="noopener">{u.kontrahent}</a>}
                 <br /><span class="drobne">{u.przedmiot}</span>
               </td>
-              <td>{u.jednostka}</td>
+              <td>{profile.jednostki[u.jednostka]
+                ? <a href={`/jednostka/${profile.jednostki[u.jednostka]}/`}>{u.jednostka}</a>
+                : u.jednostka}</td>
               <td class="num">{u.rok}</td>
               <td class="num"><strong>{kwota(u.wartosc)}</strong></td>
             </tr>

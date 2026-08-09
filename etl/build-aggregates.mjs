@@ -9,6 +9,18 @@ const WY = 'public/dane';
 
 const suma = (xs) => xs.reduce((a, b) => a + b, 0);
 const zaokr = (n, m = 2) => Math.round(n * 10 ** m) / 10 ** m;
+
+/** Umowa obowiązująca dłużej niż rok — inaczej trzeba czytać jej wartość. */
+const DNI_WIELOLETNIA = 400;
+
+/** Czas obowiązywania umowy w dniach; null, gdy rejestr nie podaje obu dat. */
+function dniTrwania(u) {
+  if (!u.terminOd || !u.terminDo) return null;
+  const od = Date.parse(u.terminOd);
+  const doK = Date.parse(u.terminDo);
+  if (!Number.isFinite(od) || !Number.isFinite(doK) || doK < od) return null;
+  return Math.round((doK - od) / 86_400_000);
+}
 /** Zapis liczby po polsku — przecinek dziesiętny, spacje w tysiącach. */
 const pl = (n, m = 0) => n.toLocaleString('pl-PL', { maximumFractionDigits: m, minimumFractionDigits: m });
 
@@ -28,6 +40,28 @@ function normalizujKontrahenta(s) {
     .replace(/\s+/g, ' ')
     .trim();
   return t;
+}
+
+/** Adres URL profilu: bez ogonków, bez interpunkcji, rozstrzygany sufiksem przy kolizji. */
+function doSlug(nazwa, zajete) {
+  const bazowy = nazwa
+    .toLowerCase()
+    .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e').replace(/ł/g, 'l')
+    .replace(/ń/g, 'n').replace(/ó/g, 'o').replace(/ś/g, 's').replace(/[żź]/g, 'z')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 70) || 'podmiot';
+  if (!zajete.has(bazowy)) {
+    zajete.add(bazowy);
+    return bazowy;
+  }
+  for (let i = 2; ; i++) {
+    const kandydat = `${bazowy}-${i}`;
+    if (!zajete.has(kandydat)) {
+      zajete.add(kandydat);
+      return kandydat;
+    }
+  }
 }
 
 function topN(mapa, n, mapper = (v) => v) {
@@ -60,6 +94,7 @@ async function umowy() {
     const wgJednostki = new Map();
     const wgKontrahenta = new Map();
     const wgRodzaju = new Map();
+    const wieloletnie = { liczba: 0, suma: 0, najdluzsza: 0 };
 
     for (const u of dane) {
       const m = (u.data || '').slice(0, 7);
@@ -88,6 +123,13 @@ async function umowy() {
       if (u.wartosc != null && u.wartosc > 0) {
         najwieksze.push({ rok, id: u.id, data: u.data, kontrahent: u.kontrahent, przedmiot: u.przedmiot.slice(0, 180), wartosc: u.wartosc, jednostka: j, link: u.link });
       }
+
+      const dni = dniTrwania(u);
+      if (dni != null && dni >= DNI_WIELOLETNIA) {
+        wieloletnie.liczba++;
+        wieloletnie.suma += u.wartosc || 0;
+        if (dni > wieloletnie.najdluzsza) wieloletnie.najdluzsza = dni;
+      }
     }
 
     const mediana = kwoty.length ? kwoty[Math.floor(kwoty.length / 2)] : 0;
@@ -106,6 +148,11 @@ async function umowy() {
       topJednostki: topN(wgJednostki, 25, (x) => ({ nazwa: x.etykieta, liczba: x.liczba, suma: zaokr(x.suma) })),
       topKontrahenci: topN(wgKontrahenta, 25, (x) => ({ nazwa: x.etykieta, liczba: x.liczba, suma: zaokr(x.suma) })),
       rodzaje: topN(wgRodzaju, 20, (x) => ({ nazwa: x.etykieta, liczba: x.liczba, suma: zaokr(x.suma) })),
+      wieloletnie: {
+        liczba: wieloletnie.liczba,
+        suma: zaokr(wieloletnie.suma),
+        najdluzszaLat: zaokr(wieloletnie.najdluzsza / 365.25, 1),
+      },
     });
 
     wszystkich += dane.length;
@@ -125,12 +172,28 @@ async function umowy() {
         r: u.rodzaj || null,
         n: u.nr,
         l: u.link,
+        // czas obowiązywania: data początku + liczba dni (koniec da się odtworzyć)
+        od: u.terminOd || undefined,
+        dni: dniTrwania(u) ?? undefined,
       })),
     );
     log(`  umowy ${rok}: ${dane.length} rekordów, ${zaokr(sumaRok / 1e6, 1)} mln zł`);
   }
 
   najwieksze.sort((a, b) => b.wartosc - a.wartosc);
+
+  // Rytm roku budżetowego: sumujemy miesiące ze wszystkich pełnych roczników.
+  // Bieżący rok pomijamy, bo jego brakujące miesiące zafałszowałyby obraz.
+  const sezonowosc = {};
+  for (const r of perRok.filter((x) => x.pelnyRok)) {
+    for (const [klucz, v] of Object.entries(r.miesiace)) {
+      const mies = klucz.slice(5);
+      sezonowosc[mies] ??= { liczba: 0, suma: 0 };
+      sezonowosc[mies].liczba += v.liczba;
+      sezonowosc[mies].suma += v.suma;
+    }
+  }
+  for (const v of Object.values(sezonowosc)) v.suma = zaokr(v.suma);
 
   await saveJSON(`${WY}/umowy-agregaty.json`, {
     zrodlo: 'Rejestr umów Miasta Poznania (bip.poznan.pl), archiwum 2014 – 30.06.2026',
@@ -145,6 +208,7 @@ async function umowy() {
       liczbaJednostek: jednostkiGlobal.size,
       liczbaKontrahentow: kontrahenciGlobal.size,
     },
+    sezonowosc,
     topKontrahenciOgolem: topN(kontrahenciGlobal, 100, (x) => ({ nazwa: x.etykieta, liczba: x.liczba, suma: zaokr(x.suma) })),
     topJednostkiOgolem: topN(jednostkiGlobal, 100, (x) => ({ nazwa: x.etykieta, liczba: x.liczba, suma: zaokr(x.suma) })),
     najwiekszeUmowy: najwieksze.slice(0, 100),

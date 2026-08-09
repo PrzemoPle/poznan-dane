@@ -26,9 +26,18 @@ const menu = [
     <meta name="description" content={opis ?? 'Przeglądarka danych publicznych o Poznaniu: rejestr umów, budżet miasta, statystyki i porównania z innymi miastami.'} />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
     <meta property="og:title" content={pelnyTytul} />
+    <meta property="og:description" content={opis ?? 'Przeglądarka danych publicznych o Poznaniu: rejestr umów, budżet miasta, statystyki i porównania z innymi miastami.'} />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="pl_PL" />
+    <meta property="og:site_name" content="Poznań w danych" />
+    <meta property="og:url" content={new URL(Astro.url.pathname, Astro.site)} />
+    <meta property="og:image" content={new URL('/og.png', Astro.site)} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Poznań w danych — rejestr umów, budżet i statystyki miasta" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <header class="szczyt">
@@ -96,13 +105,16 @@ const menu = [
             obserwator.unobserve(w.target);
             const el = w.target;
             const tekst = el.textContent.trim();
+            // Zakresy ("2014–2026") to nie liczby do nabijania — animacja robiła z nich bełkot.
+            if (/\d\s*[–—-]\s*\d/.test(tekst)) continue;
             const m = tekst.match(wzor);
             if (!m) continue;
             const znak = m[1];
             // końcowe spacje zostają w "reszcie", żeby nie skleić liczby z jednostką
             const cyfry = m[2].replace(/\s+$/, '');
             const cel = parseFloat(cyfry.replace(/[\s ]/g, '').replace(',', '.'));
-            if (!Number.isFinite(cel) || cel === 0) continue;
+            // Małe liczby animują się w mgnieniu oka i tylko migoczą — zostawiamy je w spokoju.
+            if (!Number.isFinite(cel) || Math.abs(cel) < 10) continue;
             const miejsca = (cyfry.match(/,(\d+)/) || ['', ''])[1].length;
             const reszta = tekst.slice(znak.length + cyfry.length);
             const start = performance.now();

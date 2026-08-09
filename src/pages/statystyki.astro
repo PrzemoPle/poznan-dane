@@ -11,15 +11,15 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
 <Baza
   strona="statystyki"
   tytul="Statystyki miasta"
-  opis="Kilkaset szeregów statystycznych o Poznaniu: demografia, rynek pracy, mieszkalnictwo, środowisko, edukacja, kultura, bezpieczeństwo."
+  opis="Kilkaset wskaźników o Poznaniu: demografia, rynek pracy, mieszkalnictwo, środowisko, edukacja, kultura, bezpieczeństwo."
 >
   <section style="margin-top:44px">
     <p class="nadtytul">Statystyka miejska</p>
-    <h1>{razem} szeregów o Poznaniu</h1>
+    <h1>{razem} wskaźników o Poznaniu</h1>
     <p class="lid">
-      Tabele statystyczne Urzędu Miasta z portalu badam.poznan.pl, sklejone w ciągłe szeregi czasowe,
-      plus długie serie GUS sięgające lat 90. Wybierz dział, przeszukaj albo po prostu przewijaj —
-      każdy wskaźnik ma wykres i wskazane źródło.
+      Ilu poznaniaków przybywa, ile jest rowerów, przedszkoli i przestępstw — każdy wskaźnik
+      pokazany rok po roku, z tabel Urzędu Miasta i z danych GUS sięgających lat 90.
+      Wybierz dział, wpisz, czego szukasz, albo po prostu przewijaj.
     </p>
   </section>
 
@@ -34,13 +34,13 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
             <option value="alfa">alfabetycznie</option>
             <option value="zmiana">największa zmiana</option>
             <option value="spadek">największy spadek</option>
-            <option value="dlugosc">najdłuższy szereg</option>
+            <option value="dlugosc">najdłużej mierzone</option>
           </select>
         </label>
       </div>
       <div id="dzialy" style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px">
         <button class="pigulka" data-dzial="" aria-pressed="true">Wszystkie ({razem})</button>
-        <button class="pigulka" data-dzial="__gus" aria-pressed="false">GUS — długie szeregi ({podsumowanie.bdl.wskazniki.length})</button>
+        <button class="pigulka" data-dzial="__gus" aria-pressed="false">GUS — dane od lat 90. ({podsumowanie.bdl.wskazniki.length})</button>
         {tematy.map((t) => (
           <button class="pigulka" data-dzial={t.temat} aria-pressed="false">{t.temat} ({t.pozycji})</button>
         ))}
@@ -50,7 +50,7 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
 
   <section>
     <p class="drobne" id="licznik"></p>
-    <div id="lista" class="siatka k2"><p class="ladowanie">Wczytywanie szeregów…</p></div>
+    <div id="lista" class="siatka k2"><p class="ladowanie">Wczytywanie wskaźników…</p></div>
     <div style="text-align:center;margin-top:20px">
       <button id="wiecej" class="glowny" hidden>Pokaż więcej</button>
     </div>
@@ -65,10 +65,10 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
     ]);
 
     // Ujednolicony model: { dzial, nazwa, sekcja, wartosci, zrodlo, link }
-    const szeregi = [];
+    const wskazniki = [];
     for (const t of badam.tematy) {
       for (const poz of t.pozycje) {
-        szeregi.push({
+        wskazniki.push({
           dzial: t.temat,
           nazwa: poz.etykieta,
           sekcja: poz.sekcja,
@@ -79,7 +79,7 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
       }
     }
     for (const w of Object.values(bdl.miasta.poznan.wskazniki)) {
-      szeregi.push({
+      wskazniki.push({
         dzial: '__gus',
         dzialEtykieta: `GUS · ${w.grupa}`,
         nazwa: w.nazwa,
@@ -90,7 +90,7 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
       });
     }
 
-    for (const s of szeregi) {
+    for (const s of wskazniki) {
       const lata = Object.keys(s.wartosci).sort();
       s.lata = lata;
       s.pierwszyRok = lata[0];
@@ -108,7 +108,7 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
 
     function filtruj() {
       const fraza = $('#szukaj').value.trim().toLowerCase();
-      wynik = szeregi.filter((s) => {
+      wynik = wskazniki.filter((s) => {
         if (dzial && s.dzial !== dzial) return false;
         if (fraza && !s.szukaj.includes(fraza)) return false;
         return true;
@@ -176,7 +176,7 @@ const razem = zBadam + podsumowanie.bdl.wskazniki.length;
       const frag = document.createDocumentFragment();
       for (const s of wynik.slice(0, widoczne)) frag.append(karta(s));
       lista.replaceChildren(frag);
-      $('#licznik').textContent = `Pokazano ${Math.min(widoczne, wynik.length)} z ${fmt.liczba(wynik.length)} szeregów`;
+      $('#licznik').textContent = `Pokazano ${Math.min(widoczne, wynik.length)} z ${fmt.liczba(wynik.length)} wskaźników`;
       const wiecej = $('#wiecej');
       wiecej.hidden = wynik.length <= widoczne;
       wiecej.textContent = `Pokaż więcej (pozostało ${fmt.liczba(wynik.length - widoczne)})`;

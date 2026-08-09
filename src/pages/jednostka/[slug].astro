@@ -1,0 +1,22 @@
+---
+import Baza from '../../layouts/Baza.astro';
+import ProfilPodmiotu from '../../components/ProfilPodmiotu.astro';
+
+export async function getStaticPaths() {
+  const { jednostki } = await import('../../../data/podmioty.json');
+  return jednostki.map((j) => ({ params: { slug: j.slug }, props: { podmiot: j } }));
+}
+
+const { podmiot } = Astro.props;
+const kwota = (n) =>
+  n >= 1e6 ? `${(n / 1e6).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} mln zł`
+  : `${Math.round(n).toLocaleString('pl-PL')} zł`;
+---
+
+<Baza
+  strona="umowy"
+  tytul={podmiot.nazwa}
+  opis={`${podmiot.nazwa} w rejestrze umów Miasta Poznania: ${podmiot.liczba} umów o łącznej wartości ${kwota(podmiot.suma)}, lata ${podmiot.pierwszyRok}–${podmiot.ostatniRok}.`}
+>
+  <ProfilPodmiotu podmiot={podmiot} typ="jednostka" />
+</Baza>
