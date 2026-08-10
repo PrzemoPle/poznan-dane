@@ -5,6 +5,11 @@
 
    Zasada promieni: kontenery i pola 4px, chipsy filtrów pill — nic pomiędzy. */
 
+/* Motyw: domyślnie wg systemu, ale użytkownik może wymusić swój.
+   Atrybut data-motyw="jasny"/"ciemny" na <html> nadpisuje preferencję systemową;
+   jego brak oznacza tryb automatyczny. Wartości ciemnej palety zapisane są raz
+   (prefiks --c-), a niżej tylko przypisywane — inaczej dwa bloki rozjechałyby się
+   przy pierwszej zmianie koloru. */
 :root {
   --atrament: #14161a;
   --atrament-2: #2a2f38;
@@ -21,37 +26,80 @@
   --zielen: #1f6b4f;
   --blekit: #1f5d8c;
   --akcent-tlo: #ecebe6;
+  --cien: 0 1px 2px rgb(20 22 26 / .05), 0 8px 24px rgb(20 22 26 / .06);
+  --cien-hover: 0 2px 4px rgb(20 22 26 / .06), 0 14px 36px rgb(20 22 26 / .10);
+  color-scheme: light;
+
+  /* paleta ciemna — definicja, nie użycie */
+  --c-atrament: #eceef1;
+  --c-atrament-2: #c6cad2;
+  --c-papier: #0e1116;
+  --c-papier-2: #161a21;
+  --c-linia: #262c36;
+  --c-linia-mocna: #3a4250;
+  --c-tekst: #e4e7eb;
+  --c-tekst-2: #99a1ad;
+  --c-tekst-3: #6b7380;
+  --c-czerwien: #f0596d;
+  --c-czerwien-tlo: #f0596d1f;
+  --c-zloto: #d6a850;
+  --c-zielen: #4fb98c;
+  --c-blekit: #63a8dd;
+  --c-akcent-tlo: #1d232d;
+  --c-cien: 0 1px 2px rgb(0 0 0 / .5), 0 8px 24px rgb(0 0 0 / .35);
+  --c-cien-hover: 0 2px 4px rgb(0 0 0 / .5), 0 16px 40px rgb(0 0 0 / .5);
 
   --szer: 1240px;
   --r: 4px;
-  --cien: 0 1px 2px rgb(20 22 26 / .05), 0 8px 24px rgb(20 22 26 / .06);
-  --cien-hover: 0 2px 4px rgb(20 22 26 / .06), 0 14px 36px rgb(20 22 26 / .10);
-
   --display: 'Space Grotesk Variable', 'Space Grotesk', -apple-system, sans-serif;
   --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* tryb automatyczny: system mówi „ciemno", a użytkownik nie wymusił jasnego */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --atrament: #eceef1;
-    --atrament-2: #c6cad2;
-    --papier: #0e1116;
-    --papier-2: #161a21;
-    --linia: #262c36;
-    --linia-mocna: #3a4250;
-    --tekst: #e4e7eb;
-    --tekst-2: #99a1ad;
-    --tekst-3: #6b7380;
-    --czerwien: #f0596d;
-    --czerwien-tlo: #f0596d1f;
-    --zloto: #d6a850;
-    --zielen: #4fb98c;
-    --blekit: #63a8dd;
-    --akcent-tlo: #1d232d;
-    --cien: 0 1px 2px rgb(0 0 0 / .5), 0 8px 24px rgb(0 0 0 / .35);
-    --cien-hover: 0 2px 4px rgb(0 0 0 / .5), 0 16px 40px rgb(0 0 0 / .5);
+  :root:not([data-motyw='jasny']) {
+    --atrament: var(--c-atrament);
+    --atrament-2: var(--c-atrament-2);
+    --papier: var(--c-papier);
+    --papier-2: var(--c-papier-2);
+    --linia: var(--c-linia);
+    --linia-mocna: var(--c-linia-mocna);
+    --tekst: var(--c-tekst);
+    --tekst-2: var(--c-tekst-2);
+    --tekst-3: var(--c-tekst-3);
+    --czerwien: var(--c-czerwien);
+    --czerwien-tlo: var(--c-czerwien-tlo);
+    --zloto: var(--c-zloto);
+    --zielen: var(--c-zielen);
+    --blekit: var(--c-blekit);
+    --akcent-tlo: var(--c-akcent-tlo);
+    --cien: var(--c-cien);
+    --cien-hover: var(--c-cien-hover);
+    color-scheme: dark;
   }
+}
+
+/* wybór użytkownika — niezależnie od tego, co mówi system */
+:root[data-motyw='ciemny'] {
+  --atrament: var(--c-atrament);
+  --atrament-2: var(--c-atrament-2);
+  --papier: var(--c-papier);
+  --papier-2: var(--c-papier-2);
+  --linia: var(--c-linia);
+  --linia-mocna: var(--c-linia-mocna);
+  --tekst: var(--c-tekst);
+  --tekst-2: var(--c-tekst-2);
+  --tekst-3: var(--c-tekst-3);
+  --czerwien: var(--c-czerwien);
+  --czerwien-tlo: var(--c-czerwien-tlo);
+  --zloto: var(--c-zloto);
+  --zielen: var(--c-zielen);
+  --blekit: var(--c-blekit);
+  --akcent-tlo: var(--c-akcent-tlo);
+  --cien: var(--c-cien);
+  --cien-hover: var(--c-cien-hover);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -155,6 +203,24 @@ a:hover { color: var(--czerwien); }
 .nawigacja a:hover::after { transform: scaleX(.6); }
 .nawigacja a[aria-current='page'] { color: var(--atrament); font-weight: 600; }
 .nawigacja a[aria-current='page']::after { transform: scaleX(1); }
+
+/* przełącznik motywu — trzy stany: auto, jasny, ciemny */
+.motyw {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; flex: none;
+  margin-left: 6px; padding: 0;
+  border: 1px solid var(--linia); border-radius: var(--r);
+  background: transparent; color: var(--tekst-2);
+  cursor: pointer;
+  transition: color .15s ease, background .15s ease, border-color .15s ease;
+}
+.motyw:hover { background: var(--akcent-tlo); color: var(--atrament); border-color: var(--linia-mocna); }
+.motyw svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+/* pokazujemy ikonę odpowiadającą aktualnemu stanowi */
+.motyw [data-stan] { display: none; }
+:root:not([data-motyw]) .motyw [data-stan='auto'],
+:root[data-motyw='jasny'] .motyw [data-stan='jasny'],
+:root[data-motyw='ciemny'] .motyw [data-stan='ciemny'] { display: block; }
 
 /* ---------- typografia pomocnicza ---------- */
 .nadtytul {

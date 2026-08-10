@@ -34,6 +34,16 @@ const menu = [
     <title>{pelnyTytul}</title>
     <meta name="description" content={opis ?? 'Przeglądarka danych publicznych o Poznaniu: rejestr umów, budżet miasta, statystyki i porównania z innymi miastami.'} />
     <meta name="color-scheme" content="light dark" />
+    <script is:inline>
+      // Musi wykonać się przed pierwszym malowaniem, inaczej strona mignie
+      // w niewłaściwym motywie. Dlatego inline w <head>, a nie w module.
+      try {
+        const wybor = localStorage.getItem('motyw');
+        if (wybor === 'jasny' || wybor === 'ciemny') {
+          document.documentElement.dataset.motyw = wybor;
+        }
+      } catch { /* prywatny tryb przeglądarki — zostaje automatyczny */ }
+    </script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
     <meta property="og:title" content={pelnyTytul} />
@@ -61,6 +71,19 @@ const menu = [
           {menu.map((m) => (
             <a href={m.href} aria-current={strona === m.klucz ? 'page' : undefined}>{m.etykieta}</a>
           ))}
+          <button type="button" class="motyw" id="motyw" aria-label="Motyw: automatyczny. Kliknij, by przełączyć na jasny">
+            <svg data-stan="auto" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="8" />
+              <path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor" stroke="none" />
+            </svg>
+            <svg data-stan="jasny" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4.5" />
+              <path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4l1.4-1.4M18 6l1.4-1.4" />
+            </svg>
+            <svg data-stan="ciemny" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" />
+            </svg>
+          </button>
         </nav>
       </div>
     </header>
@@ -118,6 +141,42 @@ const menu = [
     </footer>
 
     <script>
+      // Przełącznik motywu: automatyczny → jasny → ciemny → automatyczny.
+      // Trzeci stan jest po to, żeby dało się wrócić do ustawienia systemowego —
+      // bez niego wybór raz dokonany zostaje na zawsze.
+      {
+        const KOLEJNOSC = ['auto', 'jasny', 'ciemny'];
+        const OPIS = { auto: 'automatyczny', jasny: 'jasny', ciemny: 'ciemny' };
+        const przycisk = document.querySelector('#motyw');
+        const korzen = document.documentElement;
+
+        const biezacy = () => korzen.dataset.motyw ?? 'auto';
+
+        const opisz = () => {
+          const teraz = biezacy();
+          const nastepny = KOLEJNOSC[(KOLEJNOSC.indexOf(teraz) + 1) % KOLEJNOSC.length];
+          przycisk.setAttribute(
+            'aria-label',
+            `Motyw: ${OPIS[teraz]}. Kliknij, by przełączyć na ${OPIS[nastepny]}`,
+          );
+          przycisk.title = `Motyw: ${OPIS[teraz]}`;
+        };
+
+        przycisk?.addEventListener('click', () => {
+          const nastepny = KOLEJNOSC[(KOLEJNOSC.indexOf(biezacy()) + 1) % KOLEJNOSC.length];
+          if (nastepny === 'auto') {
+            delete korzen.dataset.motyw;
+            try { localStorage.removeItem('motyw'); } catch { /* tryb prywatny */ }
+          } else {
+            korzen.dataset.motyw = nastepny;
+            try { localStorage.setItem('motyw', nastepny); } catch { /* tryb prywatny */ }
+          }
+          opisz();
+        });
+
+        opisz();
+      }
+
       // Count-up dla wartości KPI — odpala się raz, gdy karta wjedzie w viewport.
       // Parsuje polską notację ("6,66 mld zł", "534 239", "−3 mln") i animuje
       // samą liczbę, zachowując jednostkę. Gaszone przy prefers-reduced-motion.

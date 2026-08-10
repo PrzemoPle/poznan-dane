@@ -58,6 +58,18 @@ function skala(min, max, dlugosc) {
   return (v) => ((v - min) / zakres) * dlugosc;
 }
 
+/**
+ * Co która etykieta osi X ma się pojawić, żeby podpisy się nie zderzały.
+ * Liczy się dostępna szerokość, a nie liczba punktów: te same 31 lat mieści się
+ * na desktopie, a na telefonie nachodzi na siebie.
+ */
+function krokEtykiet(etykiety, szerokoscOsi, rozmiarPisma = 11) {
+  const najdluzsza = Math.max(...etykiety.map((e) => String(e).length), 1);
+  const szerokoscEtykiety = najdluzsza * rozmiarPisma * 0.62 + 14; // 0.62 ≈ średnia szerokość znaku
+  const zmiesci = Math.max(2, Math.floor(szerokoscOsi / szerokoscEtykiety));
+  return Math.max(1, Math.ceil(etykiety.length / zmiesci));
+}
+
 /** Ładne wartości osi: 0, 2 mln, 4 mln… */
 function podzialka(min, max, ile = 5) {
   const zakres = max - min || 1;
@@ -107,10 +119,17 @@ export function liniowy(serie, { wysokosc = 260, szerokosc = 900, formatY = fmt.
     svg.append(el('text', { x: M.p - 8, y: y(t) + 4, 'text-anchor': 'end', 'font-size': 11 }, formatY(t)));
   }
 
-  // oś X — co n-ta etykieta, żeby się nie zlewały
-  const co = Math.max(1, Math.ceil(wszystkieX.length / 12));
+  // oś X — co n-ta etykieta, dobierane do dostępnej szerokości.
+  // Ostatni rok pokazujemy zawsze, ale tylko jeśli nie wpadnie na poprzedni podpis.
+  const co = krokEtykiet(wszystkieX, W);
+  const ostatni = wszystkieX.length - 1;
+  let poprzedni = -Infinity;
   wszystkieX.forEach((etykieta, i) => {
-    if (i % co && i !== wszystkieX.length - 1) return;
+    const zKroku = i % co === 0;
+    const wymuszony = i === ostatni && ostatni - poprzedni >= co * 0.6;
+    if (!zKroku && !wymuszony) return;
+    if (i === ostatni && !wymuszony) return;
+    poprzedni = i;
     svg.append(el('text', { x: sx(etykieta), y: wysokosc - 8, 'text-anchor': 'middle', 'font-size': 11 }, etykieta));
   });
 
@@ -164,7 +183,7 @@ export function slupkowy(dane, {
     svg.append(el('text', { x: M.p - 8, y: y(t) + 4, 'text-anchor': 'end', 'font-size': 11 }, formatY(t)));
   }
 
-  const co = Math.max(1, Math.ceil(dane.length / 14));
+  const co = krokEtykiet(dane.map((d) => d[0]), W);
   dane.forEach(([etykieta, v], i) => {
     const cx = M.p + (i + 0.5) * (W / dane.length);
     const gora = v >= 0 ? y(v) : y(0);
