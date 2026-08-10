@@ -366,8 +366,22 @@ async function main() {
   if (badam) await saveJSON(`${WY}/badam.json`, badam);
   if (katalog) await saveJSON(`${WY}/katalog.json`, katalog);
 
+  // Kiedy dane naprawdę pobrano ze źródeł — to co innego niż moment przeliczenia
+  // agregatów. Stopka pokazuje właśnie to, żeby nie chwalić się cudzą świeżością.
+  const zrodlaPobrane = {
+    umowy: (await loadJSON('data/raw/umowy-manifest.json', {}))?.pobrano ?? null,
+    bdl: bdl?.pobrano ?? null,
+    badam: badam?.pobrano ?? null,
+    katalog: katalog?.pobrano ?? null,
+  };
+  const znaczniki = Object.values(zrodlaPobrane).filter(Boolean).sort();
+
   const podsumowanie = {
     zbudowano: new Date().toISOString(),
+    zrodlaPobrane,
+    // najstarszy znacznik: świadomie zachowawczo, żeby nie zawyżać aktualności
+    danePobrane: znaczniki[0] ?? null,
+    danePobraneDo: znaczniki[znaczniki.length - 1] ?? null,
     umowy: {
       liczba: u.wszystkich,
       suma: zaokr(u.wszystkichKwota),

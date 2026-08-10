@@ -3,8 +3,17 @@ import '@fontsource-variable/space-grotesk';
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/600.css';
 import '../styles/global.css';
+import podsumowanie from '../../public/dane/podsumowanie.json';
 
 const { tytul, opis, strona } = Astro.props;
+
+// Data pobrania danych ze źródeł — nie mylić z datą przebudowania strony.
+// Bierzemy najstarszy znacznik, żeby nie zawyżać aktualności zbioru.
+const dataDanych = podsumowanie.danePobrane ? new Date(podsumowanie.danePobrane) : null;
+const dataDanychTekst = dataDanych?.toLocaleDateString('pl-PL', {
+  day: 'numeric', month: 'long', year: 'numeric',
+});
+const dataDanychISO = dataDanych?.toISOString().slice(0, 10);
 const pelnyTytul = tytul ? `${tytul} — Poznań w danych` : 'Poznań w danych';
 
 const menu = [
@@ -68,6 +77,12 @@ const menu = [
             Niezależna przeglądarka danych publicznych o Poznaniu. Wszystkie liczby pochodzą
             z oficjalnych rejestrów i są podlinkowane do źródła — każdą można sprawdzić.
           </p>
+          {dataDanych && (
+            <p class="drobne" style="margin-bottom:0">
+              Dane pobrane ze źródeł <time datetime={dataDanychISO}>{dataDanychTekst}</time>.
+              {' '}<a href="/zrodla/">Daty dla każdego źródła osobno</a>.
+            </p>
+          )}
         </div>
         <div>
           <h4>Źródła danych</h4>
@@ -88,6 +103,17 @@ const menu = [
             <a href="/zrodla/">Metodologia i zakres danych</a>.
           </p>
         </div>
+      </div>
+
+      <div class="otoczka podpis">
+        <p>
+          Strona stworzona przez <a href="mailto:przemyslaw@plewinski.pl">przemyslaw@plewinski.pl</a>
+          {' '}przy udziale <a href="https://claude.com/claude-code" rel="noopener">Claude Code</a>.
+        </p>
+        <p>
+          Kod źródłowy i skrypty pobierania danych:
+          {' '}<a href="https://github.com/PrzemoPle/poznan-dane" rel="noopener">GitHub</a>.
+        </p>
       </div>
     </footer>
 
