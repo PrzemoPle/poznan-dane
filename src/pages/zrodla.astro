@@ -22,7 +22,7 @@ const zrodla = [
     api: 'https://bip.poznan.pl/api-json/bip/rejestr-umow/',
     zakres: `${podsumowanie.umowy.liczba.toLocaleString('pl-PL')} umów, lata ${Math.min(...podsumowanie.umowy.lata)}–${Math.max(...podsumowanie.umowy.lata)}`,
     metoda: 'Zapytania POST z filtrem rocznym, stronicowanie po 100 rekordów; osobne przejście po rodzajach umów, bo API nie zwraca tego pola w rekordzie.',
-    zastrzezenia: 'Wartość umowy wieloletniej jest zapisana w całości w roku zawarcia. Rejestr obejmuje umowy do 30.06.2026 — późniejsze trafiają do Centralnego Rejestru Umów JSFP.',
+    zastrzezenia: 'Wartość umowy wieloletniej jest zapisana w całości w roku zawarcia. Od 1 lipca 2026 r. umowy trafiają do Centralnego Rejestru Umów JSFP i napływ do BIP-u niemal ustał: w lipcu przybyło 57 wpisów wobec 419–982 miesięcznie w pierwszej połowie roku.',
   },
   {
     klucz: 'bdl',
