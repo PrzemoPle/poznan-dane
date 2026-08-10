@@ -1,0 +1,85 @@
+# Miesięczne odświeżenie danych ze źródeł.
+#
+# Dlaczego raz w miesiącu, a nie codziennie:
+#  - rejestr umów praktycznie przestał rosnąć (od 1.07.2026 umowy idą do CRU JSFP:
+#    w lipcu 57 wpisów wobec 419–982 miesięcznie wcześniej),
+#  - GUS publikuje dane roczne z półrocznym opóźnieniem,
+#  - badam.poznan.pl aktualizuje tabele kilka razy w roku.
+# Częstsze odpytywanie obciążałoby cudze serwery bez zysku dla czytelnika.
+#
+# Rejestr umów pobieramy tylko za bieżący i poprzedni rok (FORCE wymusza nadpisanie).
+# Starsze roczniki są zamknięte — pełny zaciąg 2014–2026 trwa ~40 min i robi się
+# ręcznie: `FORCE=1 npm run etl:umowy`.
+
+name: Odśwież dane
+
+on:
+  schedule:
+    - cron: '17 4 1 * *'   # 1. dnia miesiąca, 4:17 UTC
+  workflow_dispatch:        # i na żądanie z zakładki Actions
+
+concurrency:
+  group: odswiez-dane
+  cancel-in-progress: false
+
+jobs:
+  odswiez:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write       # commit odświeżonych danych
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Pobierz dane ze źródeł
+        run: |
+          ROK=$(date -u +%Y)
+          POPRZEDNI=$((ROK - 1))
+          FORCE=1 node etl/fetch-umowy.mjs "$POPRZEDNI" "$ROK"
+          npm run etl:bdl
+          npm run etl:badam
+          npm run etl:katalog
+
+      - name: Sprawdź kompletność roczników
+        run: npm run etl:sprawdz
+
+      - name: Przelicz agregaty, profile i kartę podglądu
+        run: |
+          npm run etl:build
+          npm run etl:podmioty
+          npm run etl:og
+
+      - name: Zapisz zmiany w repozytorium
+        id: zapis
+        run: |
+          git config user.name 'Automat odświeżania'
+          git config user.email 'actions@github.com'
+          git add public/dane data/podmioty.json public/og.png
+          if git diff --cached --quiet; then
+            echo "zmienione=nie" >> "$GITHUB_OUTPUT"
+            echo "Źródła nie przyniosły nic nowego — nie ma czego commitować."
+          else
+            echo "zmienione=tak" >> "$GITHUB_OUTPUT"
+            git commit -m "Odświeżenie danych ze źródeł ($(date -u +%Y-%m-%d))"
+            git push
+          fi
+
+      - name: Zbuduj stronę
+        if: steps.zapis.outputs.zmienione == 'tak'
+        run: npm run build
+
+      - name: Wdróż
+        if: steps.zapis.outputs.zmienione == 'tak'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name poznan-dane --branch main
