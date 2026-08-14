@@ -37,11 +37,18 @@ const licz = (n) => n.toLocaleString('pl-PL');
   <section>
     <div class="karta cien" style="padding:18px 20px">
       <div class="siatka" style="grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px">
-        <label class="pole">Rocznik
+        <label class="pole">Okres
           <select id="f-rok">
-            {lata.map((r, i) => <option value={r} selected={i === 0}>{r}</option>)}
-            <option value="wszystkie">wszystkie lata (~27 MB, wolniej)</option>
+            <option value="zakres" hidden>własny zakres</option>
+            {lata.map((r, i) => <option value={r} selected={i === 0}>rok {r}</option>)}
+            <option value="wszystkie">wszystkie lata (~9 MB, wolniej)</option>
           </select>
+        </label>
+        <label class="pole">Data od
+          <input type="date" id="f-data-od" />
+        </label>
+        <label class="pole">Data do
+          <input type="date" id="f-data-do" />
         </label>
         <label class="pole" style="grid-column:span 2">Szukaj w przedmiocie, kontrahencie, numerze
           <input type="search" id="f-fraza" placeholder="np. remont, oświetlenie, Aquanet" autocomplete="off" />
@@ -59,7 +66,28 @@ const licz = (n) => n.toLocaleString('pl-PL');
           <input type="number" id="f-do" placeholder="bez limitu" min="0" step="1000" />
         </label>
       </div>
-      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center">
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">
+        <span class="drobne" style="margin-right:2px">Ostatnie:</span>
+        <button class="pigulka" data-msc="3">3 miesiące</button>
+        <button class="pigulka" data-msc="6">6 miesięcy</button>
+        <button class="pigulka" data-msc="12">12 miesięcy</button>
+        <button class="pigulka" data-msc="24">2 lata</button>
+        <button class="pigulka" data-msc="60">5 lat</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center">
+        <label class="pole" style="text-transform:none;letter-spacing:0;font-size:.82rem;font-weight:400;flex-direction:row;align-items:center;gap:7px">
+          Sortuj
+          <select id="f-sort" style="width:auto">
+            <option value="d:desc">od najnowszej</option>
+            <option value="d:asc">od najstarszej</option>
+            <option value="w:desc">od najdroższej</option>
+            <option value="w:asc">od najtańszej</option>
+            <option value="dni:desc">od najdłuższej</option>
+            <option value="dni:asc">od najkrótszej</option>
+            <option value="k:asc">kontrahent A–Z</option>
+            <option value="j:asc">jednostka A–Z</option>
+          </select>
+        </label>
         <button class="pigulka" id="f-wieloletnie" aria-pressed="false">Tylko wieloletnie</button>
         <label class="pole" style="text-transform:none;letter-spacing:0;font-size:.82rem;font-weight:400;flex-direction:row;align-items:center;gap:7px">
           Rejestr
@@ -99,7 +127,7 @@ const licz = (n) => n.toLocaleString('pl-PL');
   <section>
     <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
       <h2 style="margin-bottom:.2em">Wyniki</h2>
-      <span class="drobne">kliknij nagłówek, by posortować · numer umowy prowadzi do wpisu w BIP</span>
+      <span class="drobne">sortuj listą wyżej albo kliknięciem w nagłówek · numer umowy prowadzi do rejestru</span>
     </div>
     <div class="tabela-otok" style="max-height:70vh;overflow-y:auto">
       <table id="tabela">
@@ -281,7 +309,45 @@ const licz = (n) => n.toLocaleString('pl-PL');
     const pola = {
       rok: $('#f-rok'), fraza: $('#f-fraza'), jednostka: $('#f-jednostka'),
       rodzaj: $('#f-rodzaj'), od: $('#f-od'), do: $('#f-do'), zrodlo: $('#f-zrodlo'),
+      dataOd: $('#f-data-od'), dataDo: $('#f-data-do'), sort: $('#f-sort'),
     };
+
+    // ---------- okres ----------
+    // Zakres dat jest jedynym źródłem prawdy; wybór rocznika tylko go ustawia.
+    // Dzięki temu wczytujemy wyłącznie te pliki roczne, które okres obejmuje —
+    // przy 145 tys. umów komplet waży ~9 MB, więc to realna różnica dla czytelnika.
+    const ROK_MIN = Math.min(...lata), ROK_MAX = Math.max(...lata);
+    const iso = (d) => d.toISOString().slice(0, 10);
+
+    function potrzebneLata() {
+      const { value: od } = pola.dataOd, { value: doK } = pola.dataDo;
+      if (!od && !doK) return lata;
+      const rOd = od ? Number(od.slice(0, 4)) : ROK_MIN;
+      const rDo = doK ? Number(doK.slice(0, 4)) : ROK_MAX;
+      return lata.filter((r) => r >= rOd && r <= rDo);
+    }
+
+    /** Ustawia zakres i dostraja etykietę rocznika, żeby oba pola mówiły to samo. */
+    function ustawZakres(od, doK) {
+      pola.dataOd.value = od || '';
+      pola.dataDo.value = doK || '';
+      if (!od && !doK) pola.rok.value = 'wszystkie';
+      else if (od?.endsWith('-01-01') && doK?.endsWith('-12-31') && od.slice(0, 4) === doK.slice(0, 4)
+               && lata.includes(Number(od.slice(0, 4)))) pola.rok.value = od.slice(0, 4);
+      else pola.rok.value = 'zakres';
+    }
+
+    function opisOkresu() {
+      const od = pola.dataOd.value, doK = pola.dataDo.value;
+      if (!od && !doK) return `${ROK_MIN}–${ROK_MAX}`;
+      if (od && doK) return `${fmt.data(od)} – ${fmt.data(doK)}`;
+      return od ? `od ${fmt.data(od)}` : `do ${fmt.data(doK)}`;
+    }
+
+    // Termin dłuższy niż pół wieku to w praktyce literówka w dacie po stronie rejestru
+    // (13 takich wpisów na 145 tys.). Nie poprawiamy danych źródłowych — oznaczamy je,
+    // żeby sortowanie „od najdłuższej" nie zaczynało się od błędów bez ostrzeżenia.
+    const DNI_PODEJRZANE = 50 * 365;
 
     let zbior = [];      // aktualnie załadowany rocznik / całość
     let wynik = [];      // po filtrach
@@ -313,8 +379,13 @@ const licz = (n) => n.toLocaleString('pl-PL');
 
       const tylkoWieloletnie = $('#f-wieloletnie').getAttribute('aria-pressed') === 'true';
       const zrodlo = pola.zrodlo.value;
+      // daty w formacie RRRR-MM-DD porównują się poprawnie jako teksty
+      const dataOd = pola.dataOd.value || null;
+      const dataDo = pola.dataDo.value || null;
 
       wynik = zbior.filter((u) => {
+        if (dataOd && !(u.d >= dataOd)) return false;
+        if (dataDo && !(u.d <= dataDo)) return false;
         if (tylkoWieloletnie && !(u.dni >= DNI_WIELOLETNIA)) return false;
         if (zrodlo && u.z !== zrodlo) return false;
         if (jednostka && u.j !== jednostka) return false;
@@ -379,8 +450,11 @@ const licz = (n) => n.toLocaleString('pl-PL');
         ? fmt.kwota(u.w)
         : `<span title="w rejestrze zapisano: ${u.wr ?? 'brak'}" style="color:var(--tekst-3)">${u.wr ?? '—'}</span>`;
       // umowy dłuższe niż rok dostają znacznik z czasem obowiązywania
+      const podejrzany = u.dni >= DNI_PODEJRZANE;
       const okres = u.dni >= DNI_WIELOLETNIA
-        ? ` <span class="znacznik" title="obowiązuje od ${fmt.data(u.od)}, przez ${fmt.liczba(u.dni)} dni">${fmt.lata(u.dni)}</span>`
+        ? ` <span class="znacznik${podejrzany ? ' watpliwy' : ''}" title="${podejrzany
+            ? `Rejestr podaje termin do ${fmt.data(u.od)} + ${fmt.liczba(u.dni)} dni. To niemal na pewno literówka w dacie po stronie źródła — pokazujemy ją bez poprawiania.`
+            : `obowiązuje od ${fmt.data(u.od)}, przez ${fmt.liczba(u.dni)} dni`}">${fmt.lata(u.dni)}${podejrzany ? ' ?' : ''}</span>`
         : '';
       tr.innerHTML = `
         <td style="white-space:nowrap">${fmt.data(u.d)}</td>
@@ -416,19 +490,14 @@ const licz = (n) => n.toLocaleString('pl-PL');
       podmien('#wykres-jednostki', ranking(agreguj('j'), { kolor: PALETA[1] }));
       podmien('#wykres-kontrahenci', ranking(agreguj('k'), { kolor: PALETA[0] }));
 
-      const zakres = pola.rok.value === 'wszystkie' ? `${Math.min(...lata)}–${Math.max(...lata)}` : pola.rok.value;
-      $('#f-podsumowanie').textContent = `Zbiór: ${fmt.liczba(zbior.length)} umów (${zakres})`;
+      $('#f-podsumowanie').textContent = `Zbiór: ${fmt.liczba(zbior.length)} umów (${opisOkresu()})`;
     }
 
     async function wczytaj() {
       $('#tbody').innerHTML = '<tr><td colspan="6" class="ladowanie">Wczytywanie rejestru…</td></tr>';
-      const wybor = pola.rok.value;
-      if (wybor === 'wszystkie') {
-        const paczki = await Promise.all(lata.map(rocznik));
-        zbior = paczki.flat();
-      } else {
-        zbior = await rocznik(Number(wybor));
-      }
+      const potrzebne = potrzebneLata();
+      const paczki = await Promise.all(potrzebne.map(rocznik));
+      zbior = paczki.flat();
       uzupelnijSlowniki();
       filtruj();
       zapiszURL();
@@ -454,7 +523,7 @@ const licz = (n) => n.toLocaleString('pl-PL');
       const blob = new Blob(['﻿' + tresc], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `umowy-poznan-${pola.rok.value}.csv`;
+      a.download = `umowy-poznan-${opisOkresu().replace(/[^0-9]+/g, '-').replace(/^-|-$/g, '')}.csv`;
       a.click();
       URL.revokeObjectURL(a.href);
     }
@@ -468,7 +537,36 @@ const licz = (n) => n.toLocaleString('pl-PL');
     for (const el of [pola.jednostka, pola.rodzaj, pola.od, pola.do, pola.zrodlo]) {
       el.addEventListener('change', () => { filtruj(); zapiszURL(); });
     }
-    pola.rok.addEventListener('change', wczytaj);
+    // Rocznik jest skrótem do zakresu dat, nie osobnym trybem.
+    pola.rok.addEventListener('change', () => {
+      const v = pola.rok.value;
+      if (v === 'wszystkie') ustawZakres('', '');
+      else if (v !== 'zakres') ustawZakres(`${v}-01-01`, `${v}-12-31`);
+      wczytaj();
+    });
+    for (const el of [pola.dataOd, pola.dataDo]) {
+      el.addEventListener('change', () => {
+        ustawZakres(pola.dataOd.value, pola.dataDo.value);
+        wczytaj();
+      });
+    }
+    for (const btn of document.querySelectorAll('[data-msc]')) {
+      btn.addEventListener('click', () => {
+        const doK = new Date();
+        const od = new Date(doK);
+        od.setMonth(od.getMonth() - Number(btn.dataset.msc));
+        ustawZakres(iso(od), iso(doK));
+        wczytaj();
+      });
+    }
+    pola.sort.addEventListener('change', () => {
+      const [pole, kier] = pola.sort.value.split(':');
+      sort = { pole, kier };
+      oznaczNaglowek();
+      sortuj();
+      rysuj();
+      zapiszURL();
+    });
     $('#wiecej').addEventListener('click', () => { pokazane += 100; rysuj(); });
     $('#f-csv').addEventListener('click', csv);
     $('#f-wieloletnie').addEventListener('click', (e) => {
@@ -477,23 +575,47 @@ const licz = (n) => n.toLocaleString('pl-PL');
       filtruj();
     });
     $('#f-reset').addEventListener('click', () => {
-      for (const el of Object.values(pola)) if (el !== pola.rok) el.value = '';
+      for (const el of Object.values(pola)) if (el !== pola.rok && el !== pola.sort) el.value = '';
+      pola.sort.value = 'd:desc';
+      sort = { pole: 'd', kier: 'desc' };
+      oznaczNaglowek();
       $('#f-wieloletnie').setAttribute('aria-pressed', 'false');
-      filtruj();
-      zapiszURL();
+      ustawZakres(`${ROK_MAX}-01-01`, `${ROK_MAX}-12-31`);
+      wczytaj();
     });
+    /** Strzałka przy nagłówku i wybór z listy muszą pokazywać ten sam stan. */
+    function oznaczNaglowek() {
+      for (const th of document.querySelectorAll('th.sortowalna')) {
+        if (th.dataset.pole === sort.pole) th.dataset.kier = sort.kier;
+        else th.removeAttribute('data-kier');
+      }
+      const klucz = `${sort.pole}:${sort.kier}`;
+      if ([...pola.sort.options].some((o) => o.value === klucz)) pola.sort.value = klucz;
+    }
+
     for (const th of document.querySelectorAll('th.sortowalna')) {
       th.addEventListener('click', () => {
         const pole = th.dataset.pole;
         sort = { pole, kier: sort.pole === pole && sort.kier === 'desc' ? 'asc' : 'desc' };
-        for (const inny of document.querySelectorAll('th.sortowalna')) inny.removeAttribute('data-kier');
-        th.dataset.kier = sort.kier;
+        oznaczNaglowek();
         sortuj();
         rysuj();
+        zapiszURL();
       });
     }
 
     odczytajURL();
+    if (!pola.dataOd.value && !pola.dataDo.value && pola.rok.value !== 'wszystkie') {
+      const r = pola.rok.value === 'zakres' ? ROK_MAX : pola.rok.value;
+      ustawZakres(`${r}-01-01`, `${r}-12-31`);
+    } else {
+      ustawZakres(pola.dataOd.value, pola.dataDo.value);
+    }
+    if (pola.sort.value) {
+      const [pole, kier] = pola.sort.value.split(':');
+      sort = { pole, kier };
+    }
+    oznaczNaglowek();
     await wczytaj();
   </script>
 </Baza>

@@ -433,6 +433,11 @@ button.pigulka[aria-pressed='true'] {
 }
 
 /* ---------- różne ---------- */
+.znacznik.watpliwy {
+  border-style: dashed;
+  opacity: .75;
+  cursor: help;
+}
 .znacznik {
   display: inline-block; font-family: var(--mono);
   font-size: .68rem; font-weight: 600; letter-spacing: .04em;
