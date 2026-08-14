@@ -1,5 +1,5 @@
 // Wspólne narzędzia ETL: pobieranie z retry, limitowanie równoległości, zapis JSON.
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, rename } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 // Nagłówki HTTP muszą być ASCII — bez polskich znaków.
@@ -46,7 +46,12 @@ export async function pool(items, limit, worker) {
 
 export async function saveJSON(path, data) {
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, JSON.stringify(data));
+  // Zapis przez plik tymczasowy i podmianę nazwy: czytelnik trafia albo na starą,
+  // albo na nową zawartość, nigdy na plik w połowie zapisu. Ma to znaczenie, gdy
+  // przeliczanie agregatów idzie równolegle z pobieraniem roczników.
+  const tmp = `${path}.tmp`;
+  await writeFile(tmp, JSON.stringify(data));
+  await rename(tmp, path);
   return path;
 }
 

@@ -46,6 +46,21 @@ function kwota(v) {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Rejestr prowadzi dwie serie identyfikatorów: starszą `local_id` (wpisy ręczne)
+ * i `umw_id` — rekordy zaciągane automatycznie z systemu zarządzania dokumentacją
+ * urzędu. Rekord z nowej serii ma `local_id` puste, a `umw_id` dodatnie; w starej
+ * jest odwrotnie (`umw_id: -1`).
+ *
+ * Wcześniej kluczowaliśmy wyłącznie po `local_id`, więc cała nowa seria zlewała się
+ * w jeden wpis pod kluczem `undefined` i przepadała — na 31.12.2019 mieliśmy 88 umów
+ * zamiast 193. Identyfikator nowej serii zapisujemy z przedrostkiem „u", bo odnośnik
+ * do niej buduje się innym parametrem (`umw_id=` zamiast `local_id=`).
+ */
+const zNowejSerii = (u) => Number(u?.umw_id ?? -1) > 0;
+const kluczRek = (u) => (zNowejSerii(u) ? `u${u.umw_id}` : `l${u.local_id}`);
+const idUmowy = (u) => (zNowejSerii(u) ? `u${u.umw_id}` : u.local_id);
+
 async function strona({ rok, rodzaj, p }) {
   const body = new URLSearchParams({
     co: 'search',
@@ -77,7 +92,7 @@ async function partycja({ rok, rodzaj }) {
       break;
     }
     const przed = zebrane.size;
-    for (const u of wiersze) zebrane.set(u.local_id, u);
+    for (const u of wiersze) zebrane.set(kluczRek(u), u);
     // Uwaga: krótsza strona NIE oznacza końca — API potrafi zwrócić niepełną partię
     // w środku stronicowania. Kończymy dopiero po dwóch jałowych stronach z rzędu.
     jalowe = zebrane.size === przed ? jalowe + 1 : 0;
@@ -134,14 +149,14 @@ async function main() {
 
     const umowy = [...pelny.values()]
       .map((u) => ({
-        id: u.local_id,
+        id: idUmowy(u),
         nr: String(u.numer ?? '').trim(),
         data: u.data_zawarcia || null,
         kontrahent: czysty(u.kontrahent),
         przedmiot: czysty(u.przedmiot),
         wartosc: kwota(u.wartosc),
         wartoscRaw: String(u.wartosc ?? '').trim(),
-        rodzaj: rodzajDla.get(u.local_id) ?? null,
+        rodzaj: rodzajDla.get(kluczRek(u)) ?? null,
         jednostkaId: String(u.or_id ?? ''),
         jednostka: jednostki[String(u.or_id ?? '')] ?? null,
         terminOd: u.termin_od || null,

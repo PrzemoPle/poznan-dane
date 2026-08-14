@@ -1,22 +1,34 @@
-# Miesięczne odświeżenie danych ze źródeł.
+# Cotygodniowe odświeżenie danych ze źródeł.
 #
-# Dlaczego raz w miesiącu, a nie codziennie:
-#  - rejestr umów praktycznie przestał rosnąć (od 1.07.2026 umowy idą do CRU JSFP:
-#    w lipcu 57 wpisów wobec 419–982 miesięcznie wcześniej),
-#  - GUS publikuje dane roczne z półrocznym opóźnieniem,
-#  - badam.poznan.pl aktualizuje tabele kilka razy w roku.
-# Częstsze odpytywanie obciążałoby cudze serwery bez zysku dla czytelnika.
+# Dlaczego co tydzień, a nie rzadziej: BIP zaciąga umowy automatycznie z systemu
+# zarządzania dokumentacją urzędu i dopisuje je z opóźnieniem — wstecz, pod datą
+# zawarcia. Umowa z 12.06.2026 pojawiła się w rejestrze dopiero po 7.08.2026, więc
+# pobranie „raz w miesiącu" zostawiało czytelnika z niekompletną listą przez tygodnie.
 #
-# Rejestr umów pobieramy tylko za bieżący i poprzedni rok (FORCE wymusza nadpisanie).
+# GUS i badam.poznan.pl aktualizują się rzadko (dane roczne, kilka razy w roku), ale
+# ich pobranie jest tanie i idzie przy okazji.
+#
+# Z BIP-u pobieramy tylko bieżący i poprzedni rok (FORCE wymusza nadpisanie).
 # Starsze roczniki są zamknięte — pełny zaciąg 2014–2026 trwa ~40 min i robi się
 # ręcznie: `FORCE=1 npm run etl:umowy`.
+#
+# Uwaga na `data/raw`: katalog jest poza repozytorium, więc tutaj istnieją wyłącznie
+# roczniki pobrane przed chwilą. Agregator dobiera brakujące lata z plików już
+# opublikowanych w `public/dane/umowy` — bez tego przeliczenie ścinałoby historię
+# do dwóch ostatnich lat (raz już tak się stało, 2026-08-10).
 
 name: Odśwież dane
 
 on:
   schedule:
-    - cron: '17 4 1 * *'   # 1. dnia miesiąca, 4:17 UTC
-  workflow_dispatch:        # i na żądanie z zakładki Actions
+    - cron: '17 4 * * 1'   # co tydzień w poniedziałki, 4:17 UTC — bieżący i poprzedni rok
+    - cron: '17 2 1 * *'   # raz w miesiącu 1. dnia, 2:17 UTC — wszystkie roczniki od 2014
+  workflow_dispatch:
+    inputs:
+      pelny:
+        description: 'Pobrać wszystkie roczniki od 2014 (dłużej, ~1,5 h)'
+        type: boolean
+        default: false
 
 concurrency:
   group: odswiez-dane
@@ -25,7 +37,7 @@ concurrency:
 jobs:
   odswiez:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 240
     permissions:
       contents: write       # commit odświeżonych danych
       deployments: write
@@ -40,10 +52,19 @@ jobs:
       - run: npm ci
 
       - name: Pobierz dane ze źródeł
+        env:
+          # Cotygodniowo wystarczą dwa ostatnie roczniki, ale raz w miesiącu bierzemy
+          # wszystko od 2014 — BIP dopisuje umowy wstecz także do dawnych lat i tylko
+          # pełny zaciąg to wychwyci.
+          PELNY: ${{ github.event.schedule == '17 2 1 * *' || inputs.pelny }}
         run: |
           ROK=$(date -u +%Y)
-          POPRZEDNI=$((ROK - 1))
-          FORCE=1 node etl/fetch-umowy.mjs "$POPRZEDNI" "$ROK"
+          if [ "$PELNY" = 'true' ]; then OD=2014; else OD=$((ROK - 1)); fi
+          echo "Rejestr BIP: roczniki $OD–$ROK"
+          FORCE=1 node etl/fetch-umowy.mjs "$OD" "$ROK"
+          # CRU pobieramy w całości: rejestr jest młody i niewielki, a przy okazji
+          # sprawdzamy, czy któraś jednostka miejska zaczęła w nim publikować.
+          npm run etl:cru
           npm run etl:bdl
           npm run etl:badam
           npm run etl:katalog

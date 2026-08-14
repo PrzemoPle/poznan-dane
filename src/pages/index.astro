@@ -30,7 +30,7 @@ const kwota = (n) =>
 
 const najwieksze = agregaty.najwiekszeUmowy.slice(0, 5);
 // link w agregatach wskazuje na wariant api=json — do klikania dajemy widok HTML
-const bipLink = (l) => l.replace('&api=json', '');
+
 
 // ciekawostki nie mają pola link — kierujemy po treści do właściwego działu
 const linkCiekawostki = (c) => {
@@ -179,7 +179,7 @@ const sekcje = [
               <td>
                 {profile.kontrahenci[u.kontrahent]
                   ? <a href={`/kontrahent/${profile.kontrahenci[u.kontrahent]}/`}>{u.kontrahent}</a>
-                  : <a href={bipLink(u.link)} rel="noopener">{u.kontrahent}</a>}
+                  : <a href={u.link} rel="noopener">{u.kontrahent}</a>}
                 <br /><span class="drobne">{u.przedmiot}</span>
               </td>
               <td>{profile.jednostki[u.jednostka]

@@ -7,7 +7,7 @@
 // nowe w Centralnym Rejestrze Umów. Rekord niesie znacznik źródła, a link do
 // wpisu odtwarzamy z identyfikatora — inny dla każdego rejestru.
 
-const BIP = 'https://bip.poznan.pl/bip/rejestr_umow.html?co=print&local_id=';
+const BIP = 'https://bip.poznan.pl/bip/rejestr_umow.html?co=print&';
 const CRU = 'https://rejestrumow.gov.pl/umowa/';
 
 /** Umowa obowiązująca dłużej niż rok — patrz sekcja o kontraktach wieloletnich. */
@@ -20,7 +20,11 @@ export const ZRODLA = {
 
 /** Adres wpisu w rejestrze, z którego umowa pochodzi. */
 export function linkUmowy(id, zrodlo) {
-  return zrodlo === 'cru' ? `${CRU}${id}` : `${BIP}${id}`;
+  if (zrodlo === 'cru') return `${CRU}${id}`;
+  // BIP prowadzi dwie serie identyfikatorów i każda ma własny parametr; wpisy
+  // zaciągane automatycznie z systemu urzędu zapisujemy z przedrostkiem „u".
+  const s = String(id);
+  return s.startsWith('u') ? `${BIP}umw_id=${s.slice(1)}` : `${BIP}local_id=${s}`;
 }
 
 /**

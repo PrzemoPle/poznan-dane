@@ -108,14 +108,66 @@ async function wczytajCRU() {
   return wgRoku;
 }
 
+/**
+ * Odnośnik do umowy we właściwym rejestrze — odtwarzany z identyfikatora, tak samo
+ * jak po stronie przeglądarki (src/lib/rocznik.js). Nie bierzemy adresu z surowego
+ * pobrania, bo mają go tylko rekordy z BIP-u i tylko dopóki `data/raw` istnieje.
+ */
+const linkUmowy = (id, zrodlo) => {
+  if (zrodlo === 'cru') return `https://rejestrumow.gov.pl/umowa/${id}`;
+  const s = String(id);
+  const param = s.startsWith('u') ? `umw_id=${s.slice(1)}` : `local_id=${s}`;
+  return `https://bip.poznan.pl/bip/rejestr_umow.html?co=print&${param}`;
+};
+
 /** Klucz do rozpoznania tej samej umowy w obu rejestrach. */
 const kluczUmowy = (u) => `${(u.nr || '').toLowerCase().replace(/\s+/g, '')}|${u.data}`;
 
+/**
+ * Rocznik umów z BIP-u — z surowego pobrania, a gdy go nie ma, z pliku już
+ * opublikowanego na stronie.
+ *
+ * Bez tej drugiej ścieżki comiesięczne odświeżanie kasowało historię: `data/raw`
+ * jest poza repozytorium, więc w CI istnieją tylko dwa świeżo pobrane roczniki
+ * i agregaty schodziły z 72 tys. umów do 11 tys. Opublikowany rocznik niesie
+ * komplet potrzebnych pól, więc nadaje się na źródło zastępcze.
+ */
+async function wczytajRocznikBIP(rok) {
+  const surowy = await loadJSON(`data/raw/umowy-${rok}.json`, null);
+  if (surowy) return surowy.map((u) => ({ ...u, zrodlo: 'bip' }));
+
+  const gotowy = await loadJSON(`${WY}/umowy/${rok}.json`, null);
+  if (!gotowy?.umowy?.length) return [];
+  const k = Object.fromEntries(gotowy.kolumny.map((n, i) => [n, i]));
+  // Umowy z CRU dokładamy niżej ze świeżego pobrania — inaczej podwoiłyby się.
+  return gotowy.umowy
+    .filter((w) => (w[k.zrodlo] ?? 'bip') === 'bip')
+    .map((w) => ({
+      id: w[k.id],
+      nr: w[k.nr],
+      data: w[k.data],
+      kontrahent: w[k.kontrahent],
+      przedmiot: w[k.przedmiot],
+      wartosc: w[k.wartosc],
+      wartoscRaw: w[k.wartoscTekst] || '',
+      rodzaj: gotowy.rodzaje[w[k.rodzaj]] ?? null,
+      jednostka: gotowy.jednostki[w[k.jednostka]],
+      terminOd: w[k.terminOd],
+      terminDo: null,
+      dniGotowe: w[k.dni],      // policzone przy poprzednim przeliczeniu
+      zrodlo: 'bip',
+    }));
+}
+
 async function umowy() {
   const zCRU = await wczytajCRU();
-  const pliki = (await readdir('data/raw')).filter((f) => /^umowy-\d{4}\.json$/.test(f));
-  const lata = pliki.map((f) => Number(f.match(/\d{4}/)[0])).sort((a, b) => a - b);
-  if (!lata.length) throw new Error('brak data/raw/umowy-*.json — uruchom najpierw etl:umowy');
+  const rocznik = /^umowy-(\d{4})\.json$/;
+  const lata = [...new Set([
+    ...(await readdir('data/raw')).map((f) => f.match(rocznik)?.[1]),
+    ...(await readdir(`${WY}/umowy`).catch(() => [])).map((f) => f.match(/^(\d{4})\.json$/)?.[1]),
+    ...zCRU.keys(),
+  ].filter(Boolean).map(Number))].sort((a, b) => a - b);
+  if (!lata.length) throw new Error('brak roczników umów — uruchom najpierw etl:umowy');
 
   const perRok = [];
   const kontrahenciGlobal = new Map();
@@ -123,11 +175,11 @@ async function umowy() {
   let wszystkich = 0;
   let wszystkichKwota = 0;
   let bezKwoty = 0;
+  let zCRUlacznie = 0;
   const najwieksze = [];
 
   for (const rok of lata) {
-    const zBIP = (await loadJSON(`data/raw/umowy-${rok}.json`, []))
-      .map((u) => ({ ...u, zrodlo: 'bip' }));
+    const zBIP = await wczytajRocznikBIP(rok);
     // w okresie przejściowym ta sama umowa bywa w obu rejestrach — BIP ma pierwszeństwo,
     // bo trzymamy w nim pełniejsze pola (rodzaj umowy, terminy)
     const znane = new Set(zBIP.filter((u) => u.nr).map(kluczUmowy));
@@ -137,6 +189,7 @@ async function umowy() {
     const wszystkieCRU = zCRU.get(String(rok)) ?? [];
     const dodane = wszystkieCRU.filter((u) => !u.nr || !znane.has(kluczUmowy(u)));
     const dane = [...zBIP, ...dodane].sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
+    zCRUlacznie += dodane.length;
     if (wszystkieCRU.length) {
       log(`  ${rok}: +${dodane.length} umów z CRU (${wszystkieCRU.length - dodane.length} już było w BIP-ie)`);
     }
@@ -175,7 +228,7 @@ async function umowy() {
 
       if (u.wartosc == null) bezKwoty++;
       if (u.wartosc != null && u.wartosc > 0) {
-        najwieksze.push({ rok, id: u.id, data: u.data, kontrahent: u.kontrahent, przedmiot: u.przedmiot.slice(0, 180), wartosc: u.wartosc, jednostka: j, link: u.link });
+        najwieksze.push({ rok, id: u.id, data: u.data, kontrahent: u.kontrahent, przedmiot: u.przedmiot.slice(0, 180), wartosc: u.wartosc, jednostka: j, link: linkUmowy(u.id, u.zrodlo) });
       }
 
       const dni = u.dniGotowe ?? dniTrwania(u);
@@ -284,6 +337,7 @@ async function umowy() {
       doRoku: Math.max(...lata),
       liczbaJednostek: jednostkiGlobal.size,
       liczbaKontrahentow: kontrahenciGlobal.size,
+      zCRU: zCRUlacznie,
     },
     sezonowosc,
     topKontrahenciOgolem: topN(kontrahenciGlobal, 100, (x) => ({ nazwa: x.etykieta, liczba: x.liczba, suma: zaokr(x.suma) })),
@@ -291,7 +345,8 @@ async function umowy() {
     najwiekszeUmowy: najwieksze.slice(0, 100),
   });
 
-  return { perRok, wszystkich, wszystkichKwota, lata, kontrahenciGlobal, jednostkiGlobal, najwieksze };
+  return { perRok, wszystkich, wszystkichKwota, lata, zCRUlacznie,
+    kontrahenciGlobal, jednostkiGlobal, najwieksze };
 }
 
 /** Ciekawostki liczone z danych — każda z podaniem podstawy liczbowej. */
@@ -442,6 +497,7 @@ async function main() {
       suma: zaokr(u.wszystkichKwota),
       lata: u.lata,
       perRok: u.perRok.map((r) => ({ rok: r.rok, liczba: r.liczba, suma: r.suma })),
+      zCRU: u.zCRUlacznie,
     },
     bdl: bdl
       ? {

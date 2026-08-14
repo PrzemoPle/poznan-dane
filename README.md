@@ -100,6 +100,25 @@ src/lib/wykresy.js  wykresy SVG bez bibliotek zewnętrznych
   pojedyncza — mnoga zwraca 401).
 - **Limity CRU.** Strona wyników jest twardo cięta do 50 rekordów niezależnie od `limit`,
   a przy więcej niż dwóch równoległych zapytaniach API odpowiada 429.
+- **Dwie serie identyfikatorów w BIP-ie.** Rejestr zwraca rekordy z `local_id` (wpisy
+  ręczne, `umw_id: -1`) oraz z `umw_id` (zaciągane automatycznie z systemu zarządzania
+  dokumentacją urzędu, `local_id` puste). Klucz oparty tylko na `local_id` zlewał całą
+  nową serię w jeden wpis — na 31.12.2019 dawało to 88 umów zamiast 193, a w skali
+  rocznika 2025 siedem tysięcy zamiast dwudziestu jeden. Identyfikatory nowej serii
+  zapisujemy z przedrostkiem `u`, bo odnośnik buduje się parametrem `umw_id=`,
+  nie `local_id=`.
+- **BIP dopisuje umowy wstecz.** Rekord trafia do rejestru z opóźnieniem, ale pod datą
+  zawarcia — umowa z 12.06.2026 pojawiła się po 7.08.2026. Dlatego odświeżamy co tydzień
+  (dwa ostatnie roczniki), a raz w miesiącu pobieramy wszystko od 2014.
+- **Roczniki w CI.** `data/raw` jest poza repozytorium, więc podczas odświeżania na
+  GitHubie istnieją tylko dwa świeżo pobrane roczniki. Agregator dobiera brakujące lata
+  z plików już opublikowanych w `public/dane/umowy` — bez tego przeliczenie ścinało
+  historię z 72 tys. umów do 11 tys. (zdarzyło się realnie 10.08.2026).
+- **Nowe jednostki w CRU.** Odkrywanie REGON-ów jest przyrostowe: wyszukiwanie po nazwach
+  idzie za każdym razem, ale adres weryfikujemy tylko dla podmiotów nierozstrzygniętych
+  wcześniej — potwierdzone i odrzucone pamięta `data/raw/cru-regony.json`. Dzięki temu
+  comiesięczne odświeżanie wyłapuje jednostki, które dopiero zaczęły publikować.
+  `SKROT=1` pomija odkrywanie, `FORCE=1` czyści pamięć i przeszukuje od zera.
 - **Umowy bez numeru.** CRU dopuszcza „brak numeru umowy" i takich rekordów jest sporo
   (171 na 943). Deduplikacja wobec BIP-u opiera się na numerze, więc umowy bez numeru
   bierzemy bez sprawdzania — inaczej przepadały.

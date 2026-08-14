@@ -58,8 +58,15 @@ async function czyPoznanski(regon) {
   return norm(strona?.daneAdresowe?.miejscowosc) === 'poznan';
 }
 
-/** Szuka REGON-ów jednostek miejskich po nazwach, które znamy już z BIP-u. */
-async function znajdzRegony(nazwyJednostek) {
+/**
+ * Szuka REGON-ów jednostek miejskich po nazwach, które znamy już z BIP-u.
+ *
+ * Przebiega przyrostowo: wyszukiwanie po nazwach idzie za każdym razem (jednostka
+ * mogła dopiero zacząć publikować w CRU), ale adres weryfikujemy tylko dla REGON-ów
+ * nierozstrzygniętych wcześniej. Dzięki temu comiesięczne odświeżanie wyłapuje nowe
+ * podmioty, nie odpytując ponownie o te same kilkadziesiąt.
+ */
+async function znajdzRegony(nazwyJednostek, znane, odrzucone) {
   const kandydaci = new Map();   // regon -> nazwa z CRU
 
   await pool(nazwyJednostek, ROWNOLEGLE, async (nazwa) => {
@@ -67,6 +74,8 @@ async function znajdzRegony(nazwyJednostek) {
       const d = await szukaj({ nazwa }, 0, 50);
       const cel = norm(nazwa);
       for (const u of d.content ?? []) {
+        // filtr nazwy dopasowuje fragmentem i szuka po całej Polsce, więc bierzemy
+        // tylko trafienia dokładne — reszta i tak odpadnie na weryfikacji adresu
         if (norm(u.nazwa) === cel) kandydaci.set(u.regon, u.nazwa);
       }
     } catch (e) {
@@ -75,14 +84,22 @@ async function znajdzRegony(nazwyJednostek) {
     await sleep(120);
   });
 
-  log(`Kandydatów po nazwie: ${kandydaci.size} — weryfikuję adresy`);
+  const doSprawdzenia = [...kandydaci.keys()]
+    .filter((r) => !znane.has(r) && !odrzucone.has(r));
+  log(`Kandydatów po nazwie: ${kandydaci.size}, w tym nierozstrzygniętych: ${doSprawdzenia.length}`);
 
   const potwierdzone = new Map();
-  await pool([...kandydaci.keys()], ROWNOLEGLE, async (regon) => {
+  await pool(doSprawdzenia, ROWNOLEGLE, async (regon) => {
     try {
-      if (await czyPoznanski(regon)) potwierdzone.set(regon, kandydaci.get(regon));
-      else log(`  odrzucony (nie Poznań): ${regon} ${kandydaci.get(regon)?.slice(0, 40)}`);
+      if (await czyPoznanski(regon)) {
+        potwierdzone.set(regon, kandydaci.get(regon));
+        log(`  + NOWY podmiot poznański: ${regon} ${kandydaci.get(regon)?.slice(0, 45)}`);
+      } else {
+        odrzucone.add(regon);
+        log(`  odrzucony (nie Poznań): ${regon} ${kandydaci.get(regon)?.slice(0, 40)}`);
+      }
     } catch (e) {
+      // bez wpisu na listę odrzuconych — przy następnym odświeżeniu spróbujemy znowu
       log(`  ! weryfikacja ${regon}: ${e.message}`);
     }
     await sleep(PRZERWA);
@@ -150,17 +167,23 @@ async function main() {
   ])];
   log(`Szukam w CRU REGON-ów dla ${nazwy.length} nazw jednostek`);
 
-  const zapisane = await loadJSON('data/raw/cru-regony.json');
-  let regony;
-  if (zapisane && !process.env.FORCE) {
-    regony = new Map(Object.entries(zapisane.regony));
-    log(`Wczytano ${regony.size} potwierdzonych REGON-ów z pamięci (FORCE=1 przeszukuje od nowa)`);
+  // Pamięć poprzednich przebiegów; SKROT=1 pomija odkrywanie i bierze ją w ciemno.
+  const zapisane = process.env.FORCE ? null : await loadJSON('data/raw/cru-regony.json');
+  const regony = new Map(Object.entries(zapisane?.regony ?? {}));
+  const odrzucone = new Set(zapisane?.odrzucone ?? []);
+
+  if (zapisane && process.env.SKROT) {
+    log(`Pomijam odkrywanie (SKROT=1): ${regony.size} REGON-ów z pamięci`);
   } else {
-    regony = await znajdzRegony(nazwy);
+    const bylo = regony.size;
+    for (const [r, n] of await znajdzRegony(nazwy, regony, odrzucone)) regony.set(r, n);
     regony.set(REGON_URZEDU, 'URZĄD MIASTA POZNANIA');
+    const nowe = regony.size - bylo;
+    log(nowe ? `Doszło ${nowe} nowych jednostek poznańskich` : 'Nowych jednostek nie znaleziono');
     await saveJSON('data/raw/cru-regony.json', {
       pobrano: new Date().toISOString(),
       regony: Object.fromEntries(regony),
+      odrzucone: [...odrzucone],   // żeby nie weryfikować Legnicy co miesiąc od nowa
     });
   }
   log(`Potwierdzonych podmiotów poznańskich: ${regony.size}`);
