@@ -69,8 +69,8 @@ const zrodla = [
     url: 'https://rejestrumow.gov.pl/',
     api: null,
     zakres: 'Umowy jednostek sektora finansów publicznych od 1 lipca 2026 r.',
-    metoda: 'Jeszcze nie zintegrowany — MF udostępniło API do publikacji umów przez jednostki, ale publiczne API odczytu nie jest dostępne bez klucza.',
-    zastrzezenia: 'Po 1.07.2026 nowe umowy Poznania nie pojawiają się już w BIP-ie miasta. Do czasu integracji rejestr trzeba przeglądać bezpośrednio.',
+    metoda: 'Jeszcze nie zintegrowany, choć jest to wykonalne: portal korzysta z otwartego endpointu POST /api-dp/v1/agreements/search, który przyjmuje filtr po REGON-ie i nie wymaga klucza.',
+    zastrzezenia: 'To dziś największa luka tego serwisu. Od 1.07.2026 umowy Poznania trafiają do CRU, a nie do BIP-u — sam Urząd Miasta ma tam ponad 250 wpisów, których u nas nie zobaczysz. Do czasu integracji trzeba szukać bezpośrednio w CRU.',
   },
 ];
 ---
