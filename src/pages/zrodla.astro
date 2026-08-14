@@ -64,13 +64,14 @@ const zrodla = [
     zastrzezenia: 'Krajowy katalog zawiera głównie zbiory administracyjne (uchwały, radni, zamówienia), rzadziej dane liczbowe.',
   },
   {
+    klucz: 'cru',
     nazwa: 'Centralny Rejestr Umów JSFP',
     gospodarz: 'Ministerstwo Finansów',
     url: 'https://rejestrumow.gov.pl/',
-    api: null,
-    zakres: 'Umowy jednostek sektora finansów publicznych od 1 lipca 2026 r.',
-    metoda: 'Jeszcze nie zintegrowany, choć jest to wykonalne: portal korzysta z otwartego endpointu POST /api-dp/v1/agreements/search, który przyjmuje filtr po REGON-ie i nie wymaga klucza.',
-    zastrzezenia: 'To dziś największa luka tego serwisu. Od 1.07.2026 umowy Poznania trafiają do CRU, a nie do BIP-u — sam Urząd Miasta ma tam ponad 250 wpisów, których u nas nie zobaczysz. Do czasu integracji trzeba szukać bezpośrednio w CRU.',
+    api: 'https://rejestrumow.gov.pl/api-dp/v1/agreements/search',
+    zakres: `${podsumowanie.umowy.zCRU ?? 0} umów Poznania od 1 lipca 2026 r.`,
+    metoda: 'Otwarte API bez klucza. REGON-ów jednostek miejskich rejestr nie wykazuje, więc szukamy ich po nazwach znanych z BIP-u, a każdego kandydata weryfikujemy adresem z detalu umowy — filtr po nazwie przeszukuje całą Polskę i bez tego kroku „Zarząd Dróg Miejskich" przyniósłby umowy Legnicy.',
+    zastrzezenia: 'Rejestr obejmuje wyłącznie umowy od 1.07.2026, więc historia jest krótka. Widzimy tylko te jednostki, które zdążyły już coś opublikować i których nazwa zgadza się z tą z BIP-u — jednostka, która zmieniła nazwę albo nie ma jeszcze żadnej umowy, pozostaje niewidoczna.',
   },
 ];
 ---

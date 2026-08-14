@@ -30,7 +30,8 @@ npm run build      # statyczny build do dist/
 Poszczególne kroki ETL można uruchamiać osobno:
 
 ```bash
-npm run etl:umowy    # rejestr umów; roczniki już pobrane są pomijane (FORCE=1 wymusza)
+npm run etl:umowy    # rejestr umów z BIP; roczniki już pobrane są pomijane (FORCE=1 wymusza)
+npm run etl:cru      # Centralny Rejestr Umów; FORCE=1 przeszukuje REGON-y od nowa
 npm run etl:bdl      # GUS BDL
 npm run etl:badam    # tabele badam.poznan.pl
 npm run etl:katalog  # katalogi zbiorów danych
@@ -45,7 +46,8 @@ npm run etl:sprawdz  # kontrola kompletności roczników
 ```
 etl/                skrypty pobierania i agregacji (czysty Node, bez zależności)
   lib.mjs           fetch z retry, pula wątków, zapis JSON
-  fetch-umowy.mjs   rejestr umów — stronicowanie POST, oś rodzajów umów
+  fetch-umowy.mjs   rejestr umów z BIP — stronicowanie POST, oś rodzajów umów
+  fetch-cru.mjs     Centralny Rejestr Umów — odkrywanie REGON-ów + weryfikacja adresem
   fetch-bdl.mjs     GUS BDL — wskaźniki i wydatki wg działów dla 6 miast
   fetch-badam.mjs   parser tabel HTML badam.poznan.pl + sklejanie w ciągi roczne
   fetch-opendata.mjs katalogi (GraphQL + REST)
@@ -87,3 +89,17 @@ src/lib/wykresy.js  wykresy SVG bez bibliotek zewnętrznych
 - **Profile podmiotów** budowane są z gotowych roczników (`public/dane/umowy/`), a nie
   z surowych pobrań. `data/podmioty.json` (~5 MB) jest wczytywany tylko przy budowaniu
   strony; przeglądarka dostaje wyłącznie lekki indeks `public/dane/profile.json`.
+
+- **Dwa rejestry umów.** Do 30.06.2026 miasto publikowało w BIP-ie, od 1.07.2026 w Centralnym
+  Rejestrze Umów. Roczniki scalają oba źródła; każdy rekord niesie znacznik `zrodlo`
+  (`bip`/`cru`), po którym budowany jest link do właściwego rejestru i działa filtr.
+- **Odkrywanie jednostek w CRU.** Rejestr nie wykazuje REGON-ów jednostek miejskich, więc
+  szukamy ich po nazwach znanych z BIP-u. Filtr `nazwa` dopasowuje fragmentem i przeszukuje
+  całą Polskę — „ZARZĄD DRÓG MIEJSKICH" zwraca też Legnicę. Dlatego każdy kandydat jest
+  weryfikowany miastem z adresu w detalu umowy (`GET /api-dp/v1/agreement/{id}`, liczba
+  pojedyncza — mnoga zwraca 401).
+- **Limity CRU.** Strona wyników jest twardo cięta do 50 rekordów niezależnie od `limit`,
+  a przy więcej niż dwóch równoległych zapytaniach API odpowiada 429.
+- **Umowy bez numeru.** CRU dopuszcza „brak numeru umowy" i takich rekordów jest sporo
+  (171 na 943). Deduplikacja wobec BIP-u opiera się na numerze, więc umowy bez numeru
+  bierzemy bez sprawdzania — inaczej przepadały.

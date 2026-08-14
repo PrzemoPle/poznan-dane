@@ -71,7 +71,48 @@ function topN(mapa, n, mapper = (v) => v) {
     .slice(0, n);
 }
 
+/**
+ * Umowy z Centralnego Rejestru Umów sprowadzone do kształtu rekordu z BIP-u,
+ * pogrupowane po roczniku. Od lipca 2026 to jedyne miejsce, gdzie miasto publikuje.
+ */
+async function wczytajCRU() {
+  const plik = await loadJSON('data/raw/cru-umowy.json');
+  if (!plik?.umowy?.length) {
+    log('CRU: brak data/raw/cru-umowy.json — pomijam (uruchom npm run etl:cru)');
+    return new Map();
+  }
+  const wgRoku = new Map();
+  for (const u of plik.umowy) {
+    // CRU podaje datę jako dd.mm.rrrr
+    const [dz, mc, rok] = (u.data || '').split('.');
+    if (!rok) continue;
+    const rekord = {
+      id: u.id,
+      nr: u.nr || '',
+      data: `${rok}-${mc}-${dz}`,
+      kontrahent: u.kontrahent || 'nie podano',
+      przedmiot: u.przedmiot || '',
+      wartosc: typeof u.wartosc === 'number' ? u.wartosc : null,
+      wartoscRaw: u.opisWartosci || '',
+      rodzaj: null,
+      jednostka: u.jednostka,
+      terminOd: `${rok}-${mc}-${dz}`,
+      terminDo: null,
+      dniGotowe: u.dni ?? null,      // CRU podaje okres wprost, nie liczymy z dat
+      zrodlo: 'cru',
+    };
+    if (!wgRoku.has(rok)) wgRoku.set(rok, []);
+    wgRoku.get(rok).push(rekord);
+  }
+  log(`CRU: ${plik.umowy.length} umów w ${wgRoku.size} rocznikach`);
+  return wgRoku;
+}
+
+/** Klucz do rozpoznania tej samej umowy w obu rejestrach. */
+const kluczUmowy = (u) => `${(u.nr || '').toLowerCase().replace(/\s+/g, '')}|${u.data}`;
+
 async function umowy() {
+  const zCRU = await wczytajCRU();
   const pliki = (await readdir('data/raw')).filter((f) => /^umowy-\d{4}\.json$/.test(f));
   const lata = pliki.map((f) => Number(f.match(/\d{4}/)[0])).sort((a, b) => a - b);
   if (!lata.length) throw new Error('brak data/raw/umowy-*.json — uruchom najpierw etl:umowy');
@@ -85,7 +126,20 @@ async function umowy() {
   const najwieksze = [];
 
   for (const rok of lata) {
-    const dane = await loadJSON(`data/raw/umowy-${rok}.json`, []);
+    const zBIP = (await loadJSON(`data/raw/umowy-${rok}.json`, []))
+      .map((u) => ({ ...u, zrodlo: 'bip' }));
+    // w okresie przejściowym ta sama umowa bywa w obu rejestrach — BIP ma pierwszeństwo,
+    // bo trzymamy w nim pełniejsze pola (rodzaj umowy, terminy)
+    const znane = new Set(zBIP.filter((u) => u.nr).map(kluczUmowy));
+    // Umowa bez numeru nie może zderzyć się z wpisem z BIP-u (tam numer jest zawsze),
+    // więc bierzemy ją bez sprawdzania. Wcześniejsza wersja odrzucała takie rekordy
+    // hurtem — przepadało 171 umów, bo CRU dopuszcza „brak numeru umowy".
+    const wszystkieCRU = zCRU.get(String(rok)) ?? [];
+    const dodane = wszystkieCRU.filter((u) => !u.nr || !znane.has(kluczUmowy(u)));
+    const dane = [...zBIP, ...dodane].sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
+    if (wszystkieCRU.length) {
+      log(`  ${rok}: +${dodane.length} umów z CRU (${wszystkieCRU.length - dodane.length} już było w BIP-ie)`);
+    }
     const zKwota = dane.filter((u) => u.wartosc != null && u.wartosc > 0);
     const kwoty = zKwota.map((u) => u.wartosc).sort((a, b) => a - b);
     const sumaRok = suma(kwoty);
@@ -124,7 +178,7 @@ async function umowy() {
         najwieksze.push({ rok, id: u.id, data: u.data, kontrahent: u.kontrahent, przedmiot: u.przedmiot.slice(0, 180), wartosc: u.wartosc, jednostka: j, link: u.link });
       }
 
-      const dni = dniTrwania(u);
+      const dni = u.dniGotowe ?? dniTrwania(u);
       if (dni != null && dni >= DNI_WIELOLETNIA) {
         wieloletnie.liczba++;
         wieloletnie.suma += u.wartosc || 0;
@@ -187,14 +241,15 @@ async function umowy() {
         doSlownika(slownikRodzajow, indeksRodzajow, u.rodzaj || null),
         u.nr,
         u.terminOd || null,
-        dniTrwania(u),
+        u.dniGotowe ?? dniTrwania(u),
         u.wartosc == null ? u.wartoscRaw : null,      // kwota zapisana słownie
+        u.zrodlo || 'bip',
       ];
     });
 
     await saveJSON(`${WY}/umowy/${rok}.json`, {
       kolumny: ['id', 'data', 'kontrahent', 'przedmiot', 'wartosc', 'jednostka',
-        'rodzaj', 'nr', 'terminOd', 'dni', 'wartoscTekst'],
+        'rodzaj', 'nr', 'terminOd', 'dni', 'wartoscTekst', 'zrodlo'],
       jednostki: slownikJednostek,
       rodzaje: slownikRodzajow,
       umowy: wiersze,

@@ -439,6 +439,17 @@ button.pigulka[aria-pressed='true'] {
   padding: 3px 9px; border-radius: var(--r); background: var(--akcent-tlo);
   color: var(--tekst-2); border: 1px solid var(--linia);
 }
+/* znacznik rejestru, z którego pochodzi umowa — od lipca 2026 miasto publikuje w CRU */
+.rejestr {
+  display: inline-block; margin-left: 6px;
+  font-family: var(--mono); font-size: .62rem; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase;
+  padding: 1px 5px; border-radius: 2px;
+  border: 1px solid var(--linia-mocna); color: var(--tekst-3);
+  vertical-align: middle;
+}
+.rejestr.r-cru { border-color: var(--czerwien); color: var(--czerwien); }
+
 /* ---------- ranking (lista z paskami) ----------
    HTML zamiast SVG: w SVG tekst skalował się razem z rysunkiem i przy wąskiej
    karcie schodził do kilku pikseli. Tu jest zwykłym tekstem strony. */

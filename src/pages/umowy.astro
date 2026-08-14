@@ -61,6 +61,14 @@ const licz = (n) => n.toLocaleString('pl-PL');
       </div>
       <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center">
         <button class="pigulka" id="f-wieloletnie" aria-pressed="false">Tylko wieloletnie</button>
+        <label class="pole" style="text-transform:none;letter-spacing:0;font-size:.82rem;font-weight:400;flex-direction:row;align-items:center;gap:7px">
+          Rejestr
+          <select id="f-zrodlo" style="width:auto">
+            <option value="">oba</option>
+            <option value="bip">BIP Poznań</option>
+            <option value="cru">Centralny Rejestr Umów</option>
+          </select>
+        </label>
         <button id="f-reset">Wyczyść filtry</button>
         <button id="f-csv">Pobierz wynik (CSV)</button>
         <span id="f-podsumowanie" class="drobne" style="margin-left:auto"></span>
@@ -191,7 +199,7 @@ const licz = (n) => n.toLocaleString('pl-PL');
 
   <script>
     import { ranking, slupkowy, fmt, podmien, PALETA } from '../lib/wykresy.js';
-    import { pobierzRocznik, DNI_WIELOLETNIA } from '../lib/rocznik.js';
+    import { pobierzRocznik, DNI_WIELOLETNIA, ZRODLA } from '../lib/rocznik.js';
 
     const [agregaty, profile] = await Promise.all([
       fetch('/dane/umowy-agregaty.json').then((r) => r.json()),
@@ -272,7 +280,7 @@ const licz = (n) => n.toLocaleString('pl-PL');
     const $ = (s) => document.querySelector(s);
     const pola = {
       rok: $('#f-rok'), fraza: $('#f-fraza'), jednostka: $('#f-jednostka'),
-      rodzaj: $('#f-rodzaj'), od: $('#f-od'), do: $('#f-do'),
+      rodzaj: $('#f-rodzaj'), od: $('#f-od'), do: $('#f-do'), zrodlo: $('#f-zrodlo'),
     };
 
     let zbior = [];      // aktualnie załadowany rocznik / całość
@@ -304,9 +312,11 @@ const licz = (n) => n.toLocaleString('pl-PL');
       const doK = pola.do.value === '' ? null : Number(pola.do.value);
 
       const tylkoWieloletnie = $('#f-wieloletnie').getAttribute('aria-pressed') === 'true';
+      const zrodlo = pola.zrodlo.value;
 
       wynik = zbior.filter((u) => {
         if (tylkoWieloletnie && !(u.dni >= DNI_WIELOLETNIA)) return false;
+        if (zrodlo && u.z !== zrodlo) return false;
         if (jednostka && u.j !== jednostka) return false;
         if (rodzaj && u.r !== rodzaj) return false;
         if (od != null && !(u.w >= od)) return false;
@@ -378,7 +388,10 @@ const licz = (n) => n.toLocaleString('pl-PL');
         <td style="color:var(--tekst-2);max-width:38ch">${escapuj(u.p)}${okres}</td>
         <td style="color:var(--tekst-2);max-width:22ch">${linkPodmiotu(u.j, 'jednostki')}</td>
         <td class="num" style="font-weight:600">${kwota}</td>
-        <td class="drobne" style="white-space:nowrap">${u.l ? `<a href="${u.l}" rel="noopener nofollow">${escapuj(u.n || 'wpis')}</a>` : escapuj(u.n)}</td>`;
+        <td class="drobne" style="white-space:nowrap">
+          ${u.l ? `<a href="${u.l}" rel="noopener nofollow">${escapuj(u.n || 'wpis')}</a>` : escapuj(u.n)}
+          <span class="rejestr r-${u.z}" title="${u.z === 'cru' ? 'Centralny Rejestr Umów JSFP' : 'BIP Miasta Poznania'}">${ZRODLA[u.z]?.nazwa ?? ''}</span>
+        </td>`;
       return tr;
     }
 
@@ -434,10 +447,10 @@ const licz = (n) => n.toLocaleString('pl-PL');
 
     // ---------- eksport ----------
     function csv() {
-      const naglowki = ['data', 'kontrahent', 'przedmiot', 'jednostka', 'rodzaj', 'wartosc', 'numer', 'link'];
+      const naglowki = ['data', 'kontrahent', 'przedmiot', 'jednostka', 'rodzaj', 'wartosc', 'numer', 'rejestr', 'link'];
       const cytat = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
       const tresc = [naglowki.join(';'), ...wynik.map((u) =>
-        [u.d, u.k, u.p, u.j, u.r ?? '', u.w ?? u.wr ?? '', u.n, u.l].map(cytat).join(';'))].join('\n');
+        [u.d, u.k, u.p, u.j, u.r ?? '', u.w ?? u.wr ?? '', u.n, ZRODLA[u.z]?.nazwa ?? u.z, u.l].map(cytat).join(';'))].join('\n');
       const blob = new Blob(['﻿' + tresc], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -452,7 +465,7 @@ const licz = (n) => n.toLocaleString('pl-PL');
       clearTimeout(timer);
       timer = setTimeout(() => { filtruj(); zapiszURL(); }, 180);
     });
-    for (const el of [pola.jednostka, pola.rodzaj, pola.od, pola.do]) {
+    for (const el of [pola.jednostka, pola.rodzaj, pola.od, pola.do, pola.zrodlo]) {
       el.addEventListener('change', () => { filtruj(); zapiszURL(); });
     }
     pola.rok.addEventListener('change', wczytaj);

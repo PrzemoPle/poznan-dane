@@ -5,8 +5,9 @@
   "private": true,
   "description": "Poznań w danych — przeglądarka danych publicznych o mieście",
   "scripts": {
-    "etl": "npm run etl:umowy && npm run etl:bdl && npm run etl:badam && npm run etl:katalog && npm run etl:build && npm run etl:podmioty && npm run etl:og",
+    "etl": "npm run etl:umowy && npm run etl:cru && npm run etl:bdl && npm run etl:badam && npm run etl:katalog && npm run etl:build && npm run etl:podmioty && npm run etl:og",
     "etl:umowy": "node etl/fetch-umowy.mjs 2014 2026",
+    "etl:cru": "node etl/fetch-cru.mjs",
     "etl:bdl": "node etl/fetch-bdl.mjs",
     "etl:badam": "node etl/fetch-badam.mjs",
     "etl:katalog": "node etl/fetch-opendata.mjs",
