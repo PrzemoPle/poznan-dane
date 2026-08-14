@@ -110,6 +110,13 @@ src/lib/wykresy.js  wykresy SVG bez bibliotek zewnętrznych
 - **BIP dopisuje umowy wstecz.** Rekord trafia do rejestru z opóźnieniem, ale pod datą
   zawarcia — umowa z 12.06.2026 pojawiła się po 7.08.2026. Dlatego odświeżamy co tydzień
   (dwa ostatnie roczniki), a raz w miesiącu pobieramy wszystko od 2014.
+- **Aneksy i kwoty ujemne.** BIP wypełnia pole `informacja_o_aneksie` tekstem
+  „aneks do umowy nr …", wskazując umowę macierzystą. Zbieramy je jako kolumnę `aneks`
+  i pokazujemy przy wpisie — dzięki temu etykieta pochodzi z rejestru, a nie z domysłu
+  po numerze (zgadywanie po numerze chybiało przy 39 z 537 ujemnych wpisów). Kwota ujemna
+  oznacza obniżenie wartości umowy macierzystej; 522 z 537 takich wpisów rejestr opisuje
+  jako aneks, reszta to rozwiązania umów bez wypełnionego pola. Kwot ujemnych nie
+  wliczamy do sum ani mediany — to decyzja metodologiczna, nie właściwość danych.
 - **Roczniki w CI.** `data/raw` jest poza repozytorium, więc podczas odświeżania na
   GitHubie istnieją tylko dwa świeżo pobrane roczniki. Agregator dobiera brakujące lata
   z plików już opublikowanych w `public/dane/umowy` — bez tego przeliczenie ścinało

@@ -162,6 +162,10 @@ async function main() {
         terminOd: u.termin_od || null,
         terminDo: u.termin_do || null,
         typTerminu: u.typ_terminu || null,
+        // Rejestr sam deklaruje, ze wpis jest aneksem, i wskazuje umowe macierzysta.
+        // To pewniejsze niz zgadywanie z numeru — a przy ujemnych kwotach niezbedne,
+        // bo bez tego czytelnik widzi „-20 503 zl" bez wyjasnienia.
+        aneks: czysty(u.informacja_o_aneksie) || null,
         link: u.link || null,
       }))
       .filter((u) => u.data && u.data.startsWith(String(rok)))

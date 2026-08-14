@@ -36,7 +36,7 @@ export function rozpakuj(plik) {
   if (Array.isArray(plik)) return plik;
 
   const { jednostki = [], rodzaje = [], umowy = [] } = plik;
-  return umowy.map(([id, data, kontrahent, przedmiot, wartosc, jIdx, rIdx, nr, od, dni, tekst, zrodlo]) => {
+  return umowy.map(([id, data, kontrahent, przedmiot, wartosc, jIdx, rIdx, nr, od, dni, tekst, zrodlo, aneks]) => {
     const z = zrodlo || 'bip';   // starsze roczniki nie mają kolumny źródła
     return {
       i: id,
@@ -51,6 +51,7 @@ export function rozpakuj(plik) {
       od: od ?? undefined,
       dni: dni ?? undefined,
       z,
+      a: aneks ?? undefined,   // „aneks do umowy nr …”, jeśli rejestr tak wpis oznaczył
       l: linkUmowy(id, z),
     };
   });

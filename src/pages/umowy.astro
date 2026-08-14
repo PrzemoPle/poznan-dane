@@ -31,6 +31,9 @@ const licz = (n) => n.toLocaleString('pl-PL');
       więc roczne sumy nie są równoważne wydatkom budżetu z tego roku. Dlatego obok sumy podajemy medianę.
       Umowy zawarte od 1 lipca 2026 r. trafiają do
       <a href="https://rejestrumow.gov.pl/" rel="noopener">Centralnego Rejestru Umów</a>, a nie do BIP-u miasta.
+      Wpisy oznaczone znacznikiem <span class="znacznik aneks">aneks</span> zmieniają umowę zawartą wcześniej —
+      najechanie na znacznik pokazuje, której dotyczą. Kwota ujemna przy aneksie oznacza obniżenie wartości
+      umowy macierzystej; takich kwot nie wliczamy do sum ani mediany, żeby nie mieszać ich z nowymi zobowiązaniami.
     </p>
   </section>
 
@@ -446,8 +449,14 @@ const licz = (n) => n.toLocaleString('pl-PL');
 
     function wierszHTML(u) {
       const tr = document.createElement('tr');
+      // Kwota ujemna to aneks obniżający wartość umowy macierzystej — bez podpisu
+      // czytelnik widzi „−20 503 zł" i nie wie, czy to błąd.
       const kwota = u.w != null
-        ? fmt.kwota(u.w)
+        ? (u.w < 0
+            ? `<span class="kwota-ujemna" title="${u.a
+                ? `Aneks obniża wartość wcześniejszej umowy o tę kwotę — ${escapuj(u.a)}.`
+                : 'Wpis obniża wartość wcześniejszej umowy (aneks albo rozwiązanie). Rejestr nie wskazuje tu umowy macierzystej.'} Kwoty ujemne nie wchodzą do sumy ani mediany.">${fmt.kwota(u.w)}</span>`
+            : fmt.kwota(u.w))
         : `<span title="w rejestrze zapisano: ${u.wr ?? 'brak'}" style="color:var(--tekst-3)">${u.wr ?? '—'}</span>`;
       // umowy dłuższe niż rok dostają znacznik z czasem obowiązywania
       const podejrzany = u.dni >= DNI_PODEJRZANE;
@@ -456,10 +465,14 @@ const licz = (n) => n.toLocaleString('pl-PL');
             ? `Rejestr podaje termin do ${fmt.data(u.od)} + ${fmt.liczba(u.dni)} dni. To niemal na pewno literówka w dacie po stronie źródła — pokazujemy ją bez poprawiania.`
             : `obowiązuje od ${fmt.data(u.od)}, przez ${fmt.liczba(u.dni)} dni`}">${fmt.lata(u.dni)}${podejrzany ? ' ?' : ''}</span>`
         : '';
+      // Rejestr sam oznacza wpis jako aneks i podaje umowę macierzystą — pokazujemy to wprost.
+      const aneks = u.a
+        ? ` <span class="znacznik aneks" title="${escapuj(u.a)}">aneks</span>`
+        : '';
       tr.innerHTML = `
         <td style="white-space:nowrap">${fmt.data(u.d)}</td>
         <td>${linkPodmiotu(u.k, 'kontrahenci')}</td>
-        <td style="color:var(--tekst-2);max-width:38ch">${escapuj(u.p)}${okres}</td>
+        <td style="color:var(--tekst-2);max-width:38ch">${escapuj(u.p)}${aneks}${okres}</td>
         <td style="color:var(--tekst-2);max-width:22ch">${linkPodmiotu(u.j, 'jednostki')}</td>
         <td class="num" style="font-weight:600">${kwota}</td>
         <td class="drobne" style="white-space:nowrap">
@@ -516,10 +529,10 @@ const licz = (n) => n.toLocaleString('pl-PL');
 
     // ---------- eksport ----------
     function csv() {
-      const naglowki = ['data', 'kontrahent', 'przedmiot', 'jednostka', 'rodzaj', 'wartosc', 'numer', 'rejestr', 'link'];
+      const naglowki = ['data', 'kontrahent', 'przedmiot', 'jednostka', 'rodzaj', 'wartosc', 'numer', 'aneks_do', 'rejestr', 'link'];
       const cytat = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
       const tresc = [naglowki.join(';'), ...wynik.map((u) =>
-        [u.d, u.k, u.p, u.j, u.r ?? '', u.w ?? u.wr ?? '', u.n, ZRODLA[u.z]?.nazwa ?? u.z, u.l].map(cytat).join(';'))].join('\n');
+        [u.d, u.k, u.p, u.j, u.r ?? '', u.w ?? u.wr ?? '', u.n, u.a ?? '', ZRODLA[u.z]?.nazwa ?? u.z, u.l].map(cytat).join(';'))].join('\n');
       const blob = new Blob(['﻿' + tresc], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);

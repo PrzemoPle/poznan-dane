@@ -433,6 +433,9 @@ button.pigulka[aria-pressed='true'] {
 }
 
 /* ---------- różne ---------- */
+.znacznik.aneks { border-color: var(--linia-mocna); color: var(--tekst-3); cursor: help; }
+.kwota-ujemna { color: var(--czerwien); cursor: help; }
+
 .znacznik.watpliwy {
   border-style: dashed;
   opacity: .75;

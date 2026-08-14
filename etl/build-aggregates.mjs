@@ -155,6 +155,7 @@ async function wczytajRocznikBIP(rok) {
       terminOd: w[k.terminOd],
       terminDo: null,
       dniGotowe: w[k.dni],      // policzone przy poprzednim przeliczeniu
+      aneks: k.aneks == null ? null : w[k.aneks],
       zrodlo: 'bip',
     }));
 }
@@ -297,12 +298,13 @@ async function umowy() {
         u.dniGotowe ?? dniTrwania(u),
         u.wartosc == null ? u.wartoscRaw : null,      // kwota zapisana słownie
         u.zrodlo || 'bip',
+        u.aneks || null,                              // „aneks do umowy nr …" wprost z rejestru
       ];
     });
 
     await saveJSON(`${WY}/umowy/${rok}.json`, {
       kolumny: ['id', 'data', 'kontrahent', 'przedmiot', 'wartosc', 'jednostka',
-        'rodzaj', 'nr', 'terminOd', 'dni', 'wartoscTekst', 'zrodlo'],
+        'rodzaj', 'nr', 'terminOd', 'dni', 'wartoscTekst', 'zrodlo', 'aneks'],
       jednostki: slownikJednostek,
       rodzaje: slownikRodzajow,
       umowy: wiersze,
