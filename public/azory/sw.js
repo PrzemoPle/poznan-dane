@@ -1,4 +1,4 @@
-var C='sao-miguel-v2';
+var C='sao-miguel-v3';
 self.addEventListener('install',function(e){self.skipWaiting()});
 self.addEventListener('activate',function(e){
   e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!==C}).map(function(k){return caches.delete(k)}))}));
