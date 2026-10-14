@@ -7,3 +7,7 @@ data/raw/
 data/*.log
 .DS_Store
 .wrangler/
+
+# grafiki do mediów społecznościowych generuje social/*.mjs
+social/*.png
+social/*.html

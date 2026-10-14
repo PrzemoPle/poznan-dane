@@ -16,9 +16,12 @@ export async function fetchRetry(url, opts = {}, tries = 4) {
         signal: ctrl.signal,
         headers: { 'User-Agent': UA, ...(opts.headers || {}) },
       });
+      // Treść czytamy jeszcze pod limitem czasu. Wcześniej zegar stawał po nagłówkach,
+      // więc serwer, który przysłał nagłówki i zamilkł, mógł powiesić proces na godziny.
+      const tresc = await res.arrayBuffer();
       clearTimeout(t);
       if (!res.ok) throw new Error(`HTTP ${res.status} ${url}`);
-      return res;
+      return new Response(tresc, { status: res.status, statusText: res.statusText, headers: res.headers });
     } catch (e) {
       lastErr = e;
       await sleep(500 * 2 ** i);

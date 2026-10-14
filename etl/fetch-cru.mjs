@@ -278,6 +278,17 @@ async function main() {
     for (const u of umowy) wszystkie.set(u.id, u);
     nowychRazem += nowych;
     if (urwane || bledy) bledneJednostki++;
+    // Postęp zapisujemy po każdej jednostce: przy blokadach przebieg trwa ponad godzinę
+    // i przerwanie nie powinno kasować umów już pobranych. Zapis to suma z pamięcią,
+    // więc nigdy nie jest uboższy niż poprzedni stan.
+    if (nowych) {
+      const czesciowe = new Map(poprzednie.map((x) => [x.id, x]));
+      for (const [id, x] of wszystkie) czesciowe.set(id, x);
+      await saveJSON(PLIK_UMOWY, {
+        pobrano: new Date().toISOString(), zrodlo: 'Centralny Rejestr Umów JSFP (rejestrumow.gov.pl)',
+        podmioty: Object.fromEntries(regony), umowy: [...czesciowe.values()],
+      });
+    }
     const znacznik = urwane ? ' (niepełne)' : bledy ? ` (${bledy} bez detalu)` : '';
     log(`  ${nazwaCRU.slice(0, 45).padEnd(47)} ${String(umowy.length).padStart(4)} umów${
       nowych ? `, w tym ${nowych} pobranych teraz` : ''}${znacznik}`);
