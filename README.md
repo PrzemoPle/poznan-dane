@@ -129,3 +129,21 @@ src/lib/wykresy.js  wykresy SVG bez bibliotek zewnętrznych
 - **Umowy bez numeru.** CRU dopuszcza „brak numeru umowy" i takich rekordów jest sporo
   (171 na 943). Deduplikacja wobec BIP-u opiera się na numerze, więc umowy bez numeru
   bierzemy bez sprawdzania — inaczej przepadały.
+
+- **Rocznik = świeże pobranie ∪ opublikowane.** Agregator nie ufa ślepo żadnemu źródłu:
+  28.09.2026 API BIP ucięło stronicowanie (17 300 umów z 2025 r. wobec 22 054 tydzień
+  wcześniej) i strona przez dwa tygodnie pokazywała o 4,7 tys. umów za mało. Umowa raz
+  opublikowana zostaje, dopóki świeże pobranie jej nie zastąpi; spadek o ponad 10% wobec
+  opublikowanego rocznika daje ostrzeżenie w logu CI.
+- **CRU blokuje serie zapytań.** Portal przy kilkuset zapytaniach oddaje stronę HTML
+  z kodem 200 zamiast JSON-a, z dowolnego łącza. Stąd `fetchJSON` (nie-JSON podlega
+  ponawianiu), jeden wątek z przerwą 700 ms, wspólna minuta przerwy po blokadzie
+  i pamięć szczegółów w `data/cru/umowy.json` — detal pobieramy tylko dla umów nowych
+  albo ze zmienioną kwotą lub statusem. Pamięć jest w repozytorium i uzupełnia się
+  umowami z opublikowanych roczników, więc nie może być uboższa niż strona.
+- **Awaria CRU nie blokuje odświeżenia.** Pobranie CRU to osobny krok z
+  `continue-on-error`; dane z BIP-u zapisują się i wdrażają mimo niego.
+- **Budżet obywatelski (`/pbo/`).** Dane w `data/pbo/` z kwartalnych tabel PDF miasta
+  „Stan realizacji projektów PBO", odczytanych dwukrotnie (poziomy weryfikacji A/B/C).
+  Aktualizacja ręczna raz na kwartał: układ tych tabel jest zawodny (PBO26 przesuwa kwoty
+  między wierszami), więc automat pokazałby przestawione liczby.

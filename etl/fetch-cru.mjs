@@ -14,7 +14,8 @@
 //
 // Użycie: node etl/fetch-cru.mjs
 
-import { fetchRetry, pool, saveJSON, loadJSON, log, sleep } from './lib.mjs';
+import { fetchJSON, pool, saveJSON, loadJSON, log, sleep } from './lib.mjs';
+import { wczytajPamiecCRU, PLIK_UMOWY } from './cru-pamiec.mjs';
 
 const API = 'https://rejestrumow.gov.pl/api-dp/v1';
 const STRONA_UMOWY = 'https://rejestrumow.gov.pl/umowa/';
@@ -22,8 +23,29 @@ const REGON_URZEDU = '000514199';        // Urząd Miasta Poznania — punkt wyj
 // API twardo tnie stronę do 50 rekordów, choćby poprosić o więcej. Pętla, która
 // uznawała krótszą stronę za koniec, pobierała 50 z 251 umów Urzędu Miasta.
 const NA_STRONE = 50;
-const ROWNOLEGLE = 2;        // API odpowiada 429 przy większej równoległości
-const PRZERWA = 320;         // ms między zapytaniami w wątku
+// Tempo dobrane pod zabezpieczenie antybotowe portalu: przy 2 wątkach i 320 ms serwis
+// po kilkuset zapytaniach zaczyna oddawać stronę HTML zamiast danych — i to niezależnie
+// od tego, czy pytamy z serwerowni, czy ze zwykłego łącza. Dzięki pamięci pobranych
+// umów cotygodniowy przebieg to i tak kilkadziesiąt zapytań, więc wolniej nie boli.
+const ROWNOLEGLE = 1;
+const PRZERWA = 700;         // ms między zapytaniami
+const PAUZA_PO_BLOKADZIE = 60_000;
+
+/**
+ * Wspólna bramka: gdy portal odpowie stroną zamiast danych, wszystkie wątki
+ * odczekują, zamiast dalej dobijać się i przedłużać blokadę.
+ */
+let blokadaDo = 0;
+const zablokowany = (e) => /nie jest JSON-em/.test(e?.message ?? '');
+async function przepustka() {
+  const czekaj = blokadaDo - Date.now();
+  if (czekaj > 0) await sleep(czekaj);
+}
+function odnotujBlokade() {
+  if (Date.now() < blokadaDo) return;          // już odliczamy
+  blokadaDo = Date.now() + PAUZA_PO_BLOKADZIE;
+  log(`  … portal zwraca stronę zamiast danych — przerwa ${PAUZA_PO_BLOKADZIE / 1000} s`);
+}
 
 /** Bez ogonków i interpunkcji — inaczej „Poznań" nie zrówna się z „poznan". */
 const norm = (s) => (s ?? '')
@@ -35,17 +57,32 @@ const norm = (s) => (s ?? '')
   .trim();
 
 async function szukaj(filtry, offset = 0, limit = NA_STRONE) {
-  const res = await fetchRetry(`${API}/agreements/search?offset=${offset}&limit=${limit}`, {
+  await przepustka();
+  return fetchJSON(`${API}/agreements/search?offset=${offset}&limit=${limit}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ menuGlowne: filtry }),
   });
-  return res.json();
 }
 
 async function detal(idUmowy) {
-  const res = await fetchRetry(`${API}/agreement/${idUmowy}`, { headers: { Accept: 'application/json' } });
-  return res.json();
+  await przepustka();
+  return fetchJSON(`${API}/agreement/${idUmowy}`, { headers: { Accept: 'application/json' } });
+}
+
+/** Stan CRU trzymamy w repozytorium, nie w ignorowanym data/raw — patrz komentarz w main(). */
+const PLIK_REGONY = 'data/cru/regony.json';
+
+/** Czy nagłówek z wyszukiwarki różni się od tego, co mamy zapamiętane. */
+function zmieniona(naglowek, zapis) {
+  if (zapis == null) return true;
+  // Status nieznany (rekord odzyskany z opublikowanego rocznika) — nie porównujemy.
+  if (zapis.status !== undefined
+    && (naglowek.statusUmowy ?? null) !== (zapis.status ?? null)) return true;
+  // Rekordy sprzed wprowadzenia pamięci nie mają znacznika kwoty. Detal już mamy,
+  // więc nie ma po co pobierać go ponownie — znacznik uzupełnimy z nagłówka.
+  if (zapis.wartoscNaglowka === undefined) return false;
+  return (naglowek.wartoscPrzedmiotuUmowy ?? null) !== zapis.wartoscNaglowka;
 }
 
 /** Czy podmiot o tym REGON-ie siedzi w Poznaniu? Sprawdzamy w detalu jego umowy. */
@@ -108,23 +145,43 @@ async function znajdzRegony(nazwyJednostek, znane, odrzucone) {
   return potwierdzone;
 }
 
-/** Wszystkie umowy jednego podmiotu, z detalami (numer, okres, kontrahent). */
-async function umowyPodmiotu(regon, nazwaJednostki) {
+/**
+ * Umowy jednego podmiotu. Nagłówki bierzemy zawsze (tanie, 50 na stronę), ale detal
+ * pobieramy wyłącznie dla umów nieznanych albo takich, którym w nagłówku zmieniła się
+ * kwota lub status. Bez tego każde cotygodniowe odświeżenie odpytywało o szczegóły
+ * wszystkich umów od nowa — przy rosnącym rejestrze to tysiące zapytań, czyli prosta
+ * droga do zablokowania przez zabezpieczenie antybotowe.
+ */
+async function umowyPodmiotu(regon, nazwaJednostki, pamiec) {
   const naglowki = [];
   let ogolem = Infinity;
+  let urwane = false;
   for (let offset = 0; offset < ogolem; offset += NA_STRONE) {
-    const d = await szukaj({ regon }, offset, NA_STRONE);
+    let d;
+    try {
+      d = await szukaj({ regon }, offset, NA_STRONE);
+    } catch (e) {
+      // Wcześniej ten rzut leciał aż na samą górę i kładł cały ETL razem z danymi
+      // pobranymi wcześniej z BIP-u. Teraz tracimy co najwyżej jedną jednostkę.
+      if (zablokowany(e)) odnotujBlokade();
+      log(`  ! ${nazwaJednostki}: wyszukiwanie od ${offset} — ${e.message}`);
+      urwane = true;
+      break;
+    }
     ogolem = d.totalMatchingElements ?? 0;
     const partia = d.content ?? [];
     if (!partia.length) break;                 // pusta strona = koniec, cokolwiek mówi licznik
     naglowki.push(...partia);
     await sleep(PRZERWA);
   }
-  if (naglowki.length < ogolem) {
+  if (!urwane && naglowki.length < ogolem) {
     log(`  ! ${nazwaJednostki}: pobrano ${naglowki.length} z ${ogolem} zapowiadanych`);
   }
 
-  const pelne = await pool(naglowki, ROWNOLEGLE, async (u) => {
+  const doPobrania = naglowki.filter((u) => zmieniona(u, pamiec.get(u.idUmowy)));
+  let bledy = 0;
+
+  const swieze = await pool(doPobrania, ROWNOLEGLE, async (u) => {
     try {
       const d = await detal(u.idUmowy);
       const strony = d.stronyUmowy ?? [];
@@ -147,14 +204,28 @@ async function umowyPodmiotu(regon, nazwaJednostki) {
         status: d.podstawoweDane?.statusUmowy ?? u.statusUmowy ?? null,
         dni: dni ? Number(dni) : null,
         link: STRONA_UMOWY + u.idUmowy,
+        // zapamiętane po to, by przy następnym przebiegu rozpoznać zmianę w nagłówku
+        wartoscNaglowka: u.wartoscPrzedmiotuUmowy ?? null,
       };
     } catch (e) {
+      bledy++;
+      if (zablokowany(e)) odnotujBlokade();
       log(`  ! detal ${u.idUmowy}: ${e.message}`);
       return null;
     }
   });
 
-  return pelne.filter(Boolean);
+  // Nagłówki, których detalu nie ruszaliśmy, bierzemy wprost z pamięci.
+  const zPamieci = naglowki
+    .filter((u) => !zmieniona(u, pamiec.get(u.idUmowy)))
+    .map((u) => ({ ...pamiec.get(u.idUmowy), wartoscNaglowka: u.wartoscPrzedmiotuUmowy ?? null }));
+
+  return {
+    umowy: [...zPamieci, ...swieze.filter(Boolean)],
+    nowych: swieze.filter(Boolean).length,
+    bledy,
+    urwane,
+  };
 }
 
 async function main() {
@@ -167,8 +238,12 @@ async function main() {
   ])];
   log(`Szukam w CRU REGON-ów dla ${nazwy.length} nazw jednostek`);
 
-  // Pamięć poprzednich przebiegów; SKROT=1 pomija odkrywanie i bierze ją w ciemno.
-  const zapisane = process.env.FORCE ? null : await loadJSON('data/raw/cru-regony.json');
+  // Pamięć poprzednich przebiegów. Leży w `data/cru/`, a nie w ignorowanym `data/raw/`,
+  // bo w CI katalogu roboczego nie ma: lista startowała pusta, więc co tydzień wszystkie
+  // jednostki raportowano jako „nowe" i prawdziwy przyrost nie dało się zauważyć.
+  // SKROT=1 pomija odkrywanie i bierze pamięć w ciemno.
+  const zapisane = process.env.FORCE ? null
+    : (await loadJSON(PLIK_REGONY)) ?? (await loadJSON('data/raw/cru-regony.json'));
   const regony = new Map(Object.entries(zapisane?.regony ?? {}));
   const odrzucone = new Set(zapisane?.odrzucone ?? []);
 
@@ -180,7 +255,7 @@ async function main() {
     regony.set(REGON_URZEDU, 'URZĄD MIASTA POZNANIA');
     const nowe = regony.size - bylo;
     log(nowe ? `Doszło ${nowe} nowych jednostek poznańskich` : 'Nowych jednostek nie znaleziono');
-    await saveJSON('data/raw/cru-regony.json', {
+    await saveJSON(PLIK_REGONY, {
       pobrano: new Date().toISOString(),
       regony: Object.fromEntries(regony),
       odrzucone: [...odrzucone],   // żeby nie weryfikować Legnicy co miesiąc od nowa
@@ -188,24 +263,55 @@ async function main() {
   }
   log(`Potwierdzonych podmiotów poznańskich: ${regony.size}`);
 
-  const wszystkie = [];
+  // Umowy pobrane wcześniej — źródło szczegółów, których nie musimy ściągać ponownie.
+  const { umowy: poprzednie, odzyskane } = await wczytajPamiecCRU();
+  const pamiec = new Map(poprzednie.map((u) => [u.id, u]));
+  log(`W pamięci ${pamiec.size} umów z poprzednich przebiegów`
+    + (odzyskane ? ` (w tym ${odzyskane} odzyskanych z opublikowanych roczników)` : ''));
+
+  const wszystkie = new Map();
+  let nowychRazem = 0;
+  let bledneJednostki = 0;
+
   for (const [regon, nazwaCRU] of regony) {
-    const umowy = await umowyPodmiotu(regon, nazwaCRU);
-    wszystkie.push(...umowy);
-    log(`  ${nazwaCRU.slice(0, 45).padEnd(47)} ${String(umowy.length).padStart(4)} umów`);
+    const { umowy, nowych, bledy, urwane } = await umowyPodmiotu(regon, nazwaCRU, pamiec);
+    for (const u of umowy) wszystkie.set(u.id, u);
+    nowychRazem += nowych;
+    if (urwane || bledy) bledneJednostki++;
+    const znacznik = urwane ? ' (niepełne)' : bledy ? ` (${bledy} bez detalu)` : '';
+    log(`  ${nazwaCRU.slice(0, 45).padEnd(47)} ${String(umowy.length).padStart(4)} umów${
+      nowych ? `, w tym ${nowych} pobranych teraz` : ''}${znacznik}`);
     await sleep(200);
   }
 
-  const zKwota = wszystkie.filter((u) => u.wartosc != null);
+  // Nic nie usuwamy na podstawie jednego nieudanego przebiegu: umowa, której dziś nie
+  // zobaczyliśmy, mogła zniknąć z wyników przez blokadę, a nie z rejestru.
+  let zachowane = 0;
+  for (const u of poprzednie) {
+    if (!wszystkie.has(u.id)) { wszystkie.set(u.id, u); zachowane++; }
+  }
+  if (zachowane) log(`Zachowano ${zachowane} umów z pamięci, których ten przebieg nie potwierdził`);
+
+  const lista = [...wszystkie.values()];
+  const zKwota = lista.filter((u) => u.wartosc != null);
   const suma = zKwota.reduce((s, u) => s + u.wartosc, 0);
-  await saveJSON('data/raw/cru-umowy.json', {
+
+  if (lista.length < poprzednie.length * 0.9) {
+    // Świadomie przerywamy: lepiej zostawić wczorajsze dane niż nadpisać je ułomkiem.
+    throw new Error(`pobrano ${lista.length} umów wobec ${poprzednie.length} w pamięci `
+      + '— to wygląda na awarię źródła, nie na ubytek w rejestrze');
+  }
+
+  await saveJSON(PLIK_UMOWY, {
     pobrano: new Date().toISOString(),
     zrodlo: 'Centralny Rejestr Umów JSFP (rejestrumow.gov.pl)',
     podmioty: Object.fromEntries(regony),
-    umowy: wszystkie,
+    umowy: lista,
   });
 
-  log(`Razem ${wszystkie.length} umów, ${zKwota.length} z kwotą, suma ${Math.round(suma / 1e6)} mln zł`);
+  log(`Razem ${lista.length} umów (${nowychRazem} pobranych w tym przebiegu), `
+    + `${zKwota.length} z kwotą, suma ${Math.round(suma / 1e6)} mln zł`);
+  if (bledneJednostki) log(`Jednostek z niepełnym pobraniem: ${bledneJednostki}`);
 }
 
 main().catch((e) => {

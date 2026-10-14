@@ -62,12 +62,22 @@ jobs:
           if [ "$PELNY" = 'true' ]; then OD=2014; else OD=$((ROK - 1)); fi
           echo "Rejestr BIP: roczniki $OD–$ROK"
           FORCE=1 node etl/fetch-umowy.mjs "$OD" "$ROK"
-          # CRU pobieramy w całości: rejestr jest młody i niewielki, a przy okazji
-          # sprawdzamy, czy któraś jednostka miejska zaczęła w nim publikować.
-          npm run etl:cru
           npm run etl:bdl
           npm run etl:badam
           npm run etl:katalog
+
+      # Osobny krok i `continue-on-error`, bo CRU bywa niedostępne: w październiku 2026
+      # oddawało stronę HTML zamiast JSON-a i wywracało całe pobieranie razem z gotowymi
+      # już danymi z BIP-u — serwis stał wtedy dwa tygodnie. Awaria tego źródła ma kosztować
+      # brak świeżych umów z CRU, a nie brak odświeżenia w ogóle.
+      - name: Pobierz Centralny Rejestr Umów
+        id: cru
+        continue-on-error: true
+        run: npm run etl:cru
+
+      - name: Odnotuj niedostępność CRU
+        if: steps.cru.outcome == 'failure'
+        run: echo "::warning title=CRU niedostępne::Pobranie z rejestrumow.gov.pl nie powiodło się. Dane z BIP-u odświeżone, umowy z CRU zostają z poprzedniego przebiegu."
 
       - name: Sprawdź kompletność roczników
         run: npm run etl:sprawdz
@@ -83,7 +93,7 @@ jobs:
         run: |
           git config user.name 'Automat odświeżania'
           git config user.email 'actions@github.com'
-          git add public/dane data/podmioty.json public/og.png
+          git add public/dane data/cru data/podmioty.json public/og.png
           if git diff --cached --quiet; then
             echo "zmienione=nie" >> "$GITHUB_OUTPUT"
             echo "Źródła nie przyniosły nic nowego — nie ma czego commitować."

@@ -76,9 +76,10 @@ function topN(mapa, n, mapper = (v) => v) {
  * pogrupowane po roczniku. Od lipca 2026 to jedyne miejsce, gdzie miasto publikuje.
  */
 async function wczytajCRU() {
-  const plik = await loadJSON('data/raw/cru-umowy.json');
+  const plik = (await loadJSON('data/cru/umowy.json'))
+    ?? (await loadJSON('data/raw/cru-umowy.json'));
   if (!plik?.umowy?.length) {
-    log('CRU: brak data/raw/cru-umowy.json — pomijam (uruchom npm run etl:cru)');
+    log('CRU: brak data/cru/umowy.json — pomijam (uruchom npm run etl:cru)');
     return new Map();
   }
   const wgRoku = new Map();
@@ -123,23 +124,12 @@ const linkUmowy = (id, zrodlo) => {
 /** Klucz do rozpoznania tej samej umowy w obu rejestrach. */
 const kluczUmowy = (u) => `${(u.nr || '').toLowerCase().replace(/\s+/g, '')}|${u.data}`;
 
-/**
- * Rocznik umów z BIP-u — z surowego pobrania, a gdy go nie ma, z pliku już
- * opublikowanego na stronie.
- *
- * Bez tej drugiej ścieżki comiesięczne odświeżanie kasowało historię: `data/raw`
- * jest poza repozytorium, więc w CI istnieją tylko dwa świeżo pobrane roczniki
- * i agregaty schodziły z 72 tys. umów do 11 tys. Opublikowany rocznik niesie
- * komplet potrzebnych pól, więc nadaje się na źródło zastępcze.
- */
-async function wczytajRocznikBIP(rok) {
-  const surowy = await loadJSON(`data/raw/umowy-${rok}.json`, null);
-  if (surowy) return surowy.map((u) => ({ ...u, zrodlo: 'bip' }));
-
+/** Umowy z BIP-u zapisane w opublikowanym roczniku, w kształcie surowego rekordu. */
+async function zOpublikowanegoBIP(rok) {
   const gotowy = await loadJSON(`${WY}/umowy/${rok}.json`, null);
   if (!gotowy?.umowy?.length) return [];
   const k = Object.fromEntries(gotowy.kolumny.map((n, i) => [n, i]));
-  // Umowy z CRU dokładamy niżej ze świeżego pobrania — inaczej podwoiłyby się.
+  // Umowy z CRU dokładamy osobno ze świeżej pamięci — inaczej podwoiłyby się.
   return gotowy.umowy
     .filter((w) => (w[k.zrodlo] ?? 'bip') === 'bip')
     .map((w) => ({
@@ -158,6 +148,33 @@ async function wczytajRocznikBIP(rok) {
       aneks: k.aneks == null ? null : w[k.aneks],
       zrodlo: 'bip',
     }));
+}
+
+/**
+ * Rocznik umów z BIP-u: suma świeżego pobrania i tego, co już opublikowaliśmy.
+ *
+ * Nie ufamy ślepo żadnemu z dwóch źródeł, bo każde potrafiło zawieść:
+ *  - `data/raw` jest poza repozytorium, więc w CI istnieją tylko świeżo pobrane
+ *    roczniki — bez opublikowanych agregaty spadały z 72 tys. umów do 11 tys.;
+ *  - pobranie bywa ucięte: 28.09.2026 API oddało 17 300 umów z 2025 r. wobec
+ *    22 054 tydzień wcześniej, a kontrola miesięcy tego nie wyłapała — strona
+ *    przez dwa tygodnie pokazywała o 4,7 tys. umów za mało;
+ *  - lokalne pobranie bywa starsze niż opublikowane: BIP dopisuje umowy wstecz
+ *    i comiesięczny pełny zaciąg w CI widział ich więcej niż kopia na dysku.
+ * Umowa raz opublikowana zostaje więc, dopóki świeże pobranie jej nie zastąpi.
+ * Rejestr praktycznie nie usuwa wpisów, a utrata tysięcy przez jedną awarię API
+ * jest dużo gorsza niż ewentualny pojedynczy wpis wycofany u źródła.
+ */
+async function wczytajRocznikBIP(rok) {
+  const surowy = await loadJSON(`data/raw/umowy-${rok}.json`, null);
+  const opublikowany = await zOpublikowanegoBIP(rok);
+  if (!surowy) return opublikowany;
+  const swieze = new Set(surowy.map((u) => String(u.id)));
+  const dobrane = opublikowany.filter((u) => !swieze.has(String(u.id)));
+  if (dobrane.length) {
+    log(`  ${rok}: +${dobrane.length} umów z opublikowanego rocznika, których brak w świeżym pobraniu`);
+  }
+  return [...surowy.map((u) => ({ ...u, zrodlo: 'bip' })), ...dobrane];
 }
 
 async function umowy() {

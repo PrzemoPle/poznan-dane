@@ -171,6 +171,17 @@ async function main() {
       .filter((u) => u.data && u.data.startsWith(String(rok)))
       .sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
 
+    // Ucięte stronicowanie nie zgłasza błędu — wychodzi tylko w liczbach. Porównujemy
+    // z rocznikiem już opublikowanym; agregator i tak niczego nie skasuje (bierze sumę),
+    // ale taki spadek to sygnał awarii po stronie API, który trzeba zobaczyć od razu.
+    const opublikowane = (await loadJSON(`public/dane/umowy/${rok}.json`))?.umowy?.length ?? 0;
+    if (opublikowane && umowy.length < opublikowane * 0.9) {
+      const msg = `${rok}: pobrano ${umowy.length} umów wobec ${opublikowane} opublikowanych — `
+        + 'prawdopodobnie ucięte stronicowanie BIP';
+      log(`  ! ${msg}`);
+      if (process.env.GITHUB_ACTIONS) console.log(`::warning title=Ucięte pobranie BIP::${msg}`);
+    }
+
     await saveJSON(plik, umowy);
     const sekundy = ((Date.now() - t0) / 1000).toFixed(0);
     const zRodzajem = umowy.filter((u) => u.rodzaj).length;

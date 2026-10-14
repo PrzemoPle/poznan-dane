@@ -563,6 +563,18 @@ svg.wykres text { font-family: var(--mono); font-size: 10.5px; fill: var(--tekst
 @keyframes rosnij-x { from { scale: 0 1; } to { scale: 1 1; } }
 
 /* ---------- responsywność ---------- */
+/* Siedem pozycji menu i przełącznik motywu nie mieszczą się obok logo poniżej ~1120 px:
+   menu zawijało się, a przełącznik spadał pod spód. W tym zakresie menu dostaje własny
+   rząd pod logo — w jednej linii, a gdy i tak brakuje miejsca, przewijany w poziomie. */
+@media (max-width: 1120px) and (min-width: 721px) {
+  .szczyt-rzad { height: auto; flex-wrap: wrap; row-gap: 2px; padding-block: 10px 6px; }
+  .nawigacja {
+    flex-basis: 100%; margin-left: 0; margin-inline: -12px;
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+  }
+  .nawigacja::-webkit-scrollbar { display: none; }
+  .nawigacja a { white-space: nowrap; }
+}
 @media (max-width: 860px) {
   .hero { grid-template-columns: 1fr; margin-top: 36px; }
 }

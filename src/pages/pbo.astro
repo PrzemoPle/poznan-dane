@@ -1,0 +1,391 @@
+---
+import Baza from '../layouts/Baza.astro';
+import danePozycji from '../../data/pbo/pozycje.json';
+import daneEdycji from '../../data/pbo/edycje.json';
+
+const { meta, pozycje } = danePozycji;
+const { edycje } = daneEdycji;
+
+const odmien = (n, [jeden, kilka, wiele]) => {
+  if (n === 1) return jeden;
+  const r10 = n % 10, r100 = n % 100;
+  return r10 >= 2 && r10 <= 4 && (r100 < 12 || r100 > 14) ? kilka : wiele;
+};
+const zl = (n) => `${n.toLocaleString('pl-PL')} zł`;
+const mln = (n) => (n / 1e6).toLocaleString('pl-PL', { maximumFractionDigits: 1 });
+const bezOgonkow = (s) => (s || '').toLowerCase()
+  .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e').replace(/ł/g, 'l')
+  .replace(/ń/g, 'n').replace(/ó/g, 'o').replace(/ś/g, 's').replace(/[żź]/g, 'z');
+
+const NIEMOZLIWA = 'realizacja niemożliwa';
+const zalegle = pozycje.filter((p) => p.grupa === 'zalegle');
+// „Zaległe" w liczbach na górze to te, które wciąż mają powstać. Projekty uznane przez
+// miasto za niemożliwe do realizacji pokazujemy osobno, bo nie czekają — zostały porzucone.
+const zalegleWToku = zalegle.filter((p) => p.status_miasta !== NIEMOZLIWA);
+const niemozliwe = zalegle.filter((p) => p.status_miasta === NIEMOZLIWA);
+const pbo25 = pozycje.filter((p) => p.grupa === 'biezaca_pbo25');
+const pbo26 = pozycje.filter((p) => p.grupa === 'biezaca_pbo26');
+const wartoscZaleglych = zalegleWToku.reduce((s, p) => s + (p.kwota_pln || 0), 0);
+const najdluzej = Math.max(...zalegleWToku.map((p) => p.lat_od_glosowania));
+const ileNajdluzej = zalegleWToku.filter((p) => p.lat_od_glosowania === najdluzej).length;
+const rokOd = Math.min(...zalegle.map((p) => p.glosowanie_rok));
+const rokDo = Math.max(...zalegle.map((p) => p.glosowanie_rok));
+
+// Kwota „C" to rozjechany odczyt tabeli miasta — pokazujemy ją, ale nie jako pewnik.
+const kwotaNiepewna = (p) => p.weryfikacja === 'C' && /kwot/i.test(p.uwagi_wer || '');
+
+const GRUPY = [
+  { klucz: 'zalegle', etykieta: `Zaległe z PBO16–24 (${zalegle.length})` },
+  { klucz: 'biezaca_pbo25', etykieta: `PBO25 niezakończone (${pbo25.length})` },
+  { klucz: 'biezaca_pbo26', etykieta: `PBO26 w realizacji (${pbo26.length})` },
+  { klucz: '', etykieta: `Wszystkie (${pozycje.length})` },
+];
+const WERYFIKACJA = {
+  A: 'dwa niezależne odczyty tabeli miasta są zgodne',
+  B: 'jeden odczyt albo drugi odczyt niepełny',
+  C: 'odczyty się różnią — przed cytowaniem sprawdź w PDF miasta',
+};
+
+// Wykres: niezakończone w każdej edycji (bez bieżącej PBO26, gdzie w realizacji jest wszystko)
+const rokEdycji = new Map(pozycje.map((p) => [p.edycja, p.glosowanie_rok]));
+const wgEdycji = edycje
+  .filter((e) => e.edycja !== 'PBO26' && e.niezakonczone > 0)
+  .map((e) => ({ nazwa: `${e.edycja} (głosowanie ${rokEdycji.get(e.edycja)})`, wartosc: e.niezakonczone }));
+const maxEdycji = Math.max(...wgEdycji.map((d) => d.wartosc));
+
+// Wykres: ile lat czekają zaległe
+const wgLat = [...zalegle].sort((a, b) => b.lat_od_glosowania - a.lat_od_glosowania || a.id.localeCompare(b.id));
+const maxLat = Math.max(...wgLat.map((p) => p.lat_od_glosowania));
+
+const SKROT = 140;
+---
+
+<Baza
+  strona="pbo"
+  tytul="Budżet obywatelski"
+  opis="Które projekty Poznańskiego Budżetu Obywatelskiego wciąż nie powstały — stan realizacji według tabel miasta, z odnośnikiem do źródła przy każdej pozycji."
+>
+  <section style="margin-top:44px">
+    <p class="nadtytul">Poznański Budżet Obywatelski</p>
+    <h1>Na co głosowaliśmy, a co wciąż nie powstało</h1>
+    <p class="lid">
+      {zalegleWToku.length} {odmien(zalegleWToku.length, ['projekt', 'projekty', 'projektów'])} wybranych przez
+      mieszkańców w latach {rokOd}–{rokDo} nadal czeka na realizację, a najstarsze — od {najdluzej} lat.
+      Do tego {pbo25.length} niezakończonych z PBO25 i {pbo26.length} z bieżącej edycji PBO26.
+    </p>
+    <p class="drobne" style="max-width:72ch">
+      Stan na {meta.stan_na} według tabel „Stan realizacji projektów PBO", które miasto publikuje co kwartał
+      osobno dla każdej edycji. Przy każdej pozycji jest odnośnik do tabeli miasta z numerem pozycji
+      oraz poziom weryfikacji odczytu — szczegóły w części <a href="#metoda">Metoda i zastrzeżenia</a>.
+    </p>
+  </section>
+
+  <section>
+    <div class="siatka k4">
+      <div class="karta kpi">
+        <span class="etykieta">Zaległe z PBO16–24</span>
+        <span class="wartosc">{zalegleWToku.length}</span>
+        <span class="opis">wciąż w realizacji{niemozliwe.length ? `; ${niemozliwe.length} uznane za niemożliwe` : ''}</span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">Ich wartość</span>
+        <span class="wartosc">{mln(wartoscZaleglych)} mln zł</span>
+        <span class="opis">kwoty planowane w tabelach miasta</span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">Najdłużej czeka</span>
+        <span class="wartosc">{najdluzej} lat</span>
+        <span class="opis">{ileNajdluzej} {odmien(ileNajdluzej, ['projekt', 'projekty', 'projektów'])} z PBO16, głosowanie w {rokOd} r.</span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">PBO25 niezakończone</span>
+        <span class="wartosc">{pbo25.length}</span>
+        <span class="opis">z {edycje.find((e) => e.edycja === 'PBO25')?.tabela_n} wybranych w 2024 r.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="pozycje">Projekty</h2>
+    <div class="karta cien" style="padding:16px 18px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center" role="group" aria-label="Grupa projektów">
+        {GRUPY.map((g, i) => (
+          <button class="pigulka" data-grupa={g.klucz} aria-pressed={i === 0 ? 'true' : 'false'}>{g.etykieta}</button>
+        ))}
+      </div>
+      <div class="siatka" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px">
+        <label class="pole" style="grid-column:span 2">Szukaj w nazwie, realizatorze, opisie
+          <input type="search" id="p-fraza" placeholder="np. park, skatepark, Wydział Sportu" autocomplete="off" />
+        </label>
+        <label class="pole">Weryfikacja
+          <select id="p-wer">
+            <option value="">wszystkie</option>
+            <option value="A">A — pewne</option>
+            <option value="B">B — jeden odczyt</option>
+            <option value="C">C — sprawdź w PDF</option>
+          </select>
+        </label>
+      </div>
+      <p class="drobne" id="p-licznik" style="margin:10px 0 0" aria-live="polite"></p>
+    </div>
+
+    <div class="tabela-otok" style="margin-top:14px">
+      <table id="p-tabela">
+        <thead>
+          <tr>
+            <th class="sortowalna" data-pole="nr">Projekt</th>
+            <th class="sortowalna" data-pole="lat">Głosowanie</th>
+            <th class="num sortowalna" data-pole="kwota">Kwota</th>
+            <th>Status według miasta</th>
+            <th>Stan według tabeli miasta</th>
+            <th title="Poziom weryfikacji odczytu tabeli miasta">Wer.</th>
+            <th>Źródło</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pozycje.map((p) => (
+            <tr
+              data-grupa={p.grupa}
+              data-wer={p.weryfikacja}
+              data-nr={`${p.edycja.replace(/\D/g, '').padStart(4, '0')}-${String(p.lp).padStart(3, '0')}`}
+              data-lat={p.lat_od_glosowania}
+              data-kwota={p.kwota_pln ?? -1}
+              data-szukaj={bezOgonkow(`${p.id} ${p.nazwa} ${p.realizator} ${p.stan}`)}
+              class={p.status_miasta === NIEMOZLIWA ? 'pbo-porzucony' : undefined}
+            >
+              <td style="min-width:16ch;max-width:30ch">
+                <strong style="font-weight:600">{p.nazwa}</strong>
+                <br /><span class="drobne">{p.id} · {p.realizator}</span>
+              </td>
+              <td style="white-space:nowrap">
+                {p.edycja}<br />
+                <span class="drobne">{p.lat_od_glosowania} {odmien(p.lat_od_glosowania, ['rok', 'lata', 'lat'])} temu</span>
+              </td>
+              <td class="num" style="white-space:nowrap">
+                {p.kwota_pln == null
+                  ? ((p.kwota_opis || '').length > 24
+                      ? <span class="drobne kwota-niepewna" title={p.kwota_opis}>kilka kwot</span>
+                      : <span class="drobne">{p.kwota_opis || '—'}</span>)
+                  : kwotaNiepewna(p)
+                    ? <span class="kwota-niepewna" title={`Kwota niepewna: ${p.uwagi_wer}`}>{p.kwota_opis} ?</span>
+                    : p.kwota_opis}
+              </td>
+              <td>{p.status_miasta}</td>
+              <td style="color:var(--tekst-2);max-width:46ch">
+                {(p.stan || '').length > SKROT
+                  ? <details class="pbo-stan"><summary>{p.stan.slice(0, SKROT).replace(/\s+\S*$/, '')}…</summary>{p.stan}</details>
+                  : p.stan}
+              </td>
+              <td>
+                <span class={`znacznik${p.weryfikacja === 'C' ? ' watpliwy' : ''}`}
+                  title={`${WERYFIKACJA[p.weryfikacja]}${p.uwagi_wer ? ` — ${p.uwagi_wer}` : ''}`}>{p.weryfikacja}</span>
+              </td>
+              <td style="white-space:nowrap">
+                <a href={p.zrodlo_pdf} rel="noopener">PDF, poz. {p.lp}</a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="drobne" id="p-pusto" hidden>Brak projektów dla wybranych filtrów.</p>
+  </section>
+
+  <section>
+    <div class="siatka k2">
+      <div class="karta">
+        <h3 id="wg-edycji">Niezakończone według edycji</h3>
+        <p class="drobne" style="margin-top:-6px">PBO16–25. Bieżącą edycję PBO26 pominięto, bo w realizacji jest cała.</p>
+        <ol class="ranking">
+          {wgEdycji.map((d, i) => (
+            <li style={`--i:${i}`}>
+              <span class="r-nazwa">{d.nazwa}</span>
+              <span class="r-pasek"><i style={`width:${Math.max(1.5, (d.wartosc / maxEdycji) * 100)}%;background:var(--czerwien)`}></i></span>
+              <span class="r-wartosc">{d.wartosc}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <div class="karta">
+        <h3 id="ile-czekaja">Jak długo czekają zaległe projekty</h3>
+        <p class="drobne" style="margin-top:-6px">Lata od głosowania. Szary pasek: realizację miasto uznało za niemożliwą.</p>
+        <ol class="ranking">
+          {wgLat.map((p, i) => (
+            <li style={`--i:${i}`}>
+              <span class="r-nazwa">{p.nazwa} <span class="drobne">({p.edycja})</span></span>
+              <span class="r-pasek"><i style={`width:${Math.max(1.5, (p.lat_od_glosowania / maxLat) * 100)}%;background:${p.status_miasta === NIEMOZLIWA ? 'var(--tekst-3)' : 'var(--atrament, #1f5d8c)'}`}></i></span>
+              <span class="r-wartosc">{p.lat_od_glosowania} {odmien(p.lat_od_glosowania, ['rok', 'lata', 'lat'])}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="kontrola">Kontrola edycji</h2>
+    <p class="drobne" style="margin-top:-8px;max-width:72ch">
+      Liczba pozycji w tabeli miasta porównana z liczbą zwycięskich projektów z raportu ewaluacji
+      albo komunikatu miasta. Przy każdej edycji podajemy, skąd pochodzi data głosowania.
+    </p>
+    <div class="tabela-otok">
+      <table>
+        <thead>
+          <tr>
+            <th>Edycja</th><th>Głosowanie</th><th class="num">Wygrało</th><th class="num">W tabeli miasta</th>
+            <th class="num">Zrealizowane</th><th class="num">Niezakończone</th><th>Źródła</th>
+          </tr>
+        </thead>
+        <tbody>
+          {edycje.map((e) => (
+            <tr>
+              <td style="white-space:nowrap"><strong style="font-weight:600">{e.edycja}</strong></td>
+              <td>{e.glosowanie}<br /><span class="drobne">{e.pewnosc_dat}</span></td>
+              <td class="num">{e.zwycieskie_raport}</td>
+              <td class="num">{e.tabela_n}{e.zgodnosc !== 'zgodna' && <span class="znacznik watpliwy" title={e.uwaga_kontrolna}> ?</span>}</td>
+              <td class="num">{e.zrealizowane}</td>
+              <td class="num">{e.niezakonczone}</td>
+              <td style="white-space:nowrap">
+                <a href={e.pdf_url} rel="noopener">tabela miasta</a>
+                {e.zrodlo_dat_url && <><br /><a href={e.zrodlo_dat_url} rel="noopener" class="drobne">źródło daty</a></>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="metoda">
+    <h2>Metoda i zastrzeżenia</h2>
+    <div class="siatka k2" style="align-items:start">
+      <div>
+        <h3>Skąd są dane</h3>
+        <p>
+          Statusy i opisy pochodzą z tabel <a href="https://www.poznan.pl/mim/pbo/pbo-poprzednie-edycje,p,82095,82213.html" rel="noopener">„Stan realizacji
+          projektów PBO"</a>, które Miasto Poznań publikuje co kwartał jako pliki PDF, osobno dla każdej edycji. Obecny stan: {meta.stan_na}, czyli koniec
+          II kwartału 2026 r. Daty głosowania i liczby zwycięskich projektów pochodzą z raportów ewaluacji
+          i komunikatów miasta — każda edycja ma odnośnik w tabeli kontrolnej.
+        </p>
+        <h3>Jak sprawdzono</h3>
+        <p>
+          Każdą tabelę odczytano parserem, a pozycje niezakończone drugi raz, niezależnie, jako tekst PDF.
+          Poziom <strong>A</strong> oznacza zgodność obu odczytów co do nazwy, kwoty i statusu,
+          <strong>B</strong> — jeden odczyt albo niepełny drugi, <strong>C</strong> — odczyty się różnią
+          i pozycję trzeba sprawdzić w PDF przed cytowaniem. Liczbę pozycji w każdej tabeli porównano
+          z liczbą zwycięskich projektów; wszystkie edycje są zgodne.
+        </p>
+      </div>
+      <div>
+        <h3>Czego nie wiadomo</h3>
+        <ul>
+          <li>Opisy stanu mają jedno źródło — tabele miasta. Niezależnego potwierdzenia pojedynczych pozycji nie ma.</li>
+          <li>Tabela PBO26 ma rozjechany układ: kwoty potrafią trafić do sąsiedniego wiersza. Kwoty oznaczone
+            znakiem zapytania są niepewne, a przy kilku realizatorach jeden wiersz nie musi być sumą projektu
+            — kwot PBO26 nie należy sumować.</li>
+          <li>Projekty „Zielone Fyrtle" to bloki o zlepionych komórkach; przypisanie podzadań wynika z układu tabeli.</li>
+          <li>Daty głosowania PBO17 i PBO18 ustalono z daty komunikatu, PBO19 — z daty raportu; dla PBO21 i PBO22 znany jest rok i data wyników, ale nie dni głosowania.</li>
+        </ul>
+        <h3>Jak często aktualizujemy</h3>
+        <p>
+          Miasto publikuje tabele raz na kwartał i w formie PDF, bez danych do automatycznego pobrania.
+          Ze względu na zawodny układ tych tabel każdy nowy kwartał wczytujemy z kontrolą dwóch odczytów,
+          a nie automatem — wolimy aktualizować rzadziej niż pokazać przestawione kwoty.
+        </p>
+      </div>
+    </div>
+  </section>
+</Baza>
+
+<style>
+  .pbo-porzucony td { color: var(--tekst-3); }
+  .pbo-stan summary { cursor: pointer; list-style: none; }
+  .pbo-stan summary::-webkit-details-marker { display: none; }
+  .pbo-stan summary::after { content: ' rozwiń'; color: var(--czerwien); font-size: .82em; white-space: nowrap; }
+  .pbo-stan[open] summary::after { content: ' zwiń'; }
+  .pbo-stan[open] summary { margin-bottom: 6px; }
+  .kwota-niepewna { border-bottom: 1px dashed currentColor; cursor: help; opacity: .8; }
+</style>
+
+<script>
+  const $ = (s) => document.querySelector(s);
+  const tbody = $('#p-tabela tbody');
+  const wiersze = [...tbody.rows];
+  const przyciski = [...document.querySelectorAll('[data-grupa]')].filter((el) => el.tagName === 'BUTTON');
+  const fraza = $('#p-fraza');
+  const wer = $('#p-wer');
+  let sort = { pole: 'nr', kier: 'asc' };
+
+  const bezOgonkow = (s) => (s || '').toLowerCase()
+    .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e').replace(/ł/g, 'l')
+    .replace(/ń/g, 'n').replace(/ó/g, 'o').replace(/ś/g, 's').replace(/[żź]/g, 'z');
+  const grupa = () => przyciski.find((b) => b.getAttribute('aria-pressed') === 'true')?.dataset.grupa ?? '';
+
+  function filtruj() {
+    const g = grupa(), w = wer.value, f = bezOgonkow(fraza.value.trim());
+    let widoczne = 0;
+    for (const tr of wiersze) {
+      const ok = (!g || tr.dataset.grupa === g) && (!w || tr.dataset.wer === w)
+        && (!f || tr.dataset.szukaj.includes(f));
+      tr.hidden = !ok;
+      if (ok) widoczne++;
+    }
+    $('#p-licznik').textContent = `Pokazano ${widoczne} z ${wiersze.length} pozycji`;
+    $('#p-pusto').hidden = widoczne > 0;
+    const p = new URLSearchParams();
+    if (g !== 'zalegle') p.set('grupa', g || 'wszystkie');
+    if (w) p.set('wer', w);
+    if (fraza.value.trim()) p.set('q', fraza.value.trim());
+    history.replaceState(null, '', p.toString() ? `?${p}` : location.pathname);
+  }
+
+  function sortuj() {
+    const { pole, kier } = sort;
+    const znak = kier === 'asc' ? 1 : -1;
+    const klucz = (tr) => (pole === 'nr' ? tr.dataset.nr : Number(tr.dataset[pole]));
+    wiersze.sort((a, b) => {
+      const x = klucz(a), y = klucz(b);
+      if (pole === 'kwota') {             // pozycje bez kwoty zawsze na końcu
+        if (x < 0 && y < 0) return 0;
+        if (x < 0) return 1;
+        if (y < 0) return -1;
+      }
+      return (x < y ? -1 : x > y ? 1 : 0) * znak;
+    });
+    tbody.append(...wiersze);
+    for (const th of document.querySelectorAll('#p-tabela th.sortowalna')) {
+      if (th.dataset.pole === pole) th.dataset.kier = kier; else th.removeAttribute('data-kier');
+    }
+  }
+
+  for (const b of przyciski) {
+    b.addEventListener('click', () => {
+      for (const x of przyciski) x.setAttribute('aria-pressed', String(x === b));
+      filtruj();
+    });
+  }
+  let timer;
+  fraza.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(filtruj, 150); });
+  wer.addEventListener('change', filtruj);
+  for (const th of document.querySelectorAll('#p-tabela th.sortowalna')) {
+    th.addEventListener('click', () => {
+      const pole = th.dataset.pole;
+      // liczby czytelnik chce zwykle od największych, numerację — od początku
+      const domyslny = pole === 'nr' ? 'asc' : 'desc';
+      sort = { pole, kier: sort.pole === pole ? (sort.kier === 'asc' ? 'desc' : 'asc') : domyslny };
+      sortuj();
+    });
+  }
+
+  // stan z adresu
+  const p = new URLSearchParams(location.search);
+  const g = p.get('grupa');
+  if (g) {
+    const cel = g === 'wszystkie' ? '' : g;
+    for (const x of przyciski) x.setAttribute('aria-pressed', String(x.dataset.grupa === cel));
+  }
+  if (p.get('wer')) wer.value = p.get('wer');
+  if (p.get('q')) fraza.value = p.get('q');
+  sortuj();
+  filtruj();
+</script>

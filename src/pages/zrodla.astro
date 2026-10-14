@@ -1,4 +1,5 @@
 ---
+import pbo from '../../data/pbo/pozycje.json';
 import Baza from '../layouts/Baza.astro';
 import katalog from '../../public/dane/katalog.json';
 import podsumowanie from '../../public/dane/podsumowanie.json';
@@ -72,6 +73,16 @@ const zrodla = [
     zakres: `${podsumowanie.umowy.zCRU ?? 0} umów Poznania od 1 lipca 2026 r.`,
     metoda: 'Otwarte API bez klucza. REGON-ów jednostek miejskich rejestr nie wykazuje, więc szukamy ich po nazwach znanych z BIP-u, a każdego kandydata weryfikujemy adresem z detalu umowy — filtr po nazwie przeszukuje całą Polskę i bez tego kroku „Zarząd Dróg Miejskich" przyniósłby umowy Legnicy.',
     zastrzezenia: 'Rejestr obejmuje wyłącznie umowy od 1.07.2026, więc historia jest krótka. Widzimy tylko te jednostki, które zdążyły już coś opublikować i których nazwa zgadza się z tą z BIP-u — jednostka, która zmieniła nazwę albo nie ma jeszcze żadnej umowy, pozostaje niewidoczna.',
+  },
+  {
+    klucz: 'pbo',
+    nazwa: 'Stan realizacji projektów PBO',
+    gospodarz: 'Miasto Poznań',
+    url: 'https://www.poznan.pl/mim/pbo/pbo-poprzednie-edycje,p,82095,82213.html',
+    api: null,
+    zakres: `${pbo.pozycje.length} niezakończonych projektów z edycji PBO16–PBO26, stan na ${pbo.meta.stan_na}`,
+    metoda: 'Miasto publikuje co kwartał tabele PDF, osobno dla każdej edycji — bez danych do automatycznego pobrania. Każdą tabelę odczytano dwa razy niezależnie (parserem tabel i jako tekst PDF); poziom weryfikacji A, B albo C przy każdej pozycji mówi, czy odczyty się zgadzają. Liczbę pozycji w tabelach porównano z liczbą zwycięskich projektów z raportów ewaluacji.',
+    zastrzezenia: 'Opisy stanu mają jedno źródło — tabele miasta. Tabela PBO26 ma rozjechany układ, więc część jej kwot jest niepewna i oznaczona; kwot PBO26 nie należy sumować. Dane aktualizujemy raz na kwartał, z ręczną kontrolą, a nie automatem.',
   },
 ];
 ---

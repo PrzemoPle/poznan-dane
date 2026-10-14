@@ -29,6 +29,35 @@ export async function fetchRetry(url, opts = {}, tries = 4) {
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Pobranie z oczekiwaniem na JSON.
+ *
+ * Istnieje, bo rejestrumow.gov.pl potrafi oddać stronę HTML z kodem 200 — zapewne
+ * zabezpieczenie przed botami, które wchodzi przy dłuższej serii zapytań z adresów
+ * serwerowni. Dla `fetchRetry` to poprawna odpowiedź, więc błąd wychodził dopiero
+ * przy `res.json()`, poza pętlą ponawiania: zero drugich szans i wywrócony cały ETL
+ * (tak zamarł serwis między 28.09 a 12.10.2026). Tutaj nie-JSON jest zwykłym błędem,
+ * czyli podlega ponawianiu i odczekaniu.
+ */
+export async function fetchJSON(url, opts = {}, tries = 4) {
+  let lastErr;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const res = await fetchRetry(url, opts, 1);
+      const typ = res.headers.get('content-type') ?? '';
+      const tresc = await res.text();
+      if (!typ.includes('json')) {
+        throw new Error(`odpowiedź nie jest JSON-em (${typ || 'brak typu'}): ${tresc.slice(0, 60)}`);
+      }
+      return JSON.parse(tresc);
+    } catch (e) {
+      lastErr = e;
+      if (i < tries - 1) await sleep(1000 * 2 ** i);
+    }
+  }
+  throw lastErr;
+}
+
 /** Uruchamia `worker` dla każdego elementu z zadanym limitem równoległości. */
 export async function pool(items, limit, worker) {
   const out = new Array(items.length);
