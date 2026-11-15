@@ -4,6 +4,7 @@ import b from '../../data/budzet2027/zbiorcze.json';
 import bdl from '../../public/dane/bdl.json';
 import zadaniaPlik from '../../public/dane/budzet2027/zadania.json';
 import OS from '../../public/dane/budzet2027/osiedla.json';
+import jednostkiPlik from '../../data/budzet2027/jednostki.json';
 
 const P = b.projekt2027;
 const R = b.plan2026;
@@ -78,6 +79,23 @@ const realnieWiecej = majatkoweHist
 const szczytRealny = realnieWiecej[0];
 const rezerwy = 384178896;
 
+// --- wydziały i jednostki: kto dysponuje pieniędzmi; z 2026 r. porównywalne są tylko zadania bieżące
+const jednostkiTab = jednostkiPlik.jednostki
+  .map((j) => ({ ...j, zmiana: j.b2027 - j.b2026, proc: j.b2026 ? (j.b2027 / j.b2026 - 1) * 100 : null, razem: j.b2027 + j.p2027 }))
+  .sort((x, y) => y.b2027 - x.b2027);
+const sumaJ = (pole) => jednostkiTab.reduce((s, j) => s + j[pole], 0);
+// jednostki mają budżety od kilkunastu tysięcy do miliarda złotych — skrót „mln" tylko tam, gdzie nie gubi kwoty
+const kwotaJ = (n) => {
+  const a = Math.abs(n);
+  return a >= 1e7 ? `${pl(n / 1e6, 1)} mln zł` : a >= 1e6 ? `${pl(n / 1e6, 2)} mln zł` : `${pl(n, 0)} zł`;
+};
+const zeZnakiemJ = (n) => `${n >= 0 ? '+' : '−'}${kwotaJ(Math.abs(n))}`;
+const procJ = (v) => (v == null ? '—' : `${v >= 0 ? '+' : '−'}${pl(Math.abs(v), 1)}%`);
+const ileUrzad = jednostkiTab.filter((j) => j.typ === 'urzad').length;
+// Rezerwy stoją w wierszu „Prezydent Miasta…" — bez tej informacji jego wzrost i spadek w wierszu szkół mylą.
+const zadanieRezerw = zadaniaPlik.zadania.find((z) => z.r === 'B' && z.n === 'Rezerwy');
+const rezerwaOswiaty = zadanieRezerw?.d?.find((d) => d.n.includes('jednostek systemu oświaty'));
+
 // --- osiedla: zadania zlecone przez rady osiedli (wykaz z materiałów informacyjnych, s. 284–326)
 const osiedlaZbiorczo = OS.osiedla.map((o, i) => {
   const z = OS.zadania.filter((x) => x.o === i);
@@ -120,6 +138,7 @@ const REZERWA_OSIEDLI = { wolne: 60628014, drogi: 52299206 };
     <nav class="b27-skroty" aria-label="Na tej stronie">
       <a href="#os-czasu">Na osi czasu</a>
       <a href="#rok-do-roku">2027 wobec 2026</a>
+      <a href="#jednostki">Wydziały i jednostki</a>
       <a href="#dzialy">Porównaj dwa lata</a>
       <a href="#dochody">Dochody</a>
       <a href="#dlug">Deficyt i dług</a>
@@ -281,6 +300,94 @@ const REZERWA_OSIEDLI = { wolne: 60628014, drogi: 52299206 };
         </ol>
         <p class="drobne" style="margin:10px 0 0"><a href="#zadania">Szukaj wśród wszystkich {ileProjektowych} zadań</a></p>
       </div>
+    </div>
+  </section>
+
+  <section id="jednostki">
+    <h2>Wydziały i jednostki: 2027 wobec 2026</h2>
+    <p class="drobne" style="margin-top:-8px;max-width:74ch">
+      Te same wydatki, ale według tego, kto nimi dysponuje: {ileUrzad} wydziałów i biur Urzędu Miasta oraz
+      jednostki miejskie. Z 2026 r. da się porównać zadania bieżące — dla inwestycji i projektów dokumenty
+      podają tylko kwotę na 2027 r.
+    </p>
+    <div class="karta cien" style="padding:16px 18px">
+      <div class="b27-pasek">
+        <span role="group" aria-label="Rodzaj jednostek" class="b27-pasek">
+          <button class="pigulka" data-j-typ="" aria-pressed="true">Wszystkie</button>
+          <button class="pigulka" data-j-typ="urzad" aria-pressed="false">Urząd Miasta</button>
+          <button class="pigulka" data-j-typ="jednostka" aria-pressed="false">Jednostki miejskie</button>
+        </span>
+        <label class="b27-wybor">Ułóż według
+          <select id="j-sort">
+            <option value="b2027">największe zadania bieżące</option>
+            <option value="wzrost">największy wzrost w złotych</option>
+            <option value="spadek">największy spadek w złotych</option>
+            <option value="procWzrost">największy wzrost w procentach</option>
+            <option value="procSpadek">największy spadek w procentach</option>
+            <option value="p2027">największe inwestycje i projekty</option>
+            <option value="razem">największa kwota razem</option>
+            <option value="nazwa">alfabetycznie</option>
+          </select>
+        </label>
+      </div>
+      <label class="pole" style="margin-top:12px;max-width:360px">Szukaj jednostki
+        <input type="search" id="j-fraza" placeholder="np. Gabinet Prezydenta, zieleni, sportu" autocomplete="off" />
+      </label>
+      <div class="tabela-otok" style="margin-top:12px">
+        <table id="j-tabela">
+          <thead>
+            <tr>
+              <th>Jednostka</th><th class="num k">Zadania bieżące 2026</th><th class="num k">Zadania bieżące 2027</th>
+              <th class="num">Zmiana</th><th class="num k">Inwestycje i projekty 2027</th><th class="num k">Razem 2027</th>
+            </tr>
+          </thead>
+          <tbody id="j-tbody">
+            {jednostkiTab.map((j) => (
+              <tr data-typ={j.typ === 'urzad' ? 'urzad' : 'jednostka'} data-nazwa={j.nazwa} data-b2027={j.b2027}
+                data-zmiana={j.zmiana} data-proc={j.proc ?? ''} data-p2027={j.p2027} data-razem={j.razem}>
+                <td>
+                  <a href={`?typ=B&jednostka=${encodeURIComponent(j.zrodlo)}#zadania`}>{j.nazwa}</a>
+                  <small class="b27-j-pod">bieżące: {kwotaJ(j.b2026)} → {kwotaJ(j.b2027)}{j.p2027 > 0 && <>; inwestycje i projekty: {kwotaJ(j.p2027)}</>}</small>
+                </td>
+                <td class="num k">{kwotaJ(j.b2026)}</td>
+                <td class="num k">{kwotaJ(j.b2027)}</td>
+                <td class="num"><span class={j.zmiana >= 0 ? 'b27-plus' : 'b27-minus'}>{zeZnakiemJ(j.zmiana)}</span><small class="b27-j-proc">{procJ(j.proc)}</small></td>
+                <td class="num k">{j.p2027 > 0 ? kwotaJ(j.p2027) : '—'}</td>
+                <td class="num k">{kwotaJ(j.razem)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tbody>
+            <tr class="b27-suma">
+              <td>Razem
+                <small class="b27-j-pod">bieżące: {kwotaJ(sumaJ('b2026'))} → {kwotaJ(sumaJ('b2027'))}; inwestycje i projekty: {kwotaJ(sumaJ('p2027'))}</small>
+              </td>
+              <td class="num k">{kwotaJ(sumaJ('b2026'))}</td>
+              <td class="num k">{kwotaJ(sumaJ('b2027'))}</td>
+              <td class="num"><span>{zeZnakiemJ(sumaJ('zmiana'))}</span><small class="b27-j-proc">{procJ((sumaJ('b2027') / sumaJ('b2026') - 1) * 100)}</small></td>
+              <td class="num k">{kwotaJ(sumaJ('p2027'))}</td>
+              <td class="num k">{kwotaJ(sumaJ('razem'))}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="drobne" id="j-licznik" style="margin:10px 0 0" aria-live="polite"></p>
+      <ul class="drobne b27-j-uwagi">
+        <li><strong>To pieniądze, którymi jednostka dysponuje, a nie koszt jej działania.</strong> Pensje pracowników
+          wszystkich wydziałów i biur Urzędu Miasta są zapisane w Wydziale Organizacyjnym, a przy wydziałach
+          stoją m.in. dotacje i usługi, które zlecają.</li>
+        <li>Zadania bieżące szkół, przedszkoli i placówek oświatowych dokument podaje tylko łącznie — stąd jeden
+          wiersz. Ich inwestycje i projekty ({jednostkiTab.find((j) => j.typ === 'oswiata').placowek} placówek wymienionych z nazwy) są do niego doliczone.</li>
+        {zadanieRezerw && rezerwaOswiaty && (
+          <li>Wiersz „Prezydent Miasta, Zastępcy Prezydenta, Sekretarz i Skarbnik Miasta" to głównie rezerwy budżetu
+            ({kwotaJ(zadanieRezerw.b)} wobec {kwotaJ(zadanieRezerw.a)} w 2026 r.). Jest w nich rezerwa na wydatki bieżące
+            szkół i placówek: {kwotaJ(rezerwaOswiaty.b)} wobec {kwotaJ(rezerwaOswiaty.a)} — część pieniędzy na oświatę czeka
+            więc w rezerwie, a nie w wierszu szkół.</li>
+        )}
+        <li>Kwota z 2026 r. to plan podany w wykazie zadań do projektu. Dla inwestycji i projektów wykaz nie ma
+          kolumny 2026, więc zmiany nie da się policzyć.</li>
+        <li>Kliknij nazwę jednostki, żeby zobaczyć jej zadania z opisami w wyszukiwarce.</li>
+      </ul>
     </div>
   </section>
 
@@ -634,8 +741,9 @@ const REZERWA_OSIEDLI = { wolne: 60628014, drogi: 52299206 };
             Inwestycji ogólnomiejskich dokumenty nie przypisują do osiedli, więc nie da się policzyć pełnych
             wydatków „na osiedle". Pozycje te mieszczą się w zadaniach wydziałów i jednostek z wyszukiwarki —
             nie należy ich do nich doliczać.</li>
-          <li><strong>Suma zadań</strong> z wykazów to {mln(zadaniaPlik.zadania.reduce((s, z) => s + z.b, 0))} wobec {mln(P.wydatki)}
-            wydatków w projekcie uchwały. Różnicy dokumenty nie objaśniają.</li>
+          <li><strong>Zadania a wydatki.</strong> Zadania z wykazów (bieżące oraz inwestycje i projekty) sumują się
+            dokładnie do {mld(P.wydatki)} wydatków z projektu uchwały. „Inwestycje i projekty" to nie to samo co
+            wydatki majątkowe: część projektów ma charakter bieżący.</li>
         </ul>
         <h3>Kiedy strona się zmieni</h3>
         <p>
@@ -705,6 +813,17 @@ const REZERWA_OSIEDLI = { wolne: 60628014, drogi: 52299206 };
   .b27-dz-pasek i { display: block; height: 100%; background: var(--czerwien); border-radius: 2px; }
   .b27-plus { color: var(--blekit); }
   .b27-minus { color: var(--zloto); }
+
+  /* wydziały i jednostki */
+  #j-tabela td a { text-decoration: none; color: var(--tekst); border-bottom: 1px solid var(--linia-mocna); }
+  #j-tabela td a:hover { color: var(--czerwien); border-color: var(--czerwien); }
+  #j-tabela small { display: block; font-size: .74rem; color: var(--tekst-3); font-weight: 400; }
+  .b27-j-pod { display: none !important; margin-top: 3px; line-height: 1.35; }
+  .b27-j-uwagi { margin: 12px 0 0; padding-left: 18px; max-width: 78ch; display: grid; gap: 5px; }
+  @media (max-width: 820px) {
+    #j-tabela .k { display: none; }
+    .b27-j-pod { display: block !important; }
+  }
 
   /* zastrzeżenie, którego nie wolno przeoczyć — pełny rozmiar tekstu, nie drobny druk */
   .b27-uwaga {
@@ -1149,6 +1268,49 @@ const REZERWA_OSIEDLI = { wolne: 60628014, drogi: 52299206 };
     const io = new IntersectionObserver((wpisy) => { if (wpisy.some((w) => w.isIntersecting)) { io.disconnect(); wczytajZadania(); } }, { rootMargin: '600px' });
     io.observe($('#zadania'));
   } else wczytajZadania();
+
+  // ---------- wydziały i jednostki ----------
+  {
+    const tbody = $('#j-tbody');
+    const wiersze = [...tbody.rows];
+    for (const tr of wiersze) tr._s = bezOgonkow(tr.dataset.nazwa);
+    let jTyp = '';
+    const liczba = (tr, pole) => Number(tr.dataset[pole]);
+    // jednostki bez kwoty w 2026 r. nie mają procentu — przy sortowaniu po procentach idą na koniec
+    const proc = (tr, brak) => (tr.dataset.proc === '' ? brak : Number(tr.dataset.proc));
+    const KOLEJNOSC = {
+      b2027: (a, b) => liczba(b, 'b2027') - liczba(a, 'b2027'),
+      wzrost: (a, b) => liczba(b, 'zmiana') - liczba(a, 'zmiana'),
+      spadek: (a, b) => liczba(a, 'zmiana') - liczba(b, 'zmiana'),
+      procWzrost: (a, b) => proc(b, -Infinity) - proc(a, -Infinity),
+      procSpadek: (a, b) => proc(a, Infinity) - proc(b, Infinity),
+      p2027: (a, b) => liczba(b, 'p2027') - liczba(a, 'p2027'),
+      razem: (a, b) => liczba(b, 'razem') - liczba(a, 'razem'),
+      nazwa: (a, b) => a.dataset.nazwa.localeCompare(b.dataset.nazwa, 'pl'),
+    };
+    function ulozJednostki() {
+      const fraza = rdzenie($('#j-fraza').value);
+      let widoczne = 0;
+      for (const tr of wiersze) {
+        tr.hidden = !((!jTyp || tr.dataset.typ === jTyp) && (!fraza.length || pasuje(tr._s, fraza)));
+        if (!tr.hidden) widoczne++;
+      }
+      tbody.replaceChildren(...[...wiersze].sort(KOLEJNOSC[$('#j-sort').value]));
+      $('#j-licznik').textContent = widoczne === wiersze.length ? ''
+        : widoczne ? `Pokazano ${widoczne} z ${wiersze.length} wierszy; suma na dole dotyczy wszystkich.`
+          : 'Brak jednostki o takiej nazwie. Spróbuj krótszej frazy.';
+    }
+    for (const btn of document.querySelectorAll('[data-j-typ]')) {
+      btn.addEventListener('click', () => {
+        jTyp = btn.dataset.jTyp;
+        for (const x of document.querySelectorAll('[data-j-typ]')) x.setAttribute('aria-pressed', String(x === btn));
+        ulozJednostki();
+      });
+    }
+    $('#j-sort').addEventListener('change', ulozJednostki);
+    let jTimer;
+    $('#j-fraza').addEventListener('input', () => { clearTimeout(jTimer); jTimer = setTimeout(ulozJednostki, 120); });
+  }
 
   // ---------- osiedla ----------
   // Słowo do wyszukiwarki zadań: nazwy wieloczłonowe („Nowe Winogrady Południe") w opisach

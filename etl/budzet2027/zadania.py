@@ -4,7 +4,9 @@ sys.path.insert(0, sys.argv[0].rsplit('/',1)[0])
 import pymupdf
 from wiersze import wiersze
 RE_KW=re.compile(r'^-?\d{1,3}(?: \d{3})*,\d\d$')
-RE_KOD=re.compile(r'^[A-ZĄĆĘŁŃÓŚŹŻ0-9]+(?:/[A-ZĄĆĘŁŃÓŚŹŻ0-9]+)*/\d{3}[a-z]?$')
+# Skrót jednostki bywa wieloczłonowy („POSM II/P/008", „POSM I N2/P/007"). Wersja bez spacji
+# po cichu gubiła obie szkoły muzyczne: zadanie nie było rozpoznane, a pusty nagłówek brano za grupę.
+RE_KOD=re.compile(r'^[A-ZĄĆĘŁŃÓŚŹŻ0-9]+(?: [A-ZĄĆĘŁŃÓŚŹŻ0-9]+)*(?:/[A-ZĄĆĘŁŃÓŚŹŻ0-9]+)*/\d{3}[a-z]?$')
 kw=lambda t: float(t.replace(' ','').replace(',','.'))
 def parsuj(doc, od, do, tryb):
     # tryb 'proc': kolumny 2026 | 2027 | %; tryb 'proj': jedna kolumna „Plan 2027"
@@ -36,6 +38,9 @@ def parsuj(doc, od, do, tryb):
                             # dwa nagłówki pod rząd: pierwszy to grupa (np. URZĄD MIASTA POZNANIA) albo ciąg dalszy nazwy
                             if abs(y-poprz_naglowek['_y'])<16 and n==poprz_naglowek['_n']:
                                 poprz_naglowek['nazwa']+=' '+nazwa; poprz_naglowek['_y']=y; continue
+                            if poprz_naglowek['razem'] is not None:
+                                # nagłówek z wierszem RAZEM to jednostka, nie grupa — jej zadań nie udało się odczytać
+                                raise SystemExit(f"s. {poprz_naglowek['_n']}: jednostka bez odczytanych zadań: {poprz_naglowek['nazwa']}")
                             grupa=poprz_naglowek['nazwa']; jednostki.remove(poprz_naglowek)
                     jed={'nazwa':nazwa,'grupa':grupa,'zadania':[],'razem':None,'_y':y,'_n':n}; jednostki.append(jed)
                     poprz_naglowek=jed; zad=dz=ost=None

@@ -47,6 +47,13 @@ założenia z dokumentów budżetowych, nie dane.
   bez sumy kontrolnej: rozdziały → dział → sekcja → ogółem, bieżące + majątkowe = razem,
   dochody − wydatki = wynik, dług(t) = dług(t−1) + kredyty − spłaty. `zbuduj.py` przerywa na
   pierwszej niezgodności.
+- **Kod zadania może mieć spację** („POSM II/P/008", „POSM I N2/P/007"). Pierwsza wersja wzorca
+  jej nie dopuszczała i po cichu gubiła obie szkoły muzyczne (2 636 659 zł) — stąd brała się
+  rzekomo niewyjaśniona różnica między sumą zadań a wydatkami. Dziś wykazy zadań sumują się
+  dokładnie do 8 205 666 215,18 zł, a `zbuduj.py` tego pilnuje.
+- **Jednostka ma różne nazwy w obu wykazach** (trzy DPS-y w procesowym to samo „DOM POMOCY
+  SPOŁECZNEJ"). Kluczem jest skrót z kodu zadania, nazwą — najpełniejsza z napotkanych
+  (`data/budzet2027/jednostki.json`). Zadania bieżące szkół dokument podaje tylko łącznie.
 - **Kolumna 2026 w wykazie zadań procesowych jest niepełna z założenia.** Zadań, które miały
   środki w 2026 r., a nie mają w 2027, dokument nie wymienia — suma wymienionych bywa niższa
   niż „RAZEM". W kolumnie 2027 wszystko sumuje się co do grosza.

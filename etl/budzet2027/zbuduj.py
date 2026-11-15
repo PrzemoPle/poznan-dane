@@ -83,7 +83,58 @@ def jednostki(J,rodzaj):
             out.append({'r':rodzaj,'j':j['nazwa'],'k':z['kod'],'n':z['nazwa'],'a':z.get('p2026'),'b':z.get('p2027'),'s':z['str'],
                         'd':[{'n':d['nazwa'],'a':d.get('p2026'),'b':d.get('p2027'),'o':d['opis']} for d in z['dzialania']] or None,'o':z['opis'] or None})
     return out
-zad=jednostki(L('projektowe'),'P')+jednostki(L('procesowe'),'B')+jednostki(L('oswiata'),'B')
+# --- jednostki: jedna nazwa na jednostkę i zestawienie „kto dysponuje pieniędzmi"
+# Ta sama jednostka bywa w obu wykazach nazwana inaczej (trzy domy pomocy społecznej mają w wykazie
+# procesowym samą nazwę rodzajową, komenda straży — podwójną spację). Kluczem jest skrót z kodu
+# zadania („ZDM" w „ZDM/B/001"), a nazwą — najpełniejsza z napotkanych.
+PROJ,PROC,OSW=L('projektowe'),L('procesowe'),L('oswiata')
+def skrot(j):
+    s={z['kod'].rsplit('/',2)[0] for z in j['zadania']}; assert len(s)==1,(j['nazwa'],s); return s.pop()
+czysta=lambda n: re.sub(r'\s+',' ',n).strip().replace('OGÓLNOKSZTAŁCACA','OGÓLNOKSZTAŁCĄCA')   # literówka w dokumencie
+kanon={}
+for j in PROJ+PROC:
+    k=skrot(j); n=czysta(j['nazwa'])
+    if len(n)>len(kanon.get(k,'')): kanon[k]=n
+assert len(set(kanon.values()))==len(kanon), 'dwie jednostki o tej samej nazwie'
+for j in PROJ+PROC: j['nazwa']=kanon[skrot(j)]
+MALE={'I','W','Z','NA','DLA','DO','NR','IM.','PRZY','UL.','ORAZ','BŁ.'}
+SKROTY={'GEOPOZ'}
+def tytulowa(n):
+    out=[]
+    for i,w in enumerate(n.split(' ')):
+        if w in SKROTY or re.fullmatch(r'[IVX]+',w) and i==0: out.append(w)          # „XII Liceum…"
+        elif w in MALE and i>0: out.append(w.lower())
+        else: out.append(re.sub(r'[^\W\d_]+', lambda m: m.group(0).capitalize(), w))
+    return ' '.join(out)
+URZAD=('BIURO ','GABINET ','PREZYDENT MIASTA','URZĄD STANU CYWILNEGO','WYDZIAŁ ')
+OSWIATOWE=('SZKOŁA','SPORTOWA SZKOŁA','ZESPÓŁ SZK','PRZEDSZKOLE','ZESPÓŁ PRZEDSZKOLI','LICEUM','TECHNIKUM','PORADNIA PSYCH',
+           'ZESPÓŁ PORADNI','CENTRUM KSZTAŁCENIA ZAWODOWEGO','OŚRODEK SZKOLNO','SPECJALNY OŚRODEK','ZESPÓŁ BURS',
+           'ZESPÓŁ OGRODÓW JORDANOWSKICH','POZNAŃSKA OGÓLNOKSZTAŁCĄCA SZKOŁA MUZYCZNA')
+proc={skrot(j):j for j in PROC}; proj={skrot(j):j for j in PROJ}
+wiersze_j=[]
+for k in sorted(set(proc)|set(proj), key=lambda k: kanon[k]):
+    if k not in proc: continue                       # tylko w wykazie projektowym: szkoły i placówki, patrz niżej
+    n=kanon[k]; urz=n.startswith(URZAD)
+    if k in proj: assert (proj[k]['grupa']=='URZĄD MIASTA POZNANIA')==urz, ('typ jednostki', n, proj[k]['grupa'])
+    wiersze_j.append({'klucz':k,'nazwa':tytulowa(n),'zrodlo':n,'typ':'urzad' if urz else 'jednostka',
+                      'b2026':proc[k]['razem'].get('p2026',0),'b2027':proc[k]['razem']['p2027'],
+                      'p2027':proj[k]['razem']['p2027'] if k in proj else 0,
+                      'zadB':len(proc[k]['zadania']),'zadP':len(proj[k]['zadania']) if k in proj else 0})
+# Szkoły, przedszkola i placówki oświatowe: zadania bieżące dokument podaje tylko łącznie,
+# więc ich projekty (wymienione z nazwy) dołączamy do tego samego wiersza.
+placowki=[proj[k] for k in proj if k not in proc]
+obce=[j['nazwa'] for j in placowki if not re.match(r'^(?:[IVX]+ )?(?:%s)' % '|'.join(OSWIATOWE), j['nazwa'])]
+assert not obce, ('jednostki spoza oświaty bez zadań bieżących', obce)
+assert len(OSW)==1
+wiersze_j.append({'klucz':'OSWIATA','nazwa':'Szkoły, przedszkola i placówki oświatowe (łącznie)','zrodlo':OSW[0]['nazwa'],'typ':'oswiata',
+                  'b2026':OSW[0]['razem']['p2026'],'b2027':OSW[0]['razem']['p2027'],
+                  'p2027':round(sum(j['razem']['p2027'] for j in placowki),2),
+                  'zadB':len(OSW[0]['zadania']),'zadP':sum(len(j['zadania']) for j in placowki),'placowek':len(placowki)})
+suma_j=round(sum(w['b2027']+w['p2027'] for w in wiersze_j),2)
+# od poprawki kodów ze spacją („POSM II/P/008") wykazy zadań dają dokładnie wydatki z projektu uchwały
+assert abs(suma_j-8205666215.18)<0.01, suma_j
+json.dump({'jednostki':wiersze_j},open(f'{OUT_DATA}/jednostki.json','w'),ensure_ascii=False,indent=1)
+zad=jednostki(PROJ,'P')+jednostki(PROC,'B')+jednostki(OSW,'B')
 # W wykazie zbiorczym oświaty nazwa pierwszego składnika stoi wiersz nad jego kwotami i skleja się
 # z nazwą zadania („Dydaktyka i wychowanie, w tym: Prowadzenie zajęć…"). Rozdzielamy je z powrotem.
 for z in zad:
