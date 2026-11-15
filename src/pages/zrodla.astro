@@ -92,8 +92,8 @@ const zrodla = [
     url: budzet2027.meta.bip,
     api: null,
     zakres: `Projekt uchwały budżetowej z załącznikami, uzasadnienie, materiały informacyjne i projekt WPF na lata 2027–2050; stan na ${budzet2027.meta.stanNa.split('-').reverse().join('.')}`,
-    metoda: 'Dokumenty są plikami PDF, częściowo skanami. Tabele odczytano programowo i każdą sprawdzono sumami kontrolnymi: rozdziały do działu, działy do sekcji i do wydatków ogółem, wydatki bieżące i majątkowe do całości, dochody minus wydatki do wyniku w każdym roku prognozy, a dług — przez kredyty i spłaty. Odczyt przerywa się na pierwszej niezgodności.',
-    zastrzezenia: 'To projekt, nie uchwalony budżet — kwoty mogą się zmienić do głosowania Rady Miasta, a strona nie odświeża się sama. Porównania z 2026 r. odnoszą się do planu z 30 września, z latami wcześniejszymi — do wykonania według GUS. Od 2027 r. obowiązuje nowa klasyfikacja budżetowa, więc zestawienia według działów są przybliżone.',
+    metoda: 'Dokumenty są plikami PDF, częściowo skanami. Tabele odczytano programowo i każdą sprawdzono sumami kontrolnymi: rozdziały do działu, działy do sekcji i do wydatków ogółem, wydatki bieżące i majątkowe do całości, dochody minus wydatki do wyniku w każdym roku prognozy, a dług — przez kredyty i spłaty. W wykazie zadań osiedli każda suma działu, rozdziału i jednostki musi wynikać z odczytanych pozycji. Odczyt przerywa się na pierwszej niezgodności.',
+    zastrzezenia: 'To projekt, nie uchwalony budżet — kwoty mogą się zmienić do głosowania Rady Miasta, a strona nie odświeża się sama. Porównania z 2026 r. odnoszą się do planu z 30 września, z latami wcześniejszymi — do wykonania według GUS. Od 2027 r. obowiązuje nowa klasyfikacja budżetowa, więc zestawienia według działów są przybliżone. Do osiedli dokumenty przypisują tylko zadania zlecone przez rady osiedli i program dróg lokalnych, nie inwestycje ogólnomiejskie; liczba mieszkańców osiedli pochodzi z tabeli Urzędu Miasta w serwisie Badam (stan na 31.12.2021).',
   },
 ];
 ---

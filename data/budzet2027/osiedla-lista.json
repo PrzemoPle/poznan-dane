@@ -1,0 +1,260 @@
+{
+ "zrodlo": "Urząd Miasta Poznania, „Jednostki pomocnicze Miasta – osiedla – dane statystyczne” (serwis Badam)",
+ "url": "https://badam.poznan.pl/wp-content/uploads/2022/04/Jednostki-pomocnicze-Miasta_link1.pdf",
+ "stanNa": "2021-12-31",
+ "opis": "Liczba mieszkańców: zameldowani na pobyt stały i czasowy według Wydziału Spraw Obywatelskich i Uprawnień Komunikacyjnych. Osiedle Starołęka-Minikowo to pełną nazwą Starołęka-Minikowo-Marlewo; Piątkowo Północ do 2021 r. nazywało się Jana III Sobieskiego i Marysieńki.",
+ "osiedla": [
+  {
+   "nazwa": "Antoninek-Zieliniec-Kobylepole",
+   "km2": 20.54,
+   "mieszkancy": 9639,
+   "gestosc": 469.28
+  },
+  {
+   "nazwa": "Chartowo",
+   "km2": 4.49,
+   "mieszkancy": 21177,
+   "gestosc": 4716.48
+  },
+  {
+   "nazwa": "Fabianowo-Kotowo",
+   "km2": 7.1,
+   "mieszkancy": 1780,
+   "gestosc": 250.7
+  },
+  {
+   "nazwa": "Główna",
+   "km2": 6.82,
+   "mieszkancy": 4486,
+   "gestosc": 657.77
+  },
+  {
+   "nazwa": "Głuszyna",
+   "km2": 14.43,
+   "mieszkancy": 3762,
+   "gestosc": 260.71
+  },
+  {
+   "nazwa": "Górczyn",
+   "km2": 4.33,
+   "mieszkancy": 11884,
+   "gestosc": 2744.57
+  },
+  {
+   "nazwa": "Grunwald Południe",
+   "km2": 3.83,
+   "mieszkancy": 22668,
+   "gestosc": 5918.54
+  },
+  {
+   "nazwa": "Grunwald Północ",
+   "km2": 0.76,
+   "mieszkancy": 12043,
+   "gestosc": 15846.05
+  },
+  {
+   "nazwa": "Jeżyce",
+   "km2": 1.98,
+   "mieszkancy": 20170,
+   "gestosc": 10186.87
+  },
+  {
+   "nazwa": "Junikowo",
+   "km2": 5.29,
+   "mieszkancy": 9879,
+   "gestosc": 1867.49
+  },
+  {
+   "nazwa": "Kiekrz",
+   "km2": 10.25,
+   "mieszkancy": 1841,
+   "gestosc": 179.61
+  },
+  {
+   "nazwa": "Krzesiny-Pokrzywno-Garaszewo",
+   "km2": 9.99,
+   "mieszkancy": 2232,
+   "gestosc": 223.42
+  },
+  {
+   "nazwa": "Krzyżowniki-Smochowice",
+   "km2": 10.71,
+   "mieszkancy": 7709,
+   "gestosc": 719.79
+  },
+  {
+   "nazwa": "Kwiatowe",
+   "km2": 2.31,
+   "mieszkancy": 4491,
+   "gestosc": 1944.16
+  },
+  {
+   "nazwa": "Ławica",
+   "km2": 13.94,
+   "mieszkancy": 8096,
+   "gestosc": 580.77
+  },
+  {
+   "nazwa": "Morasko-Radojewo",
+   "km2": 18.03,
+   "mieszkancy": 2894,
+   "gestosc": 160.51
+  },
+  {
+   "nazwa": "Naramowice",
+   "km2": 7.21,
+   "mieszkancy": 17801,
+   "gestosc": 2468.93
+  },
+  {
+   "nazwa": "Nowe Winogrady Południe",
+   "km2": 1.14,
+   "mieszkancy": 12746,
+   "gestosc": 11180.7
+  },
+  {
+   "nazwa": "Nowe Winogrady Północ",
+   "km2": 1.14,
+   "mieszkancy": 14716,
+   "gestosc": 12908.77
+  },
+  {
+   "nazwa": "Nowe Winogrady Wschód",
+   "km2": 0.47,
+   "mieszkancy": 5376,
+   "gestosc": 11438.3
+  },
+  {
+   "nazwa": "Ogrody",
+   "km2": 1.95,
+   "mieszkancy": 5678,
+   "gestosc": 2911.79
+  },
+  {
+   "nazwa": "Ostrów Tumski-Śródka-Zawady-Komandoria",
+   "km2": 3.36,
+   "mieszkancy": 5658,
+   "gestosc": 1683.93
+  },
+  {
+   "nazwa": "Piątkowo",
+   "km2": 3.84,
+   "mieszkancy": 32881,
+   "gestosc": 8562.76
+  },
+  {
+   "nazwa": "Piątkowo Północ",
+   "km2": 0.79,
+   "mieszkancy": 8688,
+   "gestosc": 10997.47
+  },
+  {
+   "nazwa": "Podolany",
+   "km2": 5.3,
+   "mieszkancy": 8785,
+   "gestosc": 1657.55
+  },
+  {
+   "nazwa": "Rataje",
+   "km2": 5.2,
+   "mieszkancy": 31732,
+   "gestosc": 6102.31
+  },
+  {
+   "nazwa": "Sołacz",
+   "km2": 5.54,
+   "mieszkancy": 4605,
+   "gestosc": 831.23
+  },
+  {
+   "nazwa": "Stare Miasto",
+   "km2": 3.91,
+   "mieszkancy": 22659,
+   "gestosc": 5795.14
+  },
+  {
+   "nazwa": "Stare Winogrady",
+   "km2": 3.48,
+   "mieszkancy": 8221,
+   "gestosc": 2362.36
+  },
+  {
+   "nazwa": "Starołęka-Minikowo",
+   "km2": 13.48,
+   "mieszkancy": 9690,
+   "gestosc": 718.84
+  },
+  {
+   "nazwa": "Stary Grunwald",
+   "km2": 0.63,
+   "mieszkancy": 2867,
+   "gestosc": 4550.79
+  },
+  {
+   "nazwa": "Strzeszyn",
+   "km2": 12.0,
+   "mieszkancy": 8887,
+   "gestosc": 740.58
+  },
+  {
+   "nazwa": "Szczepankowo-Spławie-Krzesinki",
+   "km2": 18.44,
+   "mieszkancy": 7644,
+   "gestosc": 414.53
+  },
+  {
+   "nazwa": "Św. Łazarz",
+   "km2": 3.7,
+   "mieszkancy": 29114,
+   "gestosc": 7868.65
+  },
+  {
+   "nazwa": "Świerczewo",
+   "km2": 3.94,
+   "mieszkancy": 12918,
+   "gestosc": 3278.68
+  },
+  {
+   "nazwa": "Umultowo",
+   "km2": 6.12,
+   "mieszkancy": 4407,
+   "gestosc": 720.1
+  },
+  {
+   "nazwa": "Warszawskie-Pomet-Maltańskie",
+   "km2": 5.85,
+   "mieszkancy": 6856,
+   "gestosc": 1171.97
+  },
+  {
+   "nazwa": "Wilda",
+   "km2": 6.9,
+   "mieszkancy": 26392,
+   "gestosc": 3824.93
+  },
+  {
+   "nazwa": "Winiary",
+   "km2": 2.17,
+   "mieszkancy": 12440,
+   "gestosc": 5732.72
+  },
+  {
+   "nazwa": "Wola",
+   "km2": 3.27,
+   "mieszkancy": 5148,
+   "gestosc": 1574.31
+  },
+  {
+   "nazwa": "Zielony Dębiec",
+   "km2": 4.12,
+   "mieszkancy": 11669,
+   "gestosc": 2832.28
+  },
+  {
+   "nazwa": "Żegrze",
+   "km2": 3.15,
+   "mieszkancy": 15991,
+   "gestosc": 5076.51
+  }
+ ]
+}
