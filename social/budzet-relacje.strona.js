@@ -13,6 +13,7 @@ function pojaw(el, p, dy) {
   el.style.transform = 'translateY(' + (1 - q) * (dy == null ? 30 : dy) + 'px)';
 }
 const D = window.D;
+const KOL = D.kolory;      // paleta motywu (ciemny albo jasny) — te same odcienie co w arkuszu strony
 const CZAS = { A: 6.5, B: 8.5, C: 9, D: 8.5 };
 
 /** Części wspólne: logo, nadtytuł, wiersze nagłówka i wezwanie na dole. */
@@ -74,7 +75,7 @@ function klatkaC(t) {
     r.setAttribute('height', h); r.setAttribute('y', C_H - h);
     // po przełączeniu wyróżniamy lata, w których realnie wydano więcej niż w projekcie 2027
     const wiecej = d.rok < 2027 && d.real > D.inwestycje[D.inwestycje.length - 1].real;
-    r.setAttribute('fill', d.rodzaj === 'projekt' ? '#e0404f' : d.rodzaj === 'plan' ? '#6b7380' : (wiecej && m > 0.5 ? '#f4f4f1' : '#4f8fc4'));
+    r.setAttribute('fill', d.rodzaj === 'projekt' ? KOL.akcent : d.rodzaj === 'plan' ? KOL.plan : (wiecej && m > 0.5 ? KOL.tekst : KOL.blekit));
   });
   const prz = E('c-przelacznik');
   pojaw(prz, post(t, 0.8, 0.4), 0);
@@ -109,8 +110,8 @@ function klatkaD(t) {
     pojaw(E('d-k' + i), post(t, od + czasPisania + 0.15, 0.45), 26);
   });
   const pole = E('d-tekst');
-  if (t >= 6.2) { pole.textContent = 'Twoja ulica…'; pole.style.color = '#7d8590'; }
-  else { pole.textContent = tekst; pole.style.color = '#f4f4f1'; }
+  if (t >= 6.2) { pole.textContent = 'Twoja ulica…'; pole.style.color = KOL.tekst3; }
+  else { pole.textContent = tekst; pole.style.color = KOL.tekst; }
   // kursor miga, gdy nikt nie pisze; na końcu zostaje widoczny
   E('d-kursor').style.opacity = t > CZAS.D - 0.4 || pisze || Math.floor(t * 2.2) % 2 === 0 ? 1 : 0;
 }
