@@ -11,3 +11,4 @@ data/*.log
 # grafiki do mediów społecznościowych generuje social/*.mjs
 social/*.png
 social/*.html
+social/*.mp4
