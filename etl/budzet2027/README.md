@@ -18,8 +18,11 @@ Wszystkie z BIP: <https://bip.poznan.pl/bip/budzet-2027,doc,1003,4521/budzet-202
 
 Liczba mieszkańców osiedli (`data/budzet2027/osiedla-lista.json`): tabela Urzędu Miasta „Jednostki
 pomocnicze Miasta – osiedla – dane statystyczne" z serwisu Badam, stan na 31.12.2021 — 42 osiedla;
-odczyt sprawdzony zależnością gęstość = ludność / powierzchnia. Nowszy stan jest w raporcie
-„Mieszkańcy Poznania 2024" (Badam, s. 46) — do podmiany, gdy będzie potrzebny.
+odczyt sprawdzony zależnością gęstość = ludność / powierzchnia. Nowszej pełnej tabeli nie znaleziono
+(sprawdzone 15.11.2026): raport „Mieszkańcy Poznania 2024" podaje na s. 46 tylko cztery osiedla
+w tekście (Piątkowo 31,2 tys., Rataje 30,6 tys., Kiekrz 2,0 tys., Fabianowo-Kotowo 1,8 tys.),
+a raport o stanie miasta za 2025 r. — liczbę mieszkańców łącznie dla czterech obszarów miasta.
+Podmiana wymaga tabeli z Urzędu Miasta (Wydział Spraw Obywatelskich i Uprawnień Komunikacyjnych).
 
 Inflacja 2003–2025: GUS BDL, zmienna 217230 (Polska, rok poprzedni = 100). Lata 2026–2050 to
 założenia z dokumentów budżetowych, nie dane.
