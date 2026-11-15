@@ -20,6 +20,8 @@ const menu = [
   { href: '/', etykieta: 'Pulpit', klucz: 'pulpit' },
   { href: '/umowy/', etykieta: 'Rejestr umów', klucz: 'umowy' },
   { href: '/budzet/', etykieta: 'Budżet', klucz: 'budzet' },
+  // „znacznik" wyróżnia pozycję tymczasową: projekt budżetu, którego Rada jeszcze nie uchwaliła
+  { href: '/budzet-2027/', etykieta: 'Budżet 2027', klucz: 'budzet2027', znacznik: 'projekt' },
   { href: '/pbo/', etykieta: 'Budżet obywatelski', klucz: 'pbo' },
   { href: '/statystyki/', etykieta: 'Statystyki', klucz: 'statystyki' },
   { href: '/porownaj/', etykieta: 'Porównaj miasta', klucz: 'porownaj' },
@@ -70,7 +72,7 @@ const menu = [
           Poznań w danych</a>
         <nav class="nawigacja" aria-label="Główna">
           {menu.map((m) => (
-            <a href={m.href} aria-current={strona === m.klucz ? 'page' : undefined}>{m.etykieta}</a>
+            <a href={m.href} class={m.znacznik ? 'wyrozniona' : undefined} aria-current={strona === m.klucz ? 'page' : undefined}>{m.etykieta}{m.znacznik && <span class="nav-znacznik">{m.znacznik}</span>}</a>
           ))}
           <button type="button" class="motyw" id="motyw" aria-label="Motyw: automatyczny. Kliknij, by przełączyć na jasny">
             <svg data-stan="auto" viewBox="0 0 24 24" aria-hidden="true">

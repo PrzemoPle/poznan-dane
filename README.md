@@ -147,3 +147,10 @@ src/lib/wykresy.js  wykresy SVG bez bibliotek zewnętrznych
   „Stan realizacji projektów PBO", odczytanych dwukrotnie (poziomy weryfikacji A/B/C).
   Aktualizacja ręczna raz na kwartał: układ tych tabel jest zawodny (PBO26 przesuwa kwoty
   między wierszami), więc automat pokazałby przestawione liczby.
+
+- **Budżet 2027 (`/budzet-2027/`).** Jednorazowy odczyt projektu budżetu i projektu WPF z plików
+  PDF (stan na 13.11.2026); parsery i opis pułapek w `etl/budzet2027/`, dane w `data/budzet2027/`
+  i `public/dane/budzet2027/`. Po autopoprawce albo uchwaleniu budżetu odczyt trzeba powtórzyć
+  ręcznie. Pozycja w menu ma `znacznik: 'projekt'` — po uchwaleniu zmienić albo zdjąć wyróżnienie.
+  Wyszukiwarka zadań dopasowuje po rdzeniu słowa, bo w opisach nazwy ulic są odmienione
+  („Bobrownicka" → „w ul. Bobrownickiej").

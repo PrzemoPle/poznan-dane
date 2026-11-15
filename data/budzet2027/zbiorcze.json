@@ -1,0 +1,2679 @@
+{
+ "meta": {
+  "stanNa": "2026-11-13",
+  "opis": "Projekt budżetu Miasta Poznania na 2027 r. i projekt wieloletniej prognozy finansowej, przedłożone Radzie Miasta przez Prezydenta",
+  "plan2026": "plan budżetu na 2026 r. według stanu na 30 września 2026 r.",
+  "bip": "https://bip.poznan.pl/bip/budzet-2027,doc,1003,4521/budzet-2027-r-projekt-budzetu-miasta,261623.html"
+ },
+ "plan2026": {
+  "dochody": 7134330141.95,
+  "dochodyBiezace": 6779478440.7,
+  "dochodyMajatkowe": 354851701.25,
+  "wydatki": 7589561572.34,
+  "wydatkiBiezace": 6447876109.78,
+  "wydatkiMajatkowe": 1141685462.56,
+  "nadwyzkaOperacyjna": 331602330.92,
+  "dlug": 2191981859.05,
+  "wynik": -455231430.39
+ },
+ "projekt2027": {
+  "dochody": 7132896119.03,
+  "dochodyBiezace": 6911012345.03,
+  "pit": 3596823667.0,
+  "cit": 531272587.0,
+  "subwencja": 413596578.0,
+  "nieruchomosci": 699880000.0,
+  "dochodyMajatkowe": 221883774.0,
+  "wydatki": 8205666215.18,
+  "wydatkiBiezace": 6653531363.7,
+  "wynagrodzenia": 2407530894.0,
+  "obslugaDlugu": 100005000.0,
+  "wydatkiMajatkowe": 1552134851.48,
+  "wynik": -1072770096.15,
+  "kredyty": 1223434578.0,
+  "splaty": 218274694.0,
+  "dlug": 3197141743.05,
+  "nadwyzkaOperacyjna": 257480981.33,
+  "wskaznikSplaty": 4.84,
+  "limitSplaty": 13.72
+ },
+ "prognoza": {
+  "dochody": {
+   "2027": 7132896119.03,
+   "2028": 7340403105.0,
+   "2029": 7406672752.0,
+   "2030": 7569840555.0,
+   "2031": 7725100918.0,
+   "2032": 7938332104.0,
+   "2033": 8162069953.0,
+   "2034": 8388623804.0,
+   "2035": 8622960374.0,
+   "2036": 8866727563.0,
+   "2037": 9120944925.0,
+   "2038": 9381040935.0,
+   "2039": 9646994552.0,
+   "2040": 9917190143.0,
+   "2041": 10200324943.0,
+   "2042": 10489658852.0,
+   "2043": 10785206044.0,
+   "2044": 11080799842.0,
+   "2045": 11377678397.0,
+   "2046": 11683874981.0,
+   "2047": 11997737316.0,
+   "2048": 12314350108.0,
+   "2049": 12642678151.0,
+   "2050": 12978974441.0
+  },
+  "dochodyBiezace": {
+   "2027": 6911012345.03,
+   "2028": 7107667091.0,
+   "2029": 7282107069.0,
+   "2030": 7469450065.0,
+   "2031": 7675100918.0,
+   "2032": 7888332104.0,
+   "2033": 8112069953.0,
+   "2034": 8338623804.0,
+   "2035": 8572960374.0,
+   "2036": 8816727563.0,
+   "2037": 9070944925.0,
+   "2038": 9331040935.0,
+   "2039": 9596994552.0,
+   "2040": 9867190143.0,
+   "2041": 10150324943.0,
+   "2042": 10439658852.0,
+   "2043": 10735206044.0,
+   "2044": 11030799842.0,
+   "2045": 11327678397.0,
+   "2046": 11633874981.0,
+   "2047": 11947737316.0,
+   "2048": 12264350108.0,
+   "2049": 12592678151.0,
+   "2050": 12928974441.0
+  },
+  "pit": {
+   "2027": 3596823667.0,
+   "2028": 3760263334.0,
+   "2029": 3912516397.0,
+   "2030": 4039947056.0,
+   "2031": 4171528131.0,
+   "2032": 4307394803.0,
+   "2033": 4451950972.0,
+   "2034": 4601358447.0,
+   "2035": 4755780036.0,
+   "2036": 4915384014.0,
+   "2037": 5085210532.0,
+   "2038": 5260904556.0,
+   "2039": 5442668808.0,
+   "2040": 5630713016.0,
+   "2041": 5830828556.0,
+   "2042": 6038056203.0,
+   "2043": 6252648721.0,
+   "2044": 6468677734.0,
+   "2045": 6685766559.0,
+   "2046": 6910140884.0,
+   "2047": 7142045213.0,
+   "2048": 7374661625.0,
+   "2049": 7614854354.0,
+   "2050": 7862870161.0
+  },
+  "cit": {
+   "2027": 531272587.0,
+   "2028": 558367489.0,
+   "2029": 584610761.0,
+   "2030": 610918245.0,
+   "2031": 642685994.0,
+   "2032": 674820294.0,
+   "2033": 707886488.0,
+   "2034": 739741380.0,
+   "2035": 773029742.0,
+   "2036": 808589110.0,
+   "2037": 844167031.0,
+   "2038": 879622046.0,
+   "2039": 914806928.0,
+   "2040": 948654785.0,
+   "2041": 982806357.0,
+   "2042": 1016221773.0,
+   "2043": 1048740870.0,
+   "2044": 1080203096.0,
+   "2045": 1111528985.0,
+   "2046": 1143763326.0,
+   "2047": 1175788699.0,
+   "2048": 1208710783.0,
+   "2049": 1243763395.0,
+   "2050": 1278588771.0
+  },
+  "subwencja": {
+   "2027": 413596578.0,
+   "2028": 413596578.0,
+   "2029": 413596578.0,
+   "2030": 413596578.0,
+   "2031": 413596578.0,
+   "2032": 413596578.0,
+   "2033": 413596578.0,
+   "2034": 413596578.0,
+   "2035": 413596578.0,
+   "2036": 413596578.0,
+   "2037": 413596578.0,
+   "2038": 413596578.0,
+   "2039": 413596578.0,
+   "2040": 413596578.0,
+   "2041": 413596578.0,
+   "2042": 413596578.0,
+   "2043": 413596578.0,
+   "2044": 413596578.0,
+   "2045": 413596578.0,
+   "2046": 413596578.0,
+   "2047": 413596578.0,
+   "2048": 413596578.0,
+   "2049": 413596578.0,
+   "2050": 413596579.0
+  },
+  "nieruchomosci": {
+   "2027": 699880000.0,
+   "2028": 723370702.0,
+   "2029": 744525515.0,
+   "2030": 765393448.0,
+   "2031": 789572973.0,
+   "2032": 813432881.0,
+   "2033": 837599972.0,
+   "2034": 860780551.0,
+   "2035": 884602653.0,
+   "2036": 909534073.0,
+   "2037": 934242703.0,
+   "2038": 958671982.0,
+   "2039": 982764607.0,
+   "2040": 1005962766.0,
+   "2041": 1029196734.0,
+   "2042": 1051920111.0,
+   "2043": 1074074863.0,
+   "2044": 1095603351.0,
+   "2045": 1117005962.0,
+   "2046": 1138826673.0,
+   "2047": 1160494274.0,
+   "2048": 1182574128.0,
+   "2049": 1205675714.0,
+   "2050": 1228615202.0
+  },
+  "dochodyMajatkowe": {
+   "2027": 221883774.0,
+   "2028": 232736014.0,
+   "2029": 124565683.0,
+   "2030": 100390490.0,
+   "2031": 50000000.0,
+   "2032": 50000000.0,
+   "2033": 50000000.0,
+   "2034": 50000000.0,
+   "2035": 50000000.0,
+   "2036": 50000000.0,
+   "2037": 50000000.0,
+   "2038": 50000000.0,
+   "2039": 50000000.0,
+   "2040": 50000000.0,
+   "2041": 50000000.0,
+   "2042": 50000000.0,
+   "2043": 50000000.0,
+   "2044": 50000000.0,
+   "2045": 50000000.0,
+   "2046": 50000000.0,
+   "2047": 50000000.0,
+   "2048": 50000000.0,
+   "2049": 50000000.0,
+   "2050": 50000000.0
+  },
+  "wydatki": {
+   "2027": 8205666215.18,
+   "2028": 7561001816.71,
+   "2029": 7459331574.0,
+   "2030": 7578339801.0,
+   "2031": 7465230633.95,
+   "2032": 7689785304.0,
+   "2033": 7909131021.0,
+   "2034": 8140522410.0,
+   "2035": 8432705256.0,
+   "2036": 8676493947.0,
+   "2037": 8930733891.0,
+   "2038": 9190853600.0,
+   "2039": 9456832107.0,
+   "2040": 9727491330.0,
+   "2041": 10015966078.0,
+   "2042": 10305328799.0,
+   "2043": 10600906250.0,
+   "2044": 10899656834.0,
+   "2045": 11228787545.0,
+   "2046": 11548380826.0,
+   "2047": 11878946709.0,
+   "2048": 12246761808.0,
+   "2049": 12607603051.0,
+   "2050": 12966859691.0
+  },
+  "wydatkiBiezace": {
+   "2027": 6653531363.7,
+   "2028": 6773049239.71,
+   "2029": 6885641940.0,
+   "2030": 7029056922.0,
+   "2031": 7184086140.95,
+   "2032": 7403866817.0,
+   "2033": 7629601960.0,
+   "2034": 7851498612.0,
+   "2035": 8081524586.0,
+   "2036": 8324810049.0,
+   "2037": 8570258417.0,
+   "2038": 8817538299.0,
+   "2039": 9066302838.0,
+   "2040": 9312790184.0,
+   "2041": 9563376317.0,
+   "2042": 9814533398.0,
+   "2043": 10065646145.0,
+   "2044": 10316301020.0,
+   "2045": 10570149307.0,
+   "2046": 10832075825.0,
+   "2047": 11097210069.0,
+   "2048": 11370038853.0,
+   "2049": 11656397344.0,
+   "2050": 11947169367.0
+  },
+  "wynagrodzenia": {
+   "2027": 2407530894.0,
+   "2028": 2467719166.0,
+   "2029": 2531879864.0,
+   "2030": 2595176861.0,
+   "2031": 2660056282.0,
+   "2032": 2753158252.0,
+   "2033": 2848417528.0,
+   "2034": 2942415306.0,
+   "2035": 3039515011.0,
+   "2036": 3141034812.0,
+   "2037": 3243432547.0,
+   "2038": 3346573702.0,
+   "2039": 3450317487.0,
+   "2040": 3553136948.0,
+   "2041": 3657599174.0,
+   "2042": 3762206510.0,
+   "2043": 3866795851.0,
+   "2044": 3971199339.0,
+   "2045": 4076833242.0,
+   "2046": 4185277006.0,
+   "2047": 4294931264.0,
+   "2048": 4407458463.0,
+   "2049": 4524696858.0,
+   "2050": 4643243916.0
+  },
+  "obslugaDlugu": {
+   "2027": 100005000.0,
+   "2028": 132543871.74,
+   "2029": 123380904.94,
+   "2030": 123404285.43,
+   "2031": 123208809.95,
+   "2032": 113620528.0,
+   "2033": 104671906.0,
+   "2034": 94992658.0,
+   "2035": 85800727.0,
+   "2036": 78978796.0,
+   "2037": 72156865.0,
+   "2038": 65334935.0,
+   "2039": 58513004.0,
+   "2040": 51691073.0,
+   "2041": 44920761.0,
+   "2042": 38363899.0,
+   "2043": 31807037.0,
+   "2044": 25250176.0,
+   "2045": 18855439.0,
+   "2046": 13616469.0,
+   "2047": 8603015.0,
+   "2048": 4206232.0,
+   "2049": 1732504.0,
+   "2050": 448246.0
+  },
+  "wydatkiMajatkowe": {
+   "2027": 1552134851.48,
+   "2028": 787952577.0,
+   "2029": 573689634.0,
+   "2030": 549282879.0,
+   "2031": 281144493.0,
+   "2032": 285918487.0,
+   "2033": 279529061.0,
+   "2034": 289023798.0,
+   "2035": 351180670.0,
+   "2036": 351683898.0,
+   "2037": 360475474.0,
+   "2038": 373315301.0,
+   "2039": 390529269.0,
+   "2040": 414701146.0,
+   "2041": 452589761.0,
+   "2042": 490795401.0,
+   "2043": 535260105.0,
+   "2044": 583355814.0,
+   "2045": 658638238.0,
+   "2046": 716305001.0,
+   "2047": 781736640.0,
+   "2048": 876722955.0,
+   "2049": 951205707.0,
+   "2050": 1019690324.0
+  },
+  "wynik": {
+   "2027": -1072770096.15,
+   "2028": -220598711.71,
+   "2029": -52658822.0,
+   "2030": -8499246.0,
+   "2031": 259870284.05,
+   "2032": 248546800.0,
+   "2033": 252938932.0,
+   "2034": 248101394.0,
+   "2035": 190255118.0,
+   "2036": 190233616.0,
+   "2037": 190211034.0,
+   "2038": 190187335.0,
+   "2039": 190162445.0,
+   "2040": 189698813.0,
+   "2041": 184358865.0,
+   "2042": 184330053.0,
+   "2043": 184299794.0,
+   "2044": 181143008.0,
+   "2045": 148890852.0,
+   "2046": 135494155.0,
+   "2047": 118790607.0,
+   "2048": 67588300.0,
+   "2049": 35075100.0,
+   "2050": 12114750.0
+  },
+  "kredyty": {
+   "2027": 1223434578.0,
+   "2028": 458884726.0,
+   "2029": 268535343.0,
+   "2030": 246342950.0,
+   "2031": 0.0,
+   "2032": 0.0,
+   "2033": 0.0,
+   "2034": 0.0,
+   "2035": 0.0,
+   "2036": 0.0,
+   "2037": 0.0,
+   "2038": 0.0,
+   "2039": 0.0,
+   "2040": 0.0,
+   "2041": 0.0,
+   "2042": 0.0,
+   "2043": 0.0,
+   "2044": 0.0,
+   "2045": 0.0,
+   "2046": 0.0,
+   "2047": 0.0,
+   "2048": 0.0,
+   "2049": 0.0,
+   "2050": 0.0
+  },
+  "splaty": {
+   "2027": 218274694.0,
+   "2028": 266811694.0,
+   "2029": 230762394.0,
+   "2030": 248667744.0,
+   "2031": 262909730.05,
+   "2032": 251603938.0,
+   "2033": 256014638.0,
+   "2034": 251185038.0,
+   "2035": 191185038.0,
+   "2036": 191185038.0,
+   "2037": 191185038.0,
+   "2038": 191185038.0,
+   "2039": 191185038.0,
+   "2040": 190247538.0,
+   "2041": 184935038.0,
+   "2042": 184935038.0,
+   "2043": 184935038.0,
+   "2044": 181810023.0,
+   "2045": 149591221.0,
+   "2046": 136229550.0,
+   "2047": 119562800.0,
+   "2048": 67588300.0,
+   "2049": 35075100.0,
+   "2050": 12114750.0
+  },
+  "dlug": {
+   "2027": 3197141743.05,
+   "2028": 3389214775.05,
+   "2029": 3426987724.05,
+   "2030": 3424662930.05,
+   "2031": 3161753200.0,
+   "2032": 2910149262.0,
+   "2033": 2654134624.0,
+   "2034": 2402949586.0,
+   "2035": 2211764548.0,
+   "2036": 2020579510.0,
+   "2037": 1829394472.0,
+   "2038": 1638209434.0,
+   "2039": 1447024396.0,
+   "2040": 1256776858.0,
+   "2041": 1071841820.0,
+   "2042": 886906782.0,
+   "2043": 701971744.0,
+   "2044": 520161721.0,
+   "2045": 370570500.0,
+   "2046": 234340950.0,
+   "2047": 114778150.0,
+   "2048": 47189850.0,
+   "2049": 12114750.0,
+   "2050": 0.0
+  },
+  "nadwyzkaOperacyjna": {
+   "2027": 257480981.33,
+   "2028": 334617851.29,
+   "2029": 396465129.0,
+   "2030": 440393143.0,
+   "2031": 491014777.05,
+   "2032": 484465287.0,
+   "2033": 482467993.0,
+   "2034": 487125192.0,
+   "2035": 491435788.0,
+   "2036": 491917514.0,
+   "2037": 500686508.0,
+   "2038": 513502636.0,
+   "2039": 530691714.0,
+   "2040": 554399959.0,
+   "2041": 586948626.0,
+   "2042": 625125454.0,
+   "2043": 669559899.0,
+   "2044": 714498822.0,
+   "2045": 757529090.0,
+   "2046": 801799156.0,
+   "2047": 850527247.0,
+   "2048": 894311255.0,
+   "2049": 936280807.0,
+   "2050": 981805074.0
+  },
+  "wskaznikSplaty": {
+   "2027": 4.84,
+   "2028": 5.91,
+   "2029": 5.08,
+   "2030": 5.27,
+   "2031": 5.26,
+   "2032": 4.87,
+   "2033": 4.67,
+   "2034": 4.35,
+   "2035": 3.38,
+   "2036": 3.2,
+   "2037": 3.03,
+   "2038": 2.87,
+   "2039": 2.71,
+   "2040": 2.55,
+   "2041": 2.35,
+   "2042": 2.22,
+   "2043": 2.09,
+   "2044": 1.95,
+   "2045": 1.54,
+   "2046": 1.33,
+   "2047": 1.11,
+   "2048": 0.6,
+   "2049": 0.3,
+   "2050": 0.1
+  },
+  "limitSplaty": {
+   "2027": 13.72,
+   "2028": 12.14,
+   "2029": 10.17,
+   "2030": 9.11,
+   "2031": 9.02,
+   "2032": 8.03,
+   "2033": 7.42,
+   "2034": 7.44,
+   "2035": 7.69,
+   "2036": 7.7,
+   "2037": 7.59,
+   "2038": 7.39,
+   "2039": 7.11,
+   "2040": 6.89,
+   "2041": 6.71,
+   "2042": 6.59,
+   "2043": 6.53,
+   "2044": 6.53,
+   "2045": 6.58,
+   "2046": 6.67,
+   "2047": 6.79,
+   "2048": 6.94,
+   "2049": 7.1,
+   "2050": 7.25
+  }
+ },
+ "inflacja": {
+  "2003": {
+   "w": 0.8,
+   "zrodlo": "gus"
+  },
+  "2004": {
+   "w": 3.5,
+   "zrodlo": "gus"
+  },
+  "2005": {
+   "w": 2.1,
+   "zrodlo": "gus"
+  },
+  "2006": {
+   "w": 1.0,
+   "zrodlo": "gus"
+  },
+  "2007": {
+   "w": 2.5,
+   "zrodlo": "gus"
+  },
+  "2008": {
+   "w": 4.2,
+   "zrodlo": "gus"
+  },
+  "2009": {
+   "w": 3.5,
+   "zrodlo": "gus"
+  },
+  "2010": {
+   "w": 2.6,
+   "zrodlo": "gus"
+  },
+  "2011": {
+   "w": 4.3,
+   "zrodlo": "gus"
+  },
+  "2012": {
+   "w": 3.7,
+   "zrodlo": "gus"
+  },
+  "2013": {
+   "w": 0.9,
+   "zrodlo": "gus"
+  },
+  "2014": {
+   "w": 0.0,
+   "zrodlo": "gus"
+  },
+  "2015": {
+   "w": -0.9,
+   "zrodlo": "gus"
+  },
+  "2016": {
+   "w": -0.6,
+   "zrodlo": "gus"
+  },
+  "2017": {
+   "w": 2.0,
+   "zrodlo": "gus"
+  },
+  "2018": {
+   "w": 1.6,
+   "zrodlo": "gus"
+  },
+  "2019": {
+   "w": 2.3,
+   "zrodlo": "gus"
+  },
+  "2020": {
+   "w": 3.4,
+   "zrodlo": "gus"
+  },
+  "2021": {
+   "w": 5.1,
+   "zrodlo": "gus"
+  },
+  "2022": {
+   "w": 14.4,
+   "zrodlo": "gus"
+  },
+  "2023": {
+   "w": 11.4,
+   "zrodlo": "gus"
+  },
+  "2024": {
+   "w": 3.6,
+   "zrodlo": "gus"
+  },
+  "2025": {
+   "w": 3.6,
+   "zrodlo": "gus"
+  },
+  "2026": {
+   "w": 3.0,
+   "zrodlo": "zalozenie"
+  },
+  "2027": {
+   "w": 2.8,
+   "zrodlo": "zalozenie"
+  },
+  "2028": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2029": {
+   "w": 2.6,
+   "zrodlo": "zalozenie"
+  },
+  "2030": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2031": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2032": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2033": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2034": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2035": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2036": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2037": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2038": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2039": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2040": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2041": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2042": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2043": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2044": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2045": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2046": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2047": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2048": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2049": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  },
+  "2050": {
+   "w": 2.5,
+   "zrodlo": "zalozenie"
+  }
+ },
+ "makro": {
+  "2027": {
+   "pkb": 3.0,
+   "inflacja": 2.8,
+   "wynagrodzenia": 5.9
+  },
+  "2028": {
+   "pkb": 2.6,
+   "inflacja": 2.5,
+   "wynagrodzenia": 5.6
+  },
+  "2029": {
+   "pkb": 2.1,
+   "inflacja": 2.6,
+   "wynagrodzenia": 5.1
+  },
+  "2030": {
+   "pkb": 2.0,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.3
+  },
+  "2031": {
+   "pkb": 2.7,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.3
+  },
+  "2032": {
+   "pkb": 2.5,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.3
+  },
+  "2033": {
+   "pkb": 2.4,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.4
+  },
+  "2034": {
+   "pkb": 2.0,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.4
+  },
+  "2035": {
+   "pkb": 2.0,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.4
+  },
+  "2036": {
+   "pkb": 2.1,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.4
+  },
+  "2037": {
+   "pkb": 1.9,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.5
+  },
+  "2038": {
+   "pkb": 1.7,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.5
+  },
+  "2039": {
+   "pkb": 1.5,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.5
+  },
+  "2040": {
+   "pkb": 1.2,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.5
+  },
+  "2041": {
+   "pkb": 1.1,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.6
+  },
+  "2042": {
+   "pkb": 0.9,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.6
+  },
+  "2043": {
+   "pkb": 0.7,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.6
+  },
+  "2044": {
+   "pkb": 0.5,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.5
+  },
+  "2045": {
+   "pkb": 0.4,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.4
+  },
+  "2046": {
+   "pkb": 0.4,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.4
+  },
+  "2047": {
+   "pkb": 0.3,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.4
+  },
+  "2048": {
+   "pkb": 0.3,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.3
+  },
+  "2049": {
+   "pkb": 0.4,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.3
+  },
+  "2050": {
+   "pkb": 0.3,
+   "inflacja": 2.5,
+   "wynagrodzenia": 4.3
+  }
+ },
+ "finansowanie": {
+  "przychody": [
+   {
+    "nazwa": "Kredyty i pożyczki krajowe",
+    "kwota": 1073434578.0
+   },
+   {
+    "nazwa": "Kredyty zagraniczne",
+    "kwota": 150000000.0
+   },
+   {
+    "nazwa": "Niewykorzystane środki z rozliczeń z lat ubiegłych",
+    "kwota": 43242106.12
+   },
+   {
+    "nazwa": "Spłaty pożyczek udzielonych przez miasto",
+    "kwota": 34426212.0
+   },
+   {
+    "nazwa": "Wolne środki",
+    "kwota": 2918.03
+   }
+  ],
+  "rozchody": [
+   {
+    "nazwa": "Wykup obligacji",
+    "kwota": 115000000.0
+   },
+   {
+    "nazwa": "Spłata kredytów zagranicznych",
+    "kwota": 61501544.0
+   },
+   {
+    "nazwa": "Spłata kredytów krajowych",
+    "kwota": 41773150.0
+   },
+   {
+    "nazwa": "Pożyczki udzielane przez miasto",
+    "kwota": 10061024.0
+   }
+  ]
+ },
+ "dziedziny": {
+  "ogolem": {
+   "pozycje": [
+    {
+     "nazwa": "Transport",
+     "p2026": 1601880711.0,
+     "p2027": 1925979279.0
+    },
+    {
+     "nazwa": "Sport",
+     "p2026": 216882675.0,
+     "p2027": 168990595.0
+    },
+    {
+     "nazwa": "Mieszkalnictwo",
+     "p2026": 111774587.19,
+     "p2027": 260451001.48
+    },
+    {
+     "nazwa": "Gospodarka przestrzenna, nieruchomości i rewitalizacja",
+     "p2026": 99849332.45,
+     "p2027": 85593856.0
+    },
+    {
+     "nazwa": "Administracja",
+     "p2026": 593220550.85,
+     "p2027": 554580515.0
+    },
+    {
+     "nazwa": "Bezpieczeństwo i obronność",
+     "p2026": 215536147.3,
+     "p2027": 178326475.0
+    },
+    {
+     "nazwa": "Obsługa długu publicznego",
+     "p2026": 109005535.0,
+     "p2027": 107178574.97
+    },
+    {
+     "nazwa": "Różne rozliczenia",
+     "p2026": 65462597.0,
+     "p2027": 134967433.0
+    },
+    {
+     "nazwa": "Oświata",
+     "p2026": 2871872303.99,
+     "p2027": 2993197769.0
+    },
+    {
+     "nazwa": "Polityka społeczna, zdrowotna i rodzina",
+     "p2026": 861365857.39,
+     "p2027": 797548534.73
+    },
+    {
+     "nazwa": "Gospodarka komunalna i ochrona środowiska",
+     "p2026": 520877642.17,
+     "p2027": 633825545.0
+    },
+    {
+     "nazwa": "Kultura i ochrona dóbr kultury",
+     "p2026": 306655687.0,
+     "p2027": 341660637.0
+    },
+    {
+     "nazwa": "Pozostałe",
+     "p2026": 15177946.0,
+     "p2027": 23366000.0
+    }
+   ],
+   "razem": {
+    "p2026": 7589561572.34,
+    "p2027": 8205666215.18
+   }
+  },
+  "biezace": {
+   "pozycje": [
+    {
+     "nazwa": "Transport",
+     "p2026": 1177416850.0,
+     "p2027": 1319964940.0
+    },
+    {
+     "nazwa": "Sport",
+     "p2026": 100773929.0,
+     "p2027": 90179410.0
+    },
+    {
+     "nazwa": "Mieszkalnictwo",
+     "p2026": 9108000.0,
+     "p2027": 11718000.0
+    },
+    {
+     "nazwa": "Gospodarka przestrzenna, nieruchomości i rewitalizacja",
+     "p2026": 66150205.45,
+     "p2027": 49614409.0
+    },
+    {
+     "nazwa": "Administracja",
+     "p2026": 570641846.85,
+     "p2027": 532960920.0
+    },
+    {
+     "nazwa": "Bezpieczeństwo i obronność",
+     "p2026": 164221562.78,
+     "p2027": 159718674.0
+    },
+    {
+     "nazwa": "Obsługa długu publicznego",
+     "p2026": 109005535.0,
+     "p2027": 107178574.97
+    },
+    {
+     "nazwa": "Różne rozliczenia",
+     "p2026": 50715820.0,
+     "p2027": 95094769.0
+    },
+    {
+     "nazwa": "Oświata",
+     "p2026": 2744220827.99,
+     "p2027": 2894784922.0
+    },
+    {
+     "nazwa": "Polityka społeczna, zdrowotna i rodzina",
+     "p2026": 798895554.54,
+     "p2027": 728411366.73
+    },
+    {
+     "nazwa": "Gospodarka komunalna i ochrona środowiska",
+     "p2026": 418553651.17,
+     "p2027": 428000140.0
+    },
+    {
+     "nazwa": "Kultura i ochrona dóbr kultury",
+     "p2026": 223193641.0,
+     "p2027": 216662238.0
+    },
+    {
+     "nazwa": "Pozostałe",
+     "p2026": 14978686.0,
+     "p2027": 19243000.0
+    }
+   ],
+   "razem": {
+    "p2026": 6447876109.78,
+    "p2027": 6653531363.7
+   }
+  },
+  "majatkowe": {
+   "pozycje": [
+    {
+     "nazwa": "Transport",
+     "p2026": 424463861.0,
+     "p2027": 606014339.0
+    },
+    {
+     "nazwa": "Sport",
+     "p2026": 116108746.0,
+     "p2027": 78811185.0
+    },
+    {
+     "nazwa": "Mieszkalnictwo",
+     "p2026": 102666587.19,
+     "p2027": 248733001.48
+    },
+    {
+     "nazwa": "Gospodarka przestrzenna, nieruchomości i rewitalizacja",
+     "p2026": 33699127.0,
+     "p2027": 35979447.0
+    },
+    {
+     "nazwa": "Administracja",
+     "p2026": 22578704.0,
+     "p2027": 21619595.0
+    },
+    {
+     "nazwa": "Bezpieczeństwo i obronność",
+     "p2026": 51314584.52,
+     "p2027": 18607801.0
+    },
+    {
+     "nazwa": "Różne rozliczenia",
+     "p2026": 14746777.0,
+     "p2027": 39872664.0
+    },
+    {
+     "nazwa": "Oświata",
+     "p2026": 127651476.0,
+     "p2027": 98412847.0
+    },
+    {
+     "nazwa": "Polityka społeczna, zdrowotna i rodzina",
+     "p2026": 62470302.85,
+     "p2027": 69137168.0
+    },
+    {
+     "nazwa": "Gospodarka komunalna i ochrona środowiska",
+     "p2026": 102323991.0,
+     "p2027": 205825405.0
+    },
+    {
+     "nazwa": "Kultura i ochrona dóbr kultury",
+     "p2026": 83462046.0,
+     "p2027": 124998399.0
+    },
+    {
+     "nazwa": "Pozostałe",
+     "p2026": 199260.0,
+     "p2027": 4123000.0
+    }
+   ],
+   "razem": {
+    "p2026": 1141685462.56,
+    "p2027": 1552134851.48
+   }
+  }
+ },
+ "dzialy": [
+  {
+   "kod": "801",
+   "nazwa": "Oświata i wychowanie",
+   "kwota": 2643969580.0,
+   "biezace": 2595241733.0,
+   "majatkowe": 48727847.0,
+   "wynagrodzenia": 1523923340.0,
+   "rozdzialy": [
+    {
+     "kod": "80101",
+     "nazwa": "Szkoły podstawowe",
+     "kwota": 690949917.0
+    },
+    {
+     "kod": "80104",
+     "nazwa": "Przedszkola",
+     "kwota": 478107397.0
+    },
+    {
+     "kod": "80120",
+     "nazwa": "Licea ogólnokształcące",
+     "kwota": 352809760.0
+    },
+    {
+     "kod": "80115",
+     "nazwa": "Technika",
+     "kwota": 238676690.0
+    },
+    {
+     "kod": "80150",
+     "nazwa": "Realizacja zadań wymagających stosowania specjalnej organizacji nauki i metod pracy dla dzieci i młodzieży w szkołach podstawowych",
+     "kwota": 193559426.0
+    },
+    {
+     "kod": "80102",
+     "nazwa": "Szkoły podstawowe specjalne",
+     "kwota": 136934729.0
+    },
+    {
+     "kod": "80149",
+     "nazwa": "Realizacja zadań wymagających stosowania specjalnej organizacji nauki i metod pracy dla dzieci w przedszkolach, oddziałach przedszkolnych w szkołach podstawowych i innych formach wychowania przedszkolnego",
+     "kwota": 79261331.0
+    },
+    {
+     "kod": "80107",
+     "nazwa": "Świetlice szkolne",
+     "kwota": 72819614.0
+    },
+    {
+     "kod": "80116",
+     "nazwa": "Szkoły policealne",
+     "kwota": 65707855.0
+    },
+    {
+     "kod": "80152",
+     "nazwa": "Realizacja zadań wymagających stosowania specjalnej organizacji nauki i metod pracy dla dzieci i młodzieży w ścieach ogólnokształcących, technikach, szkołach policealnych, branżowych szkołach i i II stopnia oraz szkołach artystycznych",
+     "kwota": 59279980.0
+    },
+    {
+     "kod": "80113",
+     "nazwa": "Dowożenie uczniów do szkół",
+     "kwota": 45850808.0
+    },
+    {
+     "kod": "80132",
+     "nazwa": "Szkoły artystyczne",
+     "kwota": 41767247.0
+    },
+    {
+     "kod": "80134",
+     "nazwa": "Szkoły zawodowe specjalne",
+     "kwota": 41068536.0
+    },
+    {
+     "kod": "80195",
+     "nazwa": "Pozostała działalność",
+     "kwota": 37590025.0
+    },
+    {
+     "kod": "80117",
+     "nazwa": "Branżowe szkoły I stopnia",
+     "kwota": 34797266.0
+    },
+    {
+     "kod": "80105",
+     "nazwa": "Przedszkola specjalne",
+     "kwota": 20857804.0
+    },
+    {
+     "kod": "80121",
+     "nazwa": "Licea ogólnokształcące specjalne",
+     "kwota": 19591598.0
+    },
+    {
+     "kod": "80146",
+     "nazwa": "Dokształcanie i doskonalenie nauczycieli",
+     "kwota": 7609783.0
+    },
+    {
+     "kod": "80103",
+     "nazwa": "Oddziały przedszkolne w szkołach podstawowych",
+     "kwota": 7243098.0
+    },
+    {
+     "kod": "80122",
+     "nazwa": "Licea ogólnokształcące dla dorosłych",
+     "kwota": 5693591.0
+    },
+    {
+     "kod": "80148",
+     "nazwa": "Stolówki szkolne i przedszkolne",
+     "kwota": 4065538.0
+    },
+    {
+     "kod": "80118",
+     "nazwa": "Branżowe szkoły II stopnia",
+     "kwota": 3481895.0
+    },
+    {
+     "kod": "80151",
+     "nazwa": "Kwalifikacyjne kursy zawodowe",
+     "kwota": 2750722.0
+    },
+    {
+     "kod": "80140",
+     "nazwa": "Placówki kształcenia ustawicznego i centra kształcenia zawodowego",
+     "kwota": 1619763.0
+    },
+    {
+     "kod": "80106",
+     "nazwa": "Inne formy wychowania przedszkolnego",
+     "kwota": 1010106.0
+    },
+    {
+     "kod": "80154",
+     "nazwa": "Branżowe centra umiejętności",
+     "kwota": 832101.0
+    },
+    {
+     "kod": "80153",
+     "nazwa": "Zapewnienie uczniom prawa do bezpłatnego dostępu do podręczników, materiałów edukacyjnych lub materiałów ćwiczeniowych",
+     "kwota": 33000.0
+    }
+   ]
+  },
+  {
+   "kod": "600",
+   "nazwa": "Transport i łączność",
+   "kwota": 1888932842.0,
+   "biezace": 1285550940.0,
+   "majatkowe": 603381902.0,
+   "wynagrodzenia": 49709095.0,
+   "rozdzialy": [
+    {
+     "kod": "60004",
+     "nazwa": "Lokalny transport zbiorowy",
+     "kwota": 1255433129.0
+    },
+    {
+     "kod": "60016",
+     "nazwa": "Drogi publiczne gminne",
+     "kwota": 282014651.0
+    },
+    {
+     "kod": "60015",
+     "nazwa": "Drogi publ.w miastach na prawach powiatu",
+     "kwota": 235379771.0
+    },
+    {
+     "kod": "60010",
+     "nazwa": "Zarządzanie drogami samorządowymi",
+     "kwota": 67442745.0
+    },
+    {
+     "kod": "60095",
+     "nazwa": "Pozostała działalność",
+     "kwota": 16574400.0
+    },
+    {
+     "kod": "60019",
+     "nazwa": "Platne parkowanie",
+     "kwota": 12555934.0
+    },
+    {
+     "kod": "60001",
+     "nazwa": "Krajowe pasażerskie przewozy kolejowe",
+     "kwota": 7689543.0
+    },
+    {
+     "kod": "60021",
+     "nazwa": "Funkcjonowanie dworców i węzłów przesiadkowych",
+     "kwota": 7574874.0
+    },
+    {
+     "kod": "60020",
+     "nazwa": "Funkcjonowanie przystanków komunikacyjnych",
+     "kwota": 3697795.0
+    },
+    {
+     "kod": "60017",
+     "nazwa": "Drogi wewnętrzne",
+     "kwota": 570000.0
+    }
+   ]
+  },
+  {
+   "kod": "750",
+   "nazwa": "Administracja publiczna",
+   "kwota": 575109746.0,
+   "biezace": 549367151.0,
+   "majatkowe": 25742595.0,
+   "wynagrodzenia": 384387176.0,
+   "rozdzialy": [
+    {
+     "kod": "75023",
+     "nazwa": "Urzędy gmin (miast i miast na prawach powiatu)",
+     "kwota": 429580686.0
+    },
+    {
+     "kod": "75095",
+     "nazwa": "Pozostała działalność",
+     "kwota": 67025101.0
+    },
+    {
+     "kod": "75085",
+     "nazwa": "Wspólna obsługa jednostek samorządku terytorialnego",
+     "kwota": 41257260.0
+    },
+    {
+     "kod": "75075",
+     "nazwa": "Promocja jednostek samorządku terytorialnego",
+     "kwota": 22267000.0
+    },
+    {
+     "kod": "75011",
+     "nazwa": "Urzędy wojewódzkie",
+     "kwota": 11981218.0
+    },
+    {
+     "kod": "75022",
+     "nazwa": "Rady gmin (miast i miast na prawach powiatu)",
+     "kwota": 2536481.0
+    },
+    {
+     "kod": "75092",
+     "nazwa": "Spadki przypadające z mocy prawa gminie i Skarbowi Państwa",
+     "kwota": 462000.0
+    }
+   ]
+  },
+  {
+   "kod": "900",
+   "nazwa": "Gospodarka komunalna i ochrona środowiska",
+   "kwota": 523263089.0,
+   "biezace": 404847644.0,
+   "majatkowe": 118415445.0,
+   "wynagrodzenia": 27797057.0,
+   "rozdzialy": [
+    {
+     "kod": "90002",
+     "nazwa": "Gospodarka odpadami komunalnymi",
+     "kwota": 286716059.0
+    },
+    {
+     "kod": "90004",
+     "nazwa": "Utrzymanie zieleni w miastach i gminach",
+     "kwota": 84189574.0
+    },
+    {
+     "kod": "90095",
+     "nazwa": "Pozostała działalność",
+     "kwota": 53004064.0
+    },
+    {
+     "kod": "90015",
+     "nazwa": "Oświetlenie ulic, placów i dróg",
+     "kwota": 37046437.0
+    },
+    {
+     "kod": "90001",
+     "nazwa": "Gospodarka ściekowa i ochrona wód",
+     "kwota": 26156988.0
+    },
+    {
+     "kod": "90026",
+     "nazwa": "Pozostałe działania związane z gospodarką odpadami",
+     "kwota": 21964634.0
+    },
+    {
+     "kod": "90013",
+     "nazwa": "Schroniska dla zwierząt",
+     "kwota": 9307947.0
+    },
+    {
+     "kod": "90005",
+     "nazwa": "Ochrona powietrza atmosferycznego i klimatu",
+     "kwota": 4810986.0
+    },
+    {
+     "kod": "90003",
+     "nazwa": "Oczyszczanie miast i wsi",
+     "kwota": 66400.0
+    }
+   ]
+  },
+  {
+   "kod": "852",
+   "nazwa": "Pomoc społeczna",
+   "kwota": 405503631.03,
+   "biezace": 383376283.03,
+   "majatkowe": 22127348.0,
+   "wynagrodzenia": 105110104.0,
+   "rozdzialy": [
+    {
+     "kod": "85202",
+     "nazwa": "Domy pomocy społecznej",
+     "kwota": 118903987.0
+    },
+    {
+     "kod": "85228",
+     "nazwa": "Usługi opiekuńcze i specjalist.usługi opiek.",
+     "kwota": 74290709.0
+    },
+    {
+     "kod": "85219",
+     "nazwa": "Ośrodki pomocy społecznej",
+     "kwota": 56862127.0
+    },
+    {
+     "kod": "85295",
+     "nazwa": "Pozostała działalność",
+     "kwota": 44517551.5
+    },
+    {
+     "kod": "85203",
+     "nazwa": "Ośrodki wsparcia",
+     "kwota": 27137681.0
+    },
+    {
+     "kod": "85214",
+     "nazwa": "Zasilki okresowe, celowe i pomoc w naturze oraz składki na ubezpieczenia emerytalne i rentowe",
+     "kwota": 24355160.58
+    },
+    {
+     "kod": "85215",
+     "nazwa": "Dodatki mieszkaniowe",
+     "kwota": 21000000.0
+    },
+    {
+     "kod": "85216",
+     "nazwa": "Zasilki stale",
+     "kwota": 13992698.11
+    },
+    {
+     "kod": "85220",
+     "nazwa": "Jednostki specjalistycznego poradnictwa, mieszkania treningowe i wspomagane oraz ośrodki interwencji kryzysowej",
+     "kwota": 13283515.0
+    },
+    {
+     "kod": "85230",
+     "nazwa": "Pomoc w zakresie dożywiania",
+     "kwota": 7385519.0
+    },
+    {
+     "kod": "85205",
+     "nazwa": "Zadania w zakresie przeciwniziałania przemocy domowej",
+     "kwota": 2324716.0
+    },
+    {
+     "kod": "85213",
+     "nazwa": "Skladki na ubezpieczenie zdrowotne opłacane za osoby pobierające niektóre świadczenia z pomocy społecznej oraz za osoby uczestniczące w zajęciach w centrum integracji społecznej",
+     "kwota": 1449966.84
+    }
+   ]
+  },
+  {
+   "kod": "758",
+   "nazwa": "Różne rozliczenia",
+   "kwota": 379129691.0,
+   "biezace": 311257027.0,
+   "majatkowe": 67872664.0,
+   "wynagrodzenia": 0.0,
+   "rozdzialy": [
+    {
+     "kod": "75818",
+     "nazwa": "Rezerwy ogólne i celowe",
+     "kwota": 376162936.0
+    },
+    {
+     "kod": "75814",
+     "nazwa": "Różne rozliczenia finansowe",
+     "kwota": 2966755.0
+    }
+   ]
+  },
+  {
+   "kod": "921",
+   "nazwa": "Kultura i ochrona dziedzictwa narodowego",
+   "kwota": 341660637.0,
+   "biezace": 216662238.0,
+   "majatkowe": 124998399.0,
+   "wynagrodzenia": 89400.0,
+   "rozdzialy": [
+    {
+     "kod": "92106",
+     "nazwa": "Teatry",
+     "kwota": 150340439.0
+    },
+    {
+     "kod": "92114",
+     "nazwa": "Pozostałe instytucje kultury",
+     "kwota": 53979591.0
+    },
+    {
+     "kod": "92116",
+     "nazwa": "Biblioteki",
+     "kwota": 48337804.0
+    },
+    {
+     "kod": "92113",
+     "nazwa": "Centra kultury i sztuki",
+     "kwota": 30590000.0
+    },
+    {
+     "kod": "92108",
+     "nazwa": "Filharmonie, orkiestry, chóry i kapele",
+     "kwota": 22063000.0
+    },
+    {
+     "kod": "92105",
+     "nazwa": "Pozostałe zadania w zakresie kultury",
+     "kwota": 17779000.0
+    },
+    {
+     "kod": "92110",
+     "nazwa": "Galerie i biura wystaw artystycznych",
+     "kwota": 6573200.0
+    },
+    {
+     "kod": "92120",
+     "nazwa": "Ochrona zabytków i opieka nad zabytkami",
+     "kwota": 6191724.0
+    },
+    {
+     "kod": "92118",
+     "nazwa": "Muzea",
+     "kwota": 2256000.0
+    },
+    {
+     "kod": "92109",
+     "nazwa": "Domy i ośrodki kultury, świetlice i kluby",
+     "kwota": 2056000.0
+    },
+    {
+     "kod": "92195",
+     "nazwa": "Pozostała działalność",
+     "kwota": 1493879.0
+    }
+   ]
+  },
+  {
+   "kod": "855",
+   "nazwa": "Rodzina",
+   "kwota": 303035702.0,
+   "biezace": 286164314.0,
+   "majatkowe": 16871388.0,
+   "wynagrodzenia": 98030592.0,
+   "rozdzialy": [
+    {
+     "kod": "85502",
+     "nazwa": "Świadczenia rodzinne, świadczenie z funduszu alimentacyjnego oraz składki na ubezpieczenia emerytalne i rentowe z ubezpieczenia społecznego",
+     "kwota": 108352992.0
+    },
+    {
+     "kod": "85510",
+     "nazwa": "Działalność placówek opiekuńczo-wychowawczych",
+     "kwota": 60750633.0
+    },
+    {
+     "kod": "85516",
+     "nazwa": "System opieki nad dziećmi w wieku do lat 3",
+     "kwota": 60081434.0
+    },
+    {
+     "kod": "85508",
+     "nazwa": "Rodziny zastępcze",
+     "kwota": 36169427.0
+    },
+    {
+     "kod": "85595",
+     "nazwa": "Pozostała działalność",
+     "kwota": 27677279.0
+    },
+    {
+     "kod": "85504",
+     "nazwa": "Wspieranie rodziny",
+     "kwota": 7753816.0
+    },
+    {
+     "kod": "85513",
+     "nazwa": "Skladki na ubezpieczenie zdrowotne opłacane za osoby pobierające niektóre świadczenia rodzinne, zgodnie z przepisami ustawy o świadczeniach rodzinnych oraz za osoby pobierające zasilki dla opiekunów, zgodnie z przepisami ustawy z dnia 4 kwietnia 2014 r. o ustaleniu i wyplacie zasilków dla opiekunów",
+     "kwota": 2125301.0
+    },
+    {
+     "kod": "85501",
+     "nazwa": "Świadczenie wychowawcze",
+     "kwota": 105000.0
+    },
+    {
+     "kod": "85503",
+     "nazwa": "Karta Dużej Rodziny",
+     "kwota": 19820.0
+    }
+   ]
+  },
+  {
+   "kod": "700",
+   "nazwa": "Gospodarka mieszkaniowa",
+   "kwota": 297676188.48,
+   "biezace": 32237567.0,
+   "majatkowe": 265438621.48,
+   "wynagrodzenia": 3634099.0,
+   "rozdzialy": [
+    {
+     "kod": "70021",
+     "nazwa": "Spoleczne inicjatywy mieszkaniowe",
+     "kwota": 150373935.48
+    },
+    {
+     "kod": "70095",
+     "nazwa": "Pozostała działalność",
+     "kwota": 98389066.0
+    },
+    {
+     "kod": "70005",
+     "nazwa": "Gospodarka gruntami i nieruchomościami",
+     "kwota": 37225187.0
+    },
+    {
+     "kod": "70007",
+     "nazwa": "Gospodarowanie mieszkaniowym zasobem gminy",
+     "kwota": 11688000.0
+    }
+   ]
+  },
+  {
+   "kod": "754",
+   "nazwa": "Bezpieczeństwo publiczne i ochrona przeciwpożarowa",
+   "kwota": 173836803.0,
+   "biezace": 158964174.0,
+   "majatkowe": 14872629.0,
+   "wynagrodzenia": 123765186.0,
+   "rozdzialy": [
+    {
+     "kod": "75411",
+     "nazwa": "Komendy powiat.Państwowej Straży Pożarnej",
+     "kwota": 90883466.0
+    },
+    {
+     "kod": "75416",
+     "nazwa": "Straż gminna (miejska)",
+     "kwota": 53485653.0
+    },
+    {
+     "kod": "75495",
+     "nazwa": "Pozostała działalność",
+     "kwota": 18302465.0
+    },
+    {
+     "kod": "75410",
+     "nazwa": "Komendy Wojewódzkie Państwowej Straży Pożarnej",
+     "kwota": 4729000.0
+    },
+    {
+     "kod": "75414",
+     "nazwa": "Obrona cywilna",
+     "kwota": 3487309.0
+    },
+    {
+     "kod": "75404",
+     "nazwa": "Komendy Wojewódzkie Policji",
+     "kwota": 1729910.0
+    },
+    {
+     "kod": "75412",
+     "nazwa": "Ochotnicze straże pożarne",
+     "kwota": 1139000.0
+    },
+    {
+     "kod": "75415",
+     "nazwa": "Zadania ratownictwa górskiego i wodnego",
+     "kwota": 80000.0
+    }
+   ]
+  },
+  {
+   "kod": "926",
+   "nazwa": "Kultura fizyczna",
+   "kwota": 168824095.0,
+   "biezace": 90012910.0,
+   "majatkowe": 78811185.0,
+   "wynagrodzenia": 24131.0,
+   "rozdzialy": [
+    {
+     "kod": "92604",
+     "nazwa": "Instytucje kultury fizycznej",
+     "kwota": 127643395.0
+    },
+    {
+     "kod": "92605",
+     "nazwa": "Zadania w zakresie kultury fizycznej",
+     "kwota": 37581500.0
+    },
+    {
+     "kod": "92695",
+     "nazwa": "Pozostała działalność",
+     "kwota": 3082431.0
+    },
+    {
+     "kod": "92601",
+     "nazwa": "Obiekty sportowe",
+     "kwota": 516769.0
+    }
+   ]
+  },
+  {
+   "kod": "925",
+   "nazwa": "Ogrody botaniczne i zoologiczne oraz obszary chronionej przyrody",
+   "kwota": 136052508.0,
+   "biezace": 47386631.0,
+   "majatkowe": 88665877.0,
+   "wynagrodzenia": 25045918.0,
+   "rozdzialy": [
+    {
+     "kod": "92504",
+     "nazwa": "Ogrody botaniczne, zoologiczne, ośrodki rehabilitacji zwierząt i ażyle dla zwierząt",
+     "kwota": 136052508.0
+    }
+   ]
+  },
+  {
+   "kod": "757",
+   "nazwa": "Obsługa długu publicznego",
+   "kwota": 107178574.97,
+   "biezace": 107178574.97,
+   "majatkowe": 0.0,
+   "wynagrodzenia": 0.0,
+   "rozdzialy": [
+    {
+     "kod": "75702",
+     "nazwa": "Obsluga papierów wartościowych, kredytów i pożyczek oraz innych zobowiązań jednostek samorządku terytorialnego zaliczanych do tytułu dłużnego - kredyty i pożyczki",
+     "kwota": 100005000.0
+    },
+    {
+     "kod": "75704",
+     "nazwa": "Rozliczenia z tytułu poręczeń i gwarancji udzielonych przez Skarb Państwa lub jednostkę samorządku terytorialnego",
+     "kwota": 7173574.97
+    }
+   ]
+  },
+  {
+   "kod": "854",
+   "nazwa": "Edukacyjna opieka wychowawcza",
+   "kwota": 105065931.0,
+   "biezace": 83380931.0,
+   "majatkowe": 21685000.0,
+   "wynagrodzenia": 49161679.0,
+   "rozdzialy": [
+    {
+     "kod": "85410",
+     "nazwa": "Internaty i bursy szkolne",
+     "kwota": 33342398.0
+    },
+    {
+     "kod": "85406",
+     "nazwa": "Poradnie psychologiczno-pedagogiczne, w tym poradnie specjalistyczne",
+     "kwota": 24461116.0
+    },
+    {
+     "kod": "85407",
+     "nazwa": "Placówki wychowania pozaszkolnego",
+     "kwota": 15479785.0
+    },
+    {
+     "kod": "85404",
+     "nazwa": "Wczesne wspomaganie rozwoju dziecka",
+     "kwota": 9422083.0
+    },
+    {
+     "kod": "85419",
+     "nazwa": "Ośrodki rewalidacyjno-wychowawcze",
+     "kwota": 8659377.0
+    },
+    {
+     "kod": "85403",
+     "nazwa": "Specjalne ośrodki szkolno-wychowawcze",
+     "kwota": 6547105.0
+    },
+    {
+     "kod": "85402",
+     "nazwa": "Specjalne ośrodki wychowawcze",
+     "kwota": 5471720.0
+    },
+    {
+     "kod": "85417",
+     "nazwa": "Szkolne schroniska młodzieżowe",
+     "kwota": 1385170.0
+    },
+    {
+     "kod": "85446",
+     "nazwa": "Dokształcanie i doskonalenie nauczycieli",
+     "kwota": 216177.0
+    },
+    {
+     "kod": "85415",
+     "nazwa": "Pomoc materialna dla uczniów o charakterze socjalnym",
+     "kwota": 81000.0
+    }
+   ]
+  },
+  {
+   "kod": "851",
+   "nazwa": "Ochrona zdrowia",
+   "kwota": 68439356.0,
+   "biezace": 38300924.0,
+   "majatkowe": 30138432.0,
+   "wynagrodzenia": 7071950.0,
+   "rozdzialy": [
+    {
+     "kod": "85111",
+     "nazwa": "Szpitale ogólne",
+     "kwota": 29006156.0
+    },
+    {
+     "kod": "85154",
+     "nazwa": "Przeciwdziałanie alkoholizmowi",
+     "kwota": 25900000.0
+    },
+    {
+     "kod": "85149",
+     "nazwa": "Programy polityki zdrowotnej",
+     "kwota": 7654165.0
+    },
+    {
+     "kod": "85195",
+     "nazwa": "Pozostała działalność",
+     "kwota": 3646759.0
+    },
+    {
+     "kod": "85121",
+     "nazwa": "Lecznictwo ambulatoryjne",
+     "kwota": 1132276.0
+    },
+    {
+     "kod": "85153",
+     "nazwa": "Zwalczanie narkomanii",
+     "kwota": 1100000.0
+    }
+   ]
+  },
+  {
+   "kod": "710",
+   "nazwa": "Działalność usługowa",
+   "kwota": 57681284.0,
+   "biezace": 38385937.0,
+   "majatkowe": 19295347.0,
+   "wynagrodzenia": 20664814.0,
+   "rozdzialy": [
+    {
+     "kod": "71003",
+     "nazwa": "Biura planowania przestrzennego",
+     "kwota": 16777000.0
+    },
+    {
+     "kod": "71095",
+     "nazwa": "Pozostała działalność",
+     "kwota": 10361305.0
+    },
+    {
+     "kod": "71035",
+     "nazwa": "Cmentarze",
+     "kwota": 9312615.0
+    },
+    {
+     "kod": "71012",
+     "nazwa": "Zadania z zakresu geodezji i kartografii",
+     "kwota": 8635564.0
+    },
+    {
+     "kod": "71004",
+     "nazwa": "Plany zagospodarowania przestrzennego",
+     "kwota": 7628800.0
+    },
+    {
+     "kod": "71015",
+     "nazwa": "Nadzór budowlany",
+     "kwota": 4566000.0
+    },
+    {
+     "kod": "71013",
+     "nazwa": "Prace geodezyjne i kartograficzne na potrzeby organów administracji geodezyjnej i kartograficznej",
+     "kwota": 400000.0
+    }
+   ]
+  },
+  {
+   "kod": "853",
+   "nazwa": "Pozostałe zadania w zakresie polityki społecznej",
+   "kwota": 20569845.7,
+   "biezace": 20569845.7,
+   "majatkowe": 0.0,
+   "wynagrodzenia": 2514554.0,
+   "rozdzialy": [
+    {
+     "kod": "85333",
+     "nazwa": "Powiatowe urzędy pracy",
+     "kwota": 14670405.7
+    },
+    {
+     "kod": "85395",
+     "nazwa": "Pozostała działalność",
+     "kwota": 4266784.0
+    },
+    {
+     "kod": "85311",
+     "nazwa": "Rehabilitacja zawodowa i społeczna osób niepełnosprawnych",
+     "kwota": 1510256.0
+    },
+    {
+     "kod": "85334",
+     "nazwa": "Pomoc dla repatriantów",
+     "kwota": 122400.0
+    }
+   ]
+  },
+  {
+   "kod": "752",
+   "nazwa": "Obrona narodowa",
+   "kwota": 4489672.0,
+   "biezace": 754500.0,
+   "majatkowe": 3735172.0,
+   "wynagrodzenia": 459700.0,
+   "rozdzialy": [
+    {
+     "kod": "75281",
+     "nazwa": "Zadania o charakterze obronnym wynikające z ustawy o ochronie ludności i obronie cywilnej",
+     "kwota": 3836172.0
+    },
+    {
+     "kod": "75224",
+     "nazwa": "Kwalifikacja wojskowa",
+     "kwota": 635000.0
+    },
+    {
+     "kod": "75212",
+     "nazwa": "Pozostałe wydatki obronne",
+     "kwota": 18000.0
+    },
+    {
+     "kod": "75201",
+     "nazwa": "Wojska Łądowe",
+     "kwota": 500.0
+    }
+   ]
+  },
+  {
+   "kod": "010",
+   "nazwa": "Rolnictwo i łowiectwo",
+   "kwota": 2243770.0,
+   "biezace": 888770.0,
+   "majatkowe": 1355000.0,
+   "wynagrodzenia": 21000.0,
+   "rozdzialy": [
+    {
+     "kod": "01095",
+     "nazwa": "Pozostała działalność",
+     "kwota": 1394621.0
+    },
+    {
+     "kod": "01008",
+     "nazwa": "Melioracje wodne",
+     "kwota": 838400.0
+    },
+    {
+     "kod": "01030",
+     "nazwa": "Izby rolnicze",
+     "kwota": 10749.0
+    }
+   ]
+  },
+  {
+   "kod": "755",
+   "nazwa": "Wymiar sprawiedliwości",
+   "kwota": 1634724.0,
+   "biezace": 1634724.0,
+   "majatkowe": 0.0,
+   "wynagrodzenia": 96200.0,
+   "rozdzialy": [
+    {
+     "kod": "75515",
+     "nazwa": "Nieodpłatna pomoc prawna",
+     "kwota": 1634724.0
+    }
+   ]
+  },
+  {
+   "kod": "730",
+   "nazwa": "Szkolnictwo wyższe i nauka",
+   "kwota": 1059000.0,
+   "biezace": 1059000.0,
+   "majatkowe": 0.0,
+   "wynagrodzenia": 0.0,
+   "rozdzialy": [
+    {
+     "kod": "73095",
+     "nazwa": "Pozostała działalność",
+     "kwota": 645000.0
+    },
+    {
+     "kod": "73016",
+     "nazwa": "Pomoc materialna dla studentów i doktorantów",
+     "kwota": 414000.0
+    }
+   ]
+  },
+  {
+   "kod": "630",
+   "nazwa": "Turystyka",
+   "kwota": 166500.0,
+   "biezace": 166500.0,
+   "majatkowe": 0.0,
+   "wynagrodzenia": 0.0,
+   "rozdzialy": [
+    {
+     "kod": "63003",
+     "nazwa": "Zadania w zakresie upowszechniania turystyki",
+     "kwota": 166500.0
+    }
+   ]
+  },
+  {
+   "kod": "751",
+   "nazwa": "Urzędy naczelnych organów władzy państwowej, kontroli i ochrony prawa",
+   "kwota": 98045.0,
+   "biezace": 98045.0,
+   "majatkowe": 0.0,
+   "wynagrodzenia": 97845.0,
+   "rozdzialy": [
+    {
+     "kod": "75101",
+     "nazwa": "Urzędy nacz.org.władzy pań., kontr.i ochr.prawa",
+     "kwota": 98045.0
+    }
+   ]
+  },
+  {
+   "kod": "720",
+   "nazwa": "Informatyka",
+   "kwota": 40000.0,
+   "biezace": 40000.0,
+   "majatkowe": 0.0,
+   "wynagrodzenia": 0.0,
+   "rozdzialy": [
+    {
+     "kod": "72095",
+     "nazwa": "Pozostała działalność",
+     "kwota": 40000.0
+    }
+   ]
+  },
+  {
+   "kod": "756",
+   "nazwa": "Dochody od osób prawnych i fizycznych — wydatki związane z poborem",
+   "kwota": 5000.0,
+   "biezace": 5000.0,
+   "majatkowe": 0.0,
+   "wynagrodzenia": 0.0,
+   "rozdzialy": [
+    {
+     "kod": "75618",
+     "nazwa": "Wpływy z innych opłat stanowiących dochody jednostek samorządku terytorialnego na podstawie ustaw",
+     "kwota": 5000.0
+    }
+   ]
+  }
+ ],
+ "ekonomiczne": [
+  {
+   "nazwa": "Wynagrodzenia i składki",
+   "kwota": 2421603840.0,
+   "rodzaj": "bieżące"
+  },
+  {
+   "nazwa": "Zadania statutowe jednostek (zakupy, usługi, utrzymanie)",
+   "kwota": 2555121799.5,
+   "rodzaj": "bieżące"
+  },
+  {
+   "nazwa": "Dotacje i inne transfery bieżące",
+   "kwota": 1372423960.7,
+   "rodzaj": "bieżące"
+  },
+  {
+   "nazwa": "Świadczenia dla mieszkańców",
+   "kwota": 197203188.53,
+   "rodzaj": "bieżące"
+  },
+  {
+   "nazwa": "Poręczenia i gwarancje",
+   "kwota": 7173574.97,
+   "rodzaj": "bieżące"
+  },
+  {
+   "nazwa": "Odsetki od długu",
+   "kwota": 100005000.0,
+   "rodzaj": "bieżące"
+  },
+  {
+   "nazwa": "Inwestycje własne miasta",
+   "kwota": 1099913671.0,
+   "rodzaj": "majątkowe"
+  },
+  {
+   "nazwa": "Dotacje na inwestycje innych podmiotów",
+   "kwota": 251131992.0,
+   "rodzaj": "majątkowe"
+  },
+  {
+   "nazwa": "Wkłady do spółek miejskich",
+   "kwota": 201089188.48,
+   "rodzaj": "majątkowe"
+  }
+ ],
+ "dochody": [
+  {
+   "nazwa": "I. DOCHODY BIEŻĄCE",
+   "grupy": [
+    {
+     "nazwa": "1. Wpływy z podatków",
+     "p2026": 831911500.0,
+     "p2027": 853604400.0,
+     "pozycje": [
+      {
+       "nazwa": "Podatek od działalności gospodarczej osób fizycznych, opłacany w formie karty podatkowej",
+       "p2026": 5000000.0,
+       "p2027": 5000000.0
+      },
+      {
+       "nazwa": "Podatek rolny",
+       "p2026": 613000.0,
+       "p2027": 537423.0
+      },
+      {
+       "nazwa": "Podatek leśny",
+       "p2026": 168500.0,
+       "p2027": 186977.0
+      },
+      {
+       "nazwa": "Podatek od nieruchomości",
+       "p2026": 682130000.0,
+       "p2027": 699880000.0
+      },
+      {
+       "nazwa": "Podatek od środków transportowych",
+       "p2026": 26000000.0,
+       "p2027": 25000000.0
+      },
+      {
+       "nazwa": "Podatek od czynności cywilnoprawnych",
+       "p2026": 100000000.0,
+       "p2027": 105000000.0
+      },
+      {
+       "nazwa": "Podatek od spadków i darowizn",
+       "p2026": 18000000.0,
+       "p2027": 18000000.0
+      }
+     ]
+    },
+    {
+     "nazwa": "2. Wpływy z opłat",
+     "p2026": 508312900.0,
+     "p2027": 531660207.0,
+     "pozycje": [
+      {
+       "nazwa": "Opłata skarbowa",
+       "p2026": 40000000.0,
+       "p2027": 45000000.0
+      },
+      {
+       "nazwa": "Opłata komunikacyjna",
+       "p2026": 16305000.0,
+       "p2027": 17655000.0
+      },
+      {
+       "nazwa": "Opłaty za wydanie prawa jazdy oraz innych dokumentów uprawniających do kierowania pojazdami",
+       "p2026": 1900000.0,
+       "p2027": 2200000.0
+      },
+      {
+       "nazwa": "Opłata adiacencka",
+       "p2026": 1500000.0,
+       "p2027": 1500000.0
+      },
+      {
+       "nazwa": "Opłata za zezwolenie na sprzedaż napojów alkoholowych",
+       "p2026": 22200000.0,
+       "p2027": 22100000.0
+      },
+      {
+       "nazwa": "Część opłaty za zezwolenie na sprzedaż napojów alkoholowych w obrocie hurtowym",
+       "p2026": 4857727.0,
+       "p2027": 4900000.0
+      },
+      {
+       "nazwa": "Opłaty za koncesje i licencje",
+       "p2026": 500000.0,
+       "p2027": 370000.0
+      },
+      {
+       "nazwa": "Opłaty za częstotliwości",
+       "p2026": 50000.0,
+       "p2027": 25000.0
+      },
+      {
+       "nazwa": "Opłata za zajęcie pasa drogowego",
+       "p2026": 17950000.0,
+       "p2027": 17950000.0
+      },
+      {
+       "nazwa": "Opłata od posiadania psów",
+       "p2026": 100.0,
+       "p2027": 500.0
+      },
+      {
+       "nazwa": "Opłata za gospodarowanie odpadami komunalnymi",
+       "p2026": 240442461.0,
+       "p2027": 243650453.0
+      },
+      {
+       "nazwa": "Inne lokalne opłaty pobierane przez jednostki samorządu terytorialnego na podstawie odrębnych ustaw",
+       "p2026": 87393630.0,
+       "p2027": 98511630.0
+      },
+      {
+       "nazwa": "Różne opłaty",
+       "p2026": 3108390.0,
+       "p2027": 4016400.0
+      },
+      {
+       "nazwa": "Koszty sądowe oraz inne opłaty uiszczane na rzecz Skarbu Państwa z tytułu postępowania sądowego, prokuratorskiego i administracyjnego",
+       "p2026": 370073.0,
+       "p2027": 406300.0
+      },
+      {
+       "nazwa": "Koszty egzekucyjne, opłaty komornicze i koszty upomnień",
+       "p2026": 5353092.0,
+       "p2027": 4909628.0
+      },
+      {
+       "nazwa": "Opłaty z tytułu użytkowania wieczystego nieruchomości",
+       "p2026": 23010000.0,
+       "p2027": 25010000.0
+      },
+      {
+       "nazwa": "Opłaty za trwały zarząd, użytkowanie i służebności",
+       "p2026": 4617694.0,
+       "p2027": 4600000.0
+      },
+      {
+       "nazwa": "Opłaty rodziców za pobyt i utrzymanie dzieci",
+       "p2026": 7135095.0,
+       "p2027": 7099917.0
+      },
+      {
+       "nazwa": "Opłaty za wyżywienie",
+       "p2026": 31619638.0,
+       "p2027": 31755379.0
+      }
+     ]
+    },
+    {
+     "nazwa": "3. Udziały we wpływach z podatku dochodowego",
+     "p2026": 3869829995.0,
+     "p2027": 4128096254.0,
+     "pozycje": [
+      {
+       "nazwa": "Udziały jednostek samorządu terytorialnego w podatku dochodowym od osób fizycznych",
+       "p2026": 3360087855.0,
+       "p2027": 3596823667.0
+      },
+      {
+       "nazwa": "Udziały jednostek samorządu terytorialnego w podatku dochodowym od osób prawnych",
+       "p2026": 509742140.0,
+       "p2027": 531272587.0
+      }
+     ]
+    },
+    {
+     "nazwa": "4. Dochody jednostek budżetowych oraz inne dochody",
+     "p2026": 655865960.94,
+     "p2027": 544503865.0,
+     "pozycje": [
+      {
+       "nazwa": "Wpływy z usług",
+       "p2026": 306654146.0,
+       "p2027": 326359703.0
+      },
+      {
+       "nazwa": "Wpływy z kar, odszkodowań i grzywien",
+       "p2026": 17000522.0,
+       "p2027": 17116500.0
+      },
+      {
+       "nazwa": "Wpływy z dywidend",
+       "p2026": 12505294.0,
+       "p2027": 8612660.0
+      },
+      {
+       "nazwa": "Wpływy z najmu i dzierżawy składników majątkowych",
+       "p2026": 37768523.0,
+       "p2027": 41156819.0
+      },
+      {
+       "nazwa": "Dochody związane z realizacją zadań z zakresu administacji rządowej oraz innych zadań zleconych ustawami",
+       "p2026": 26128124.0,
+       "p2027": 27012650.0
+      },
+      {
+       "nazwa": "Pozostałe dochody",
+       "p2026": 255809351.94,
+       "p2027": 124245533.0
+      }
+     ]
+    },
+    {
+     "nazwa": "5. Odsetki",
+     "p2026": 19200011.64,
+     "p2027": 18235120.0,
+     "pozycje": [
+      {
+       "nazwa": "Odsetki od nieterminowych wpłat podatku od nieruchomości",
+       "p2026": 540000.0,
+       "p2027": 540000.0
+      },
+      {
+       "nazwa": "Odsetki od nieterminowych wpłat z tytułu pozostałych podatków i opłat",
+       "p2026": 307000.0,
+       "p2027": 212000.0
+      },
+      {
+       "nazwa": "Odsetki od dotacji oraz płatności",
+       "p2026": 345277.0,
+       "p2027": 90000.0
+      },
+      {
+       "nazwa": "Pozostałe odsetki",
+       "p2026": 17257734.64,
+       "p2027": 16893120.0
+      },
+      {
+       "nazwa": "Odsetki od pożyczek udzielonych przez jednostkę samorządu terytorialnego",
+       "p2026": 750000.0,
+       "p2027": 500000.0
+      }
+     ]
+    },
+    {
+     "nazwa": "6. Środki na dofinansowanie zadań własnych pozyskane z innych źródeł, w tym:",
+     "p2026": 5544046.59,
+     "p2027": 1500000.0,
+     "pozycje": [
+      {
+       "nazwa": "Środki na dofinansowanie własnych zadań bieżących gmin, powiatów (związków gmin, związków powiatowo-gminnych, związków powiatów), samorządów województw, pozyskane z innych źródeł",
+       "p2026": 2439947.0,
+       "p2027": 1500000.0
+      }
+     ]
+    },
+    {
+     "nazwa": "7. Dotacje celowe i wpływy z tytułu pomocy finansowej otrzymane na zadania realizowane na podstawie porozumień (umów) między jednostkami samorządu terytorialnego",
+     "p2026": 131276011.0,
+     "p2027": 128097633.0,
+     "pozycje": [
+      {
+       "nazwa": "Dotacja celowa otrzymana/przekazana przez gminę na realizację zadań bieżących na podstawie porozumień (umów) między jednostkami samorządu terytorialnego",
+       "p2026": 123929742.0,
+       "p2027": 125488948.0
+      },
+      {
+       "nazwa": "Dotacja celowa otrzymana/przekazana przez powiat na realizację zadań bieżących na podstawie porozumień (umów) między jednostkami samorządu terytorialnego",
+       "p2026": 1250797.0,
+       "p2027": 999000.0
+      },
+      {
+       "nazwa": "Dotacja celowa na pomoc finansową udzielaną między jednostkami samorządu terytorialnego na dofinansowanie własnych zadań bieżących",
+       "p2026": 6095472.0,
+       "p2027": 1609685.0
+      }
+     ]
+    },
+    {
+     "nazwa": "8. Subwencja ogólna z budżetu państwa",
+     "p2026": 330925523.0,
+     "p2027": 413596578.0,
+     "pozycje": [
+      {
+       "nazwa": "Środki na uzupełnienie dochodów miast na prawach powiatu",
+       "p2026": 4209619.0,
+       "p2027": 0.0
+      },
+      {
+       "nazwa": "Subwencje ogólne z budżetu państwa",
+       "p2026": 326715904.0,
+       "p2027": 413596578.0
+      }
+     ]
+    },
+    {
+     "nazwa": "9. Środki na realizację programów i projektów finansowanych (dofinansowanych) ze źródeł zagranicznych i budżetu Unii Europejskiej",
+     "p2026": 68658246.39,
+     "p2027": 30737117.0,
+     "podgrupy": [
+      {
+       "nazwa": "9.1. Środki pochodzące ze źródeł zagranicznych i budżetu Unii Europejskiej",
+       "p2026": 55681879.79,
+       "p2027": 24199902.97,
+       "pozycje": [
+        {
+         "nazwa": "Dotacja celowa w ramach programów finansowanych z udziałem środków europejskich oraz środków, o których mowa w art. 5 ust. 3 pkt 5 lit. a i b ustawy, lub płatności w ramach budżetu środków europejskich, realizowanych przez jednostki samorządu terytorialnego",
+         "p2026": 55472582.79,
+         "p2027": 24199902.97
+        },
+        {
+         "nazwa": "Środki na dofinansowanie własnych zadań bieżących gmin, powiatów (związków gmin, związków powiatowo-gminnych, związków powiatów), samorządów województw, pozyskane z innych źródeł",
+         "p2026": 209297.0,
+         "p2027": 0.0
+        }
+       ]
+      },
+      {
+       "nazwa": "9.2. Środki pochodzące z innych źródeł",
+       "p2026": 12976366.6,
+       "p2027": 6537214.03,
+       "pozycje": [
+        {
+         "nazwa": "Dotacja celowa w ramach programów finansowanych z udziałem środków europejskich oraz środków, o których mowa w art. 5 ust. 3 pkt 5 lit. a i b ustawy, lub płatności w ramach budżetu środków europejskich, realizowanych przez jednostki samorządu terytorialnego",
+         "p2026": 12976366.6,
+         "p2027": 6537214.03
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "nazwa": "10. Dotacje celowe otrzymane z budżetu państwa",
+     "p2026": 355897382.88,
+     "p2027": 260981171.03,
+     "podgrupy": [
+      {
+       "nazwa": "10.1. Dotacje celowe otrzymane z budżetu państwa na zadania własne",
+       "p2026": 67207178.56,
+       "p2027": 25093415.53,
+       "pozycje": [
+        {
+         "nazwa": "Dotacja celowa z budżetu państwa na realizację własnych zadań bieżących gmin (związków gmin, związków powiatowo- gminnych)",
+         "p2026": 52326946.56,
+         "p2027": 22847015.53
+        },
+        {
+         "nazwa": "Dotacja celowa z budżetu państwa na realizację własnych zadań bieżących powiatów",
+         "p2026": 14880232.0,
+         "p2027": 2246400.0
+        }
+       ]
+      },
+      {
+       "nazwa": "10.2. Dotacje celowe otrzymane z budżetu państwa na realizację zadań z zakresu administracji rządowej",
+       "p2026": 288690204.32,
+       "p2027": 235887755.5,
+       "pozycje": [
+        {
+         "nazwa": "Dotacja celowa z budżetu państwa na realizację zadań bieżących z zakresu administracji rządowej oraz innych zadań zleconych ustawami gminom (związkom gmin, związkom powiatowo-gminnym)",
+         "p2026": 155820136.43,
+         "p2027": 119486814.5
+        },
+        {
+         "nazwa": "Dotacja celowa z budżetu państwa na realizację zadań bieżących z zakresu administracji rządowej oraz innych zadań zleconych ustawami powiatom",
+         "p2026": 131217296.04,
+         "p2027": 116040941.0
+        },
+        {
+         "nazwa": "Dotacja celowa z budżetu państwa na realizację zadań bieżących z zakresu administracji rządowej zleconych gminom (związkom gmin, związkom powiatowo-gminnym), związanych z realizacją świadczenia wychowawczego stanowiącego pomoc państwa w wychowywaniu dzieci",
+         "p2026": 140241.85,
+         "p2027": 0.0
+        },
+        {
+         "nazwa": "Dotacja celowa z budżetu państwa na realizację zadań bieżących przez gminy na podstawie porozumień z organami administracji rządowej",
+         "p2026": 322630.0,
+         "p2027": 0.0
+        },
+        {
+         "nazwa": "Dotacja celowa z budżetu państwa na realizację zadań bieżących przez powiaty na podstawie porozumień z organami administracji rządowej",
+         "p2026": 1189900.0,
+         "p2027": 360000.0
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "nazwa": "11. Środki na realizację zadań zleconych z zakresu administracji rządowej",
+     "p2026": 2056863.26,
+     "p2027": 0.0
+    }
+   ]
+  },
+  {
+   "nazwa": "II. DOCHODY MAJĄTKOWE",
+   "grupy": [
+    {
+     "nazwa": "1. Dochody jednostek budżetowych oraz inne dochody",
+     "p2026": 52092673.71,
+     "p2027": 71457386.0,
+     "pozycje": [
+      {
+       "nazwa": "Sprzedaż majątku",
+       "p2026": 25990616.0,
+       "p2027": 52584000.0
+      },
+      {
+       "nazwa": "Przekształcenie prawa użytkowania wieczystego w prawo własności",
+       "p2026": 1000000.0,
+       "p2027": 1000000.0
+      },
+      {
+       "nazwa": "Pozostałe dochody",
+       "p2026": 25102057.71,
+       "p2027": 17873386.0
+      }
+     ]
+    },
+    {
+     "nazwa": "2. Środki na dofinansowanie zadań własnych pozyskane z innych źródeł",
+     "p2026": 207141529.16,
+     "p2027": 21259620.0,
+     "pozycje": [
+      {
+       "nazwa": "Dotacja z państwowego funduszu celowego na finansowanie lub dofinansowanie wydatków inwestycyjnych jednostek sektora finansów publicznych",
+       "p2026": 15421255.0,
+       "p2027": 17759620.0
+      },
+      {
+       "nazwa": "Środki z Funduszu Przeciwdziałania COVID-19 na finansowanie lub dofinansowanie kosztów realizacji inwestycji i zakupów inwestycyjnych związanych z przeciwdziałaniem COVID-19",
+       "p2026": 0.0,
+       "p2027": 3500000.0
+      },
+      {
+       "nazwa": "Środki na dofinansowanie własnych inwestycji gmin, powiatów (związków gmin, zwiazków powiatowo-gminnych, związków powiatów), samorządów województw, pozyskane z innych źródeł",
+       "p2026": 134046225.69,
+       "p2027": 0.0
+      },
+      {
+       "nazwa": "Środki z Rządowego Funduszu Polski Ład: Program Inwestycji Strategicznych na realizację zadań inwestycyjnych",
+       "p2026": 57674048.47,
+       "p2027": 0.0
+      }
+     ]
+    },
+    {
+     "nazwa": "3. Dotacje celowe i wpływy z tytułu pomocy finansowej otrzymane na podstwie porozumień (umów) między jednostkami samorządu terytorialnego",
+     "p2026": 11466500.0,
+     "p2027": 24617609.0,
+     "pozycje": [
+      {
+       "nazwa": "Dotacja celowa na pomoc finansową udzielaną między jednostkami samorządu terytorialnego na dofinansowanie własnych zadań inwestycyjnych",
+       "p2026": 11466500.0,
+       "p2027": 24617609.0
+      }
+     ]
+    },
+    {
+     "nazwa": "4. Subwencja ogólna z budżetu państwa",
+     "p2026": 11882448.0,
+     "p2027": 0.0,
+     "pozycje": [
+      {
+       "nazwa": "Środki na uzupełnienie dochodów miast na prawach powiatu",
+       "p2026": 11882448.0,
+       "p2027": 0.0
+      }
+     ]
+    },
+    {
+     "nazwa": "5. Środki na realizację programów i projektów finansowanych (dofinansowanych) ze źródeł zagranicznych i budżetu Unii Europejskiej",
+     "p2026": 40820177.58,
+     "p2027": 102449159.0,
+     "podgrupy": [
+      {
+       "nazwa": "5.1. Środki pochodzące ze źródeł zagranicznych i budżetu Unii Europejskiej",
+       "p2026": 40820177.58,
+       "p2027": 102217298.0,
+       "pozycje": [
+        {
+         "nazwa": "Dotacja celowa w ramach programów finansowych z udziałem środków europejskich oraz środków, o których mowa w art. 5 ust. 3 pkt 5 lit. a i b ustawy, lub płatności w ramach budżetu środków europejskich, realizowanych przez jednostki samorządu terytorialnego",
+         "p2026": 40820177.58,
+         "p2027": 102217298.0
+        }
+       ]
+      },
+      {
+       "nazwa": "5.2. Środki pochodzące z innych źródeł",
+       "p2026": 0.0,
+       "p2027": 231861.0,
+       "pozycje": [
+        {
+         "nazwa": "Dotacja celowa w ramach programów finansowych z udziałem środków europejskich oraz środków, o których mowa w art. 5 ust. 3 pkt 5 lit. a i b ustawy, lub płatności w ramach budżetu środków europejskich, realizowanych przez jednostki samorządu terytorialnego",
+         "p2026": 0.0,
+         "p2027": 231861.0
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "nazwa": "6. Dotacje celowe otrzymane z budżetu państwa",
+     "p2026": 31448372.8,
+     "p2027": 2100000.0,
+     "podgrupy": [
+      {
+       "nazwa": "6.1. Dotacje celowe otrzymane z budżetu państwa na zadania własne",
+       "p2026": 14057717.28,
+       "p2027": 0.0,
+       "pozycje": [
+        {
+         "nazwa": "Dotacja celowa z budżetu państwa na realizację własnych zadań inwestycyjnych gmin (związków gmin, związków powiatowo-gminnych)",
+         "p2026": 11087717.28,
+         "p2027": 0.0
+        },
+        {
+         "nazwa": "Dotacja celowa z budżetu państwa na realizację własnych zadań inwestycyjnych powiatów",
+         "p2026": 2970000.0,
+         "p2027": 0.0
+        }
+       ]
+      },
+      {
+       "nazwa": "6.2. Dotacje celowe otrzymane z budżetu państwa na realizację zadań z zakresu administracji rządowej",
+       "p2026": 17390655.52,
+       "p2027": 2100000.0,
+       "pozycje": [
+        {
+         "nazwa": "Dotacja celowa z budżetu państwa na wydatki inwestycyjne z zakresu administracji rządowej oraz innych zadań zleconych ustawami gminom",
+         "p2026": 10106726.57,
+         "p2027": 0.0
+        },
+        {
+         "nazwa": "Dotacja celowa z budżetu państwa na wydatki inwestycyjne z zakresu administracji rządowej oraz innych zadań zleconych ustawami powiatom",
+         "p2026": 7283928.95,
+         "p2027": 2100000.0
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

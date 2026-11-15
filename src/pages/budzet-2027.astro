@@ -1,0 +1,990 @@
+---
+import Baza from '../layouts/Baza.astro';
+import b from '../../data/budzet2027/zbiorcze.json';
+import bdl from '../../public/dane/bdl.json';
+import zadaniaPlik from '../../public/dane/budzet2027/zadania.json';
+
+const P = b.projekt2027;
+const R = b.plan2026;
+const hist = bdl.miasta.poznan.wskazniki;
+const dzialyHist = bdl.miasta.poznan.dzialy;
+
+const pl = (n, m = 0) => n.toLocaleString('pl-PL', { maximumFractionDigits: m, minimumFractionDigits: m });
+const mld = (n) => `${pl(n / 1e9, 2)} mld zł`;
+const mln = (n) => (Math.abs(n) < 1e5 && n !== 0 ? `${pl(n, 0)} zł` : `${pl(n / 1e6, 1)} mln zł`);
+const zmiana = (a, z) => `${a >= z ? '+' : '−'}${pl(Math.abs((a / z - 1) * 100), 1)}%`;
+const odmien = (n, [jeden, kilka, wiele]) => {
+  if (n === 1) return jeden;
+  const r10 = n % 10, r100 = n % 100;
+  return r10 >= 2 && r10 <= 4 && (r100 < 12 || r100 > 14) ? kilka : wiele;
+};
+const dataPL = (iso) => iso.split('-').reverse().join('.');
+
+const deficyt = -P.wynik;
+const deficyt2026 = -R.wynik;
+const przyrostDlugu = P.dlug - R.dlug;
+
+// --- dziedziny: 2027 wobec planu 2026
+const dziedziny = b.dziedziny.ogolem.pozycje
+  .map((d) => ({ ...d, roznica: d.p2027 - d.p2026 }))
+  .sort((x, y) => y.roznica - x.roznica);
+
+// --- dochody: grupy z obu części, od największej w 2027 r.
+const grupyDochodow = b.dochody.flatMap((s) => s.grupy.map((g) => ({ ...g, sekcja: s.nazwa.includes('MAJĄTKOWE') ? 'majątkowe' : 'bieżące' })));
+// „podstwie” to literówka w dokumencie źródłowym — w nazwie pokazujemy poprawną pisownię
+const czystaNazwa = (n) => n.replace(/^\d+(\.\d+)*\.\s*/, '').replace(/,? w tym:$/, '').replace('podstwie', 'podstawie');
+
+// --- największe zadania projektowe (inwestycje i projekty)
+const najwieksze = zadaniaPlik.zadania.filter((z) => z.r === 'P').sort((x, y) => y.b - x.b).slice(0, 10);
+const ileProjektowych = zadaniaPlik.zadania.filter((z) => z.r === 'P').length;
+const ileBiezacych = zadaniaPlik.zadania.filter((z) => z.r === 'B').length;
+const nazwaJednostki = (s) => s.charAt(0) + s.slice(1).toLowerCase()
+  .replace(/\b(poznania|poznań|poznańsk\w+|miasta|urząd|zarząd|wydział|biuro)\b/g, (m) => m)
+  .replace(/poznan/g, 'Poznan').replace(/ptbs|zkzl|mopr/g, (m) => m.toUpperCase());
+
+// --- dług: ścieżka i wskaźniki
+const lataDlugu = Object.keys(b.prognoza.dlug).filter((r) => Number(r) <= 2034);
+const szczytDlugu = Object.entries(b.prognoza.dlug).reduce((a, x) => (x[1] > a[1] ? x : a));
+const pierwszaNadwyzka = Object.entries(b.prognoza.wynik).find(([, v]) => v > 0)?.[0];
+
+// --- dane dla narzędzi po stronie przeglądarki (tylko to, czego używają)
+const seria = (klucz) => hist[klucz]?.wartosci ?? {};
+const daneKlienta = {
+  wykonanie: {
+    dochody: seria('dochodyOgolem'), wydatki: seria('wydatkiOgolem'),
+    wydatkiBiezace: seria('wydatkiBiezace'), wydatkiMajatkowe: seria('wydatkiMajatkowe'),
+  },
+  plan2026: R,
+  prognoza: Object.fromEntries(['dochody', 'wydatki', 'wydatkiBiezace', 'wydatkiMajatkowe', 'wynik', 'dlug', 'nadwyzkaOperacyjna'].map((k) => [k, b.prognoza[k]])),
+  inflacja: b.inflacja,
+  dziedziny: b.dziedziny,
+  dzialy2027: b.dzialy.map(({ kod, nazwa, kwota, biezace, majatkowe }) => ({ kod, nazwa, kwota, biezace, majatkowe })),
+  dzialyHistoria: Object.fromEntries(Object.values(dzialyHist).map((d) => [d.klucz, d.wartosci])),
+};
+const ostatnieWykonanie = Math.max(...Object.keys(seria('wydatkiOgolem')).map(Number));
+
+// „Rekord inwestycji" sprawdzamy na danych, a nie powtarzamy za dokumentem: nominalnie i po odjęciu inflacji.
+const doCen2027 = (rok) => {
+  let m = 1;
+  for (let r = rok + 1; r <= 2027; r++) m *= 1 + b.inflacja[r].w / 100;
+  return m;
+};
+const majatkoweHist = Object.entries(seria('wydatkiMajatkowe')).map(([r, v]) => ({ rok: Number(r), v }));
+const rekordNominalny = majatkoweHist.every((x) => x.v < P.wydatkiMajatkowe);
+const realnieWiecej = majatkoweHist
+  .filter((x) => b.inflacja[x.rok + 1] && x.v * doCen2027(x.rok) > P.wydatkiMajatkowe)
+  .sort((x, y) => y.v * doCen2027(y.rok) - x.v * doCen2027(x.rok));
+const szczytRealny = realnieWiecej[0];
+const rezerwy = 384178896;
+---
+
+<Baza
+  strona="budzet2027"
+  tytul="Budżet 2027 — projekt"
+  opis="Projekt budżetu Poznania na 2027 rok: 8,21 mld zł wydatków, 7,13 mld zł dochodów, 1,07 mld zł deficytu. Porównaj z poprzednimi latami, sprawdź inwestycje i ścieżkę długu."
+>
+  <section style="margin-top:44px">
+    <p class="nadtytul">Projekt budżetu · przed głosowaniem Rady Miasta</p>
+    <h1>Budżet Poznania na 2027 rok</h1>
+    <p class="lid">
+      Miasto chce wydać {mld(P.wydatki)} przy {mld(P.dochody)} dochodów. Różnicę — {mld(deficyt)} —
+      pokryje głównie kredyt, a dług na koniec roku ma wynieść {mld(P.dlug)}. Na inwestycje
+      zaplanowano {mld(P.wydatkiMajatkowe)}{rekordNominalny && (szczytRealny
+        ? <> — w złotych najwięcej w historii miasta, ale po odjęciu inflacji więcej wydano
+            w {szczytRealny.rok} r. ({mld(szczytRealny.v * doCen2027(szczytRealny.rok))} w cenach z 2027 r.)</>
+        : <>, najwięcej w historii miasta</>)}.
+    </p>
+    <p class="drobne" style="max-width:74ch">
+      To <strong>projekt</strong> przedłożony przez Prezydenta, stan na {dataPL(b.meta.stanNa)} — kwoty
+      mogą się zmienić do głosowania. Porównania z 2026 r. odnoszą się do planu według stanu na
+      30 września 2026 r., a z latami wcześniejszymi — do wykonania budżetu według GUS.
+      Co z tego wynika dla porównań, opisujemy w części <a href="#metoda">Metoda i zastrzeżenia</a>.
+    </p>
+    <nav class="b27-skroty" aria-label="Na tej stronie">
+      <a href="#os-czasu">Na osi czasu</a>
+      <a href="#rok-do-roku">2027 wobec 2026</a>
+      <a href="#dzialy">Porównaj dwa lata</a>
+      <a href="#dochody">Dochody</a>
+      <a href="#dlug">Deficyt i dług</a>
+      <a href="#zadania">Szukaj zadań i inwestycji</a>
+    </nav>
+  </section>
+
+  <section>
+    <div class="siatka b27-kpi">
+      <div class="karta kpi">
+        <span class="etykieta">Wydatki</span>
+        <span class="wartosc">{mld(P.wydatki)}</span>
+        <span class="opis">{zmiana(P.wydatki, R.wydatki)} wobec planu 2026</span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">Dochody</span>
+        <span class="wartosc">{mld(P.dochody)}</span>
+        <span class="opis">bez zmian wobec planu 2026 ({pl((P.dochody / R.dochody - 1) * 100, 2).replace('-', '−')}%)</span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">Inwestycje</span>
+        <span class="wartosc">{mld(P.wydatkiMajatkowe)}</span>
+        <span class="opis">{zmiana(P.wydatkiMajatkowe, R.wydatkiMajatkowe)}; {pl((P.wydatkiMajatkowe / P.wydatki) * 100, 1)}% wydatków</span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">Deficyt</span>
+        <span class="wartosc">{mld(deficyt)}</span>
+        <span class="opis">w planie 2026: {mld(deficyt2026)}</span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">Dług na koniec roku</span>
+        <span class="wartosc">{mld(P.dlug)}</span>
+        <span class="opis">o {mld(przyrostDlugu)} więcej; {pl((P.dlug / P.dochody) * 100, 1)}% dochodów</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="os-czasu">
+    <h2>Na osi czasu</h2>
+    <p class="drobne" style="margin-top:-8px;max-width:74ch">
+      Jedna wielkość przez wszystkie lata: to, co miasto faktycznie wykonało, plan na 2026 r., projekt
+      na 2027 r. i prognoza z wieloletniej prognozy finansowej. Przełącz na ceny z 2027 r., żeby
+      odjąć inflację — bez tego 1 mld zł z 2010 r. i z 2027 r. wyglądają na tyle samo.
+    </p>
+    <div class="karta cien" style="padding:16px 18px">
+      <div class="b27-pasek" role="group" aria-label="Wielkość">
+        <button class="pigulka" data-miara="wydatki" aria-pressed="true">Wydatki</button>
+        <button class="pigulka" data-miara="dochody" aria-pressed="false">Dochody</button>
+        <button class="pigulka" data-miara="wynik" aria-pressed="false">Nadwyżka / deficyt</button>
+        <button class="pigulka" data-miara="wydatkiMajatkowe" aria-pressed="false">Inwestycje</button>
+        <button class="pigulka" data-miara="wydatkiBiezace" aria-pressed="false">Wydatki bieżące</button>
+        <button class="pigulka" data-miara="dlug" aria-pressed="false">Dług</button>
+      </div>
+      <div class="b27-pasek" style="margin-top:10px">
+        <label class="b27-wybor">Kwoty
+          <select id="oc-ceny">
+            <option value="nominalne">nominalne (jak w dokumentach)</option>
+            <option value="realne">w cenach z 2027 r.</option>
+          </select>
+        </label>
+        <label class="b27-wybor">Zakres
+          <select id="oc-zakres">
+            <option value="2012-2034">2012–2034</option>
+            <option value="2003-2040">2003–2040</option>
+            <option value="2003-2050">2003–2050 (cała prognoza)</option>
+          </select>
+        </label>
+      </div>
+      <div id="oc-wykres" style="margin-top:14px"><p class="ladowanie">…</p></div>
+      <ul class="b27-legenda" aria-label="Legenda">
+        <li><i class="k-wykonanie"></i>wykonanie (GUS)</li>
+        <li><i class="k-plan"></i>plan 2026</li>
+        <li><i class="k-projekt"></i>projekt 2027</li>
+        <li><i class="k-prognoza"></i>prognoza WPF</li>
+      </ul>
+      <p class="drobne" id="oc-uwaga" style="margin:10px 0 0"></p>
+    </div>
+
+    <div class="karta" style="margin-top:14px">
+      <div class="b27-pasek">
+        <label class="b27-wybor" style="font-size:.95rem">Porównaj projekt 2027 z rokiem
+          <select id="oc-rok"></select>
+        </label>
+      </div>
+      <div class="tabela-otok" style="margin-top:12px">
+        <table>
+          <thead>
+            <tr><th>Wielkość</th><th class="num" id="oc-th-rok">—</th><th class="num">Projekt 2027</th>
+              <th class="num">Zmiana</th><th class="num">Zmiana po odjęciu inflacji</th></tr>
+          </thead>
+          <tbody id="oc-tbody"><tr><td colspan="5" class="ladowanie">…</td></tr></tbody>
+        </table>
+      </div>
+      <p class="drobne" id="oc-opis-roku" style="margin:10px 0 0"></p>
+    </div>
+  </section>
+
+  <section id="rok-do-roku">
+    <h2>2027 wobec 2026: na co więcej, na co mniej</h2>
+    <p class="drobne" style="margin-top:-8px;max-width:74ch">
+      Wydatki w 13 dziedzinach, tak jak dzieli je uzasadnienie do projektu. Pasek w prawo to wzrost,
+      w lewo — spadek wobec planu na 2026 r.
+    </p>
+    <div class="karta cien" style="padding:16px 18px">
+      <div class="b27-pasek" role="group" aria-label="Rodzaj wydatków">
+        <button class="pigulka" data-rdr="ogolem" aria-pressed="true">Wszystkie wydatki</button>
+        <button class="pigulka" data-rdr="biezace" aria-pressed="false">Bieżące</button>
+        <button class="pigulka" data-rdr="majatkowe" aria-pressed="false">Inwestycje</button>
+      </div>
+      <ol class="b27-roznice" id="rdr-lista">
+        {dziedziny.map((d) => {
+          const maks = Math.max(...dziedziny.map((x) => Math.abs(x.roznica)));
+          const w = (Math.abs(d.roznica) / maks) * 50;
+          return (
+            <li>
+              <span class="b27-r-nazwa">{d.nazwa}</span>
+              <span class="b27-r-os"><i class={d.roznica >= 0 ? 'plus' : 'minus'} style={`width:${w}%;${d.roznica >= 0 ? 'left:50%' : `left:${50 - w}%`}`}></i></span>
+              <span class="b27-r-wartosc">{d.roznica >= 0 ? '+' : '−'}{pl(Math.abs(d.roznica) / 1e6, 1)} mln zł
+                <small>{pl(d.p2026 / 1e6, 0)} → {pl(d.p2027 / 1e6, 0)} mln · {zmiana(d.p2027, d.p2026)}</small></span>
+            </li>
+          );
+        })}
+      </ol>
+      <p class="drobne" style="margin:12px 0 0;max-width:74ch">
+        Część różnic nie oznacza zmiany polityki miasta. Dotacje z budżetu państwa (zwłaszcza na
+        politykę społeczną) są dopisywane w trakcie roku, więc plan z września jest pod tym względem
+        pełniejszy niż projekt. Od 2027 r. obowiązuje też nowa klasyfikacja budżetowa — m.in. zakupy
+        drobnego sprzętu liczą się odtąd do wydatków majątkowych.
+      </p>
+    </div>
+
+    <div class="siatka k2" style="margin-top:14px;align-items:start">
+      <div class="karta">
+        <h3>Z czego składają się wydatki</h3>
+        <p class="drobne" style="margin-top:-6px">Podział według rodzaju wydatku, cały budżet na 2027 r.</p>
+        <ol class="ranking">
+          {[...b.ekonomiczne].sort((x, y) => y.kwota - x.kwota).map((e, i, wszystkie) => (
+            <li style={`--i:${i}`}>
+              <span class="r-nazwa">{e.nazwa}</span>
+              <span class="r-pasek"><i style={`width:${Math.max(1.5, (e.kwota / wszystkie[0].kwota) * 100)}%;background:${e.rodzaj === 'majątkowe' ? 'var(--czerwien)' : 'var(--blekit)'}`}></i></span>
+              <span class="r-wartosc">{mln(e.kwota)}</span>
+            </li>
+          ))}
+        </ol>
+        <p class="drobne" style="margin:10px 0 0">Niebieskie — wydatki bieżące, czerwone — majątkowe.</p>
+      </div>
+      <div class="karta">
+        <h3>Największe zadania inwestycyjne i projekty</h3>
+        <p class="drobne" style="margin-top:-6px">Kwoty zaplanowane na sam 2027 r.</p>
+        <ol class="ranking">
+          {najwieksze.map((z, i) => (
+            <li style={`--i:${i}`}>
+              <span class="r-nazwa">{z.n} <span class="drobne">({nazwaJednostki(z.j)})</span></span>
+              <span class="r-pasek"><i style={`width:${Math.max(1.5, (z.b / najwieksze[0].b) * 100)}%;background:var(--czerwien)`}></i></span>
+              <span class="r-wartosc">{mln(z.b)}</span>
+            </li>
+          ))}
+        </ol>
+        <p class="drobne" style="margin:10px 0 0"><a href="#zadania">Szukaj wśród wszystkich {ileProjektowych} zadań</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="dzialy">
+    <h2>Porównaj dwa lata</h2>
+    <p class="drobne" style="margin-top:-8px;max-width:74ch">
+      Wydatki według działów klasyfikacji budżetowej — tego samego podziału, w którym GUS podaje
+      wykonanie budżetu od 2008 r. Wybierz rok do zestawienia z projektem 2027 i sposób liczenia.
+    </p>
+    <div class="karta cien" style="padding:16px 18px">
+      <div class="b27-pasek">
+        <label class="b27-wybor">Projekt 2027 wobec roku
+          <select id="dz-rok"></select>
+        </label>
+        <label class="b27-wybor">Pokaż
+          <select id="dz-tryb">
+            <option value="kwoty">kwoty</option>
+            <option value="realne">kwoty w cenach z 2027 r.</option>
+            <option value="udzial">udział w wydatkach</option>
+          </select>
+        </label>
+      </div>
+      <div class="tabela-otok" style="margin-top:12px">
+        <table id="dz-tabela">
+          <thead>
+            <tr><th>Dział</th><th class="num" id="dz-th-rok">—</th><th class="num">Projekt 2027</th><th class="num">Zmiana</th></tr>
+          </thead>
+          <tbody id="dz-tbody"><tr><td colspan="4" class="ladowanie">…</td></tr></tbody>
+        </table>
+      </div>
+      <p class="drobne" style="margin:10px 0 0">Kliknij dział, żeby zobaczyć jego wydatki rok po roku.</p>
+      <div id="dz-szczegol" hidden style="margin-top:14px">
+        <h3 id="dz-szczegol-tytul" style="margin-bottom:4px"></h3>
+        <div id="dz-wykres"></div>
+      </div>
+      <p class="drobne" style="margin:12px 0 0;max-width:74ch">
+        Trzy rzeczy, o których trzeba pamiętać, czytając tę tabelę. Po pierwsze, lata do {ostatnieWykonanie} r.
+        to pieniądze faktycznie wydane, a 2027 r. to plan, który może zostać wykonany tylko w części —
+        dotyczy to zwłaszcza inwestycji. Po drugie, w projekcie {mln(rezerwy)} rezerw stoi w dziale „Różne rozliczenia";
+        w ciągu roku rozchodzą się po pozostałych działach, więc dziś te działy wyglądają na mniejsze,
+        niż będą. Po trzecie, od 2027 r. obowiązuje nowa klasyfikacja budżetowa.
+      </p>
+    </div>
+  </section>
+
+  <section id="dochody">
+    <h2>Skąd miasto weźmie pieniądze</h2>
+    <p class="drobne" style="margin-top:-8px;max-width:74ch">
+      Dochody według źródeł, plan 2026 i projekt 2027. Ponad połowa to udział w podatku PIT
+      ({mld(b.prognoza.pit['2027'])}, {pl((b.prognoza.pit['2027'] / P.dochody) * 100, 1)}% dochodów).
+      Rozwiń grupę, żeby zobaczyć jej składniki.
+    </p>
+    <div class="tabela-otok">
+      <table class="b27-dochody">
+        <thead>
+          <tr><th>Źródło</th><th class="num">Plan 2026</th><th class="num">Projekt 2027</th><th class="num">Zmiana</th></tr>
+        </thead>
+        <tbody>
+          <tr class="b27-suma"><td>Dochody ogółem</td><td class="num">{mln(R.dochody)}</td><td class="num">{mln(P.dochody)}</td><td class="num">{zmiana(P.dochody, R.dochody)}</td></tr>
+          {['bieżące', 'majątkowe'].map((sekcja) => (
+            <>
+              <tr class="b27-sekcja"><td>Dochody {sekcja}</td>
+                <td class="num">{mln(sekcja === 'bieżące' ? R.dochodyBiezace : R.dochodyMajatkowe)}</td>
+                <td class="num">{mln(sekcja === 'bieżące' ? P.dochodyBiezace : P.dochodyMajatkowe)}</td>
+                <td class="num">{zmiana(sekcja === 'bieżące' ? P.dochodyBiezace : P.dochodyMajatkowe, sekcja === 'bieżące' ? R.dochodyBiezace : R.dochodyMajatkowe)}</td></tr>
+              {grupyDochodow.filter((g) => g.sekcja === sekcja).sort((x, y) => y.p2027 - x.p2027).map((g) => {
+                const skladniki = (g.podgrupy?.length ? g.podgrupy.flatMap((p) => p.pozycje ?? []) : g.pozycje) ?? [];
+                return (
+                  <tr>
+                    <td>
+                      {skladniki.length > 1 ? (
+                        <details>
+                          <summary>{czystaNazwa(g.nazwa)}</summary>
+                          <ul class="b27-skladniki">
+                            {[...skladniki].sort((x, y) => y.p2027 - x.p2027).map((s) => (
+                              <li><span>{s.nazwa}</span><span class="num">{mln(s.p2026)} → <strong>{mln(s.p2027)}</strong></span></li>
+                            ))}
+                          </ul>
+                        </details>
+                      ) : czystaNazwa(g.nazwa)}
+                    </td>
+                    <td class="num">{mln(g.p2026)}</td>
+                    <td class="num">{mln(g.p2027)}</td>
+                    <td class="num">{g.p2026 > 0 ? zmiana(g.p2027, g.p2026) : '—'}</td>
+                  </tr>
+                );
+              })}
+            </>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="dlug">
+    <h2>Deficyt i dług</h2>
+    <div class="siatka k2" style="align-items:start">
+      <div class="karta">
+        <h3>Jak domyka się budżet</h3>
+        <p style="margin-top:0">
+          Wydatki przewyższają dochody o {mld(deficyt)}. Do tego miasto musi w 2027 r. spłacić
+          {mln(b.finansowanie.rozchody.reduce((s, x) => s + x.kwota, 0))} wcześniejszych zobowiązań
+          i pożyczek. Razem trzeba więc znaleźć {mld(b.finansowanie.przychody.reduce((s, x) => s + x.kwota, 0))}:
+        </p>
+        <ol class="ranking">
+          {b.finansowanie.przychody.map((x, i) => (
+            <li style={`--i:${i}`}>
+              <span class="r-nazwa">{x.nazwa}</span>
+              <span class="r-pasek"><i style={`width:${Math.max(1.5, (x.kwota / b.finansowanie.przychody[0].kwota) * 100)}%;background:var(--czerwien)`}></i></span>
+              <span class="r-wartosc">{mln(x.kwota)}</span>
+            </li>
+          ))}
+        </ol>
+        <p class="drobne" style="margin:12px 0 0">
+          Bieżące dochody wciąż pokrywają bieżące wydatki z zapasem {mln(P.nadwyzkaOperacyjna)}
+          (w planie 2026: {mln(R.nadwyzkaOperacyjna)}). Deficyt bierze się w całości z inwestycji.
+        </p>
+      </div>
+      <div class="karta">
+        <h3>Dług miasta według prognozy</h3>
+        <div id="dl-wykres"><p class="ladowanie">…</p></div>
+        <p class="drobne" style="margin:10px 0 0">
+          Na koniec 2026 r. — {mld(R.dlug)} (plan), na koniec 2027 r. — {mld(P.dlug)}. Według prognozy
+          dług rośnie do {szczytDlugu[0]} r. ({mld(szczytDlugu[1])}), a od {pierwszaNadwyzka} r. budżet ma mieć
+          nadwyżki i dług zacznie spadać. Warunkiem jest ograniczenie inwestycji z {mld(P.wydatkiMajatkowe)}
+          w 2027 r. do {mld(b.prognoza.wydatkiMajatkowe['2031'])} w 2031 r.
+        </p>
+      </div>
+    </div>
+    <div class="tabela-otok" style="margin-top:14px">
+      <table>
+        <thead>
+          <tr><th>Rok</th><th class="num">Dochody</th><th class="num">Wydatki</th><th class="num">w tym inwestycje</th>
+            <th class="num">Wynik</th><th class="num">Dług na koniec roku</th><th class="num">Dług do dochodów</th>
+            <th class="num" title="Spłaty rat i odsetek w relacji do dochodów bieżących; w nawiasie ustawowy limit dla Poznania">Obsługa długu (limit)</th></tr>
+        </thead>
+        <tbody>
+          {lataDlugu.map((r) => (
+            <tr class={r === '2027' ? 'b27-wiersz-projekt' : undefined}>
+              <td>{r}{r === '2027' ? ' — projekt' : ''}</td>
+              <td class="num">{mld(b.prognoza.dochody[r])}</td>
+              <td class="num">{mld(b.prognoza.wydatki[r])}</td>
+              <td class="num">{mld(b.prognoza.wydatkiMajatkowe[r])}</td>
+              <td class="num">{b.prognoza.wynik[r] >= 0 ? '+' : '−'}{pl(Math.abs(b.prognoza.wynik[r]) / 1e6, 0)} mln zł</td>
+              <td class="num">{mld(b.prognoza.dlug[r])}</td>
+              <td class="num">{pl((b.prognoza.dlug[r] / b.prognoza.dochody[r]) * 100, 1)}%</td>
+              <td class="num">{pl(b.prognoza.wskaznikSplaty[r], 2)}% ({pl(b.prognoza.limitSplaty[r], 2)}%)</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+    <p class="drobne" style="margin-top:8px;max-width:74ch">
+      Lata po 2027 to prognoza miasta, a nie zobowiązanie: zakłada m.in. inflację {pl(b.makro['2028'].inflacja, 1)}%
+      i wzrost PKB o {pl(b.makro['2028'].pkb, 1)}% w 2028 r. Wieloletnia prognoza finansowa jest aktualizowana
+      co najmniej raz w roku.
+    </p>
+  </section>
+
+  <section id="zadania">
+    <h2>Szukaj zadań i inwestycji</h2>
+    <p class="drobne" style="margin-top:-8px;max-width:74ch">
+      {ileProjektowych} zadań inwestycyjnych i projektów oraz {ileBiezacych} zadań bieżących z opisami
+      z materiałów do projektu. Wpisz nazwę ulicy, osiedla, szkoły albo instytucji — szukamy także
+      w opisach, bo drobniejsze inwestycje są wymienione dopiero tam. Odmiana nie przeszkadza:
+      „Bobrownicka" znajdzie też „w ul. Bobrownickiej".
+    </p>
+    <div class="karta cien" style="padding:16px 18px">
+      <div class="b27-pasek" role="group" aria-label="Rodzaj zadań">
+        <button class="pigulka" data-typ="P" aria-pressed="true">Inwestycje i projekty ({ileProjektowych})</button>
+        <button class="pigulka" data-typ="B" aria-pressed="false">Zadania bieżące ({ileBiezacych})</button>
+      </div>
+      <div class="siatka" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:12px">
+        <label class="pole" style="grid-column:span 2">Szukaj w nazwach i opisach
+          <input type="search" id="z-fraza" placeholder="np. Bobrownicka, Teatr Muzyczny, chodnik, Naramowice" autocomplete="off" />
+        </label>
+        <label class="pole">Jednostka
+          <select id="z-jednostka"><option value="">wszystkie</option></select>
+        </label>
+        <label class="pole">Kolejność
+          <select id="z-sort">
+            <option value="kwota">od największej kwoty</option>
+            <option value="wzrost" data-tylko="B">największy wzrost wobec 2026</option>
+            <option value="spadek" data-tylko="B">największy spadek wobec 2026</option>
+            <option value="nazwa">alfabetycznie</option>
+          </select>
+        </label>
+      </div>
+      <p class="drobne" id="z-licznik" style="margin:10px 0 0" aria-live="polite">Wczytywanie zadań…</p>
+    </div>
+    <div id="z-lista" class="b27-zadania"></div>
+    <div style="text-align:center;margin-top:16px">
+      <button id="z-wiecej" class="glowny" hidden>Pokaż więcej</button>
+    </div>
+  </section>
+
+  <hr class="rozdz" />
+
+  <section id="metoda">
+    <h2>Metoda i zastrzeżenia</h2>
+    <div class="siatka k2" style="align-items:start">
+      <div>
+        <h3>Skąd są dane</h3>
+        <p>
+          Z dokumentów, które Prezydent przedłożył Radzie Miasta i opublikował w
+          <a href={b.meta.bip} rel="noopener">Biuletynie Informacji Publicznej</a>: projektu uchwały
+          budżetowej z załącznikami, uzasadnienia, materiałów informacyjnych oraz projektu wieloletniej
+          prognozy finansowej. Wykonanie budżetu z lat wcześniejszych pochodzi z Banku Danych Lokalnych GUS,
+          a inflacja do 2025 r. — z GUS (wskaźnik cen towarów i usług konsumpcyjnych dla Polski).
+        </p>
+        <h3>Jak sprawdzono liczby</h3>
+        <p>
+          Część dokumentów to skany, więc każdą tabelę sprawdzono sumami kontrolnymi: rozdziały muszą dać
+          dział, działy — sekcję, a sekcje — {mld(P.wydatki)}; wydatki bieżące i majątkowe muszą dać razem
+          całość w każdej z 13 dziedzin; dochody minus wydatki — wynik w każdym roku prognozy; a dług
+          na koniec roku — dług z poprzedniego roku plus kredyty minus spłaty. Wszystkie te rachunki
+          zgadzają się co do grosza.
+        </p>
+        <h3>Ceny z 2027 r.</h3>
+        <p>
+          Przeliczenie „po odjęciu inflacji" używa wskaźnika cen GUS za lata 2003–2025. Dla 2026 r.
+          przyjęto {pl(b.inflacja['2026'].w, 1)}%, a dla 2027 r. — {pl(b.inflacja['2027'].w, 1)}%, tak jak w założeniach
+          projektu budżetu; dla lat późniejszych — założenia z prognozy finansowej. To przybliżenie:
+          koszty miasta (płace, energia, budowy) nie rosną dokładnie tak jak ceny w sklepach.
+        </p>
+      </div>
+      <div>
+        <h3>Czego nie wolno z tych liczb wnioskować</h3>
+        <ul>
+          <li><strong>Plan to nie wykonanie.</strong> Lata do {ostatnieWykonanie} r. pokazują pieniądze wydane, 2026 r. — plan
+            z września, 2027 r. — projekt. Plan może zostać wykonany tylko w części, zwłaszcza w inwestycjach.</li>
+          <li><strong>Projekt a plan z września.</strong> Dotacje z budżetu państwa są dopisywane w ciągu roku,
+            dlatego dochody i część wydatków w projekcie są zaniżone względem tego, co pokaże plan za rok.
+            Miasto podaje, że wobec <em>projektu</em> na 2026 r. dochody rosną o 7,6%, a wydatki o 10,6%.</li>
+          <li><strong>Nowa klasyfikacja budżetowa.</strong> Od 2027 r. obowiązuje nowe rozporządzenie o klasyfikacji
+            dochodów i wydatków. Zestawienia według działów z latami wcześniejszymi są przez to przybliżone.</li>
+          <li><strong>Kolumna 2026 przy zadaniach bieżących</strong> nie obejmuje zadań, na które w 2027 r. nie ma
+            pieniędzy — dokument ich nie wymienia. Zadania inwestycyjne mają tylko kwotę na 2027 r.</li>
+          <li><strong>Suma zadań</strong> z wykazów to {mln(zadaniaPlik.zadania.reduce((s, z) => s + z.b, 0))} wobec {mln(P.wydatki)}
+            wydatków w projekcie uchwały. Różnicy dokumenty nie objaśniają.</li>
+        </ul>
+        <h3>Kiedy strona się zmieni</h3>
+        <p>
+          Po autopoprawkach i po uchwaleniu budżetu przez Radę Miasta dane trzeba wczytać ponownie —
+          dokumenty są plikami PDF, więc nie dzieje się to automatycznie. Datę stanu danych podajemy
+          na górze strony.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <script type="application/json" id="b27-dane" set:html={JSON.stringify(daneKlienta)} />
+</Baza>
+
+<style is:global>
+  .b27-skroty { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 18px; }
+  .b27-skroty a {
+    font-size: .82rem; text-decoration: none; color: var(--tekst-2);
+    padding: 5px 11px; border: 1px solid var(--linia-mocna); border-radius: 999px;
+    transition: color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .b27-skroty a:hover { color: var(--atrament); border-color: var(--atrament); background: var(--akcent-tlo); }
+  .b27-kpi { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  /* pięć kafli w rzędzie jest węższych niż zwykle cztery — kwota nie może się łamać przed „zł" */
+  .b27-kpi .wartosc { white-space: nowrap; font-size: clamp(1.3rem, 1.05rem + 1vw, 1.75rem); }
+  .b27-pasek { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+  .b27-wybor { display: inline-flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--tekst-2); }
+  .b27-wybor select { width: auto; }
+
+  .b27-legenda { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 10px 0 0; padding: 0; font-size: .8rem; color: var(--tekst-2); }
+  .b27-legenda li { display: inline-flex; align-items: center; gap: 7px; }
+  .b27-legenda i { width: 14px; height: 11px; border-radius: 1px; display: inline-block; box-sizing: border-box; }
+  .b27-legenda i.k-wykonanie { background: var(--blekit); }
+  .b27-legenda i.k-plan { background: var(--tekst-3); }
+  .b27-legenda i.k-projekt { background: var(--czerwien); }
+  .b27-legenda i.k-prognoza { background: var(--czerwien-tlo); border: 1.5px dashed var(--czerwien); }
+
+  /* różnice rok do roku: oś pośrodku, pasek w prawo = wzrost */
+  .b27-roznice { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 9px; }
+  .b27-roznice li { display: grid; grid-template-columns: minmax(0, 15rem) minmax(80px, 1fr) minmax(0, 13.5rem); gap: 12px; align-items: center; }
+  .b27-r-nazwa { color: var(--tekst-2); line-height: 1.3; text-wrap: pretty; }
+  .b27-r-os { position: relative; height: 16px; background: linear-gradient(var(--linia-mocna), var(--linia-mocna)) 50% 0 / 1px 100% no-repeat; }
+  .b27-r-os i { position: absolute; top: 2px; bottom: 2px; border-radius: 2px; min-width: 2px; }
+  .b27-r-os i.plus { background: var(--blekit); }
+  .b27-r-os i.minus { background: var(--zloto); }
+  .b27-r-wartosc { font-family: var(--mono); font-weight: 600; font-size: .82rem; white-space: nowrap; }
+  .b27-r-wartosc small { display: block; font-weight: 400; font-size: .72rem; color: var(--tekst-3); }
+  @media (max-width: 720px) {
+    .b27-roznice li { grid-template-columns: 1fr auto; gap: 3px 12px; }
+    .b27-r-os { grid-column: 1 / -1; order: 3; height: 12px; }
+    .b27-r-wartosc { text-align: right; }
+  }
+
+  .b27-suma td { font-weight: 700; }
+  .b27-sekcja td { font-weight: 600; background: var(--akcent-tlo); }
+  .b27-dochody details summary { cursor: pointer; }
+  .b27-dochody details summary::marker { color: var(--czerwien); }
+  .b27-skladniki { list-style: none; margin: 8px 0 4px; padding: 0; display: grid; gap: 5px; font-size: .84rem; color: var(--tekst-2); }
+  .b27-skladniki li { display: flex; justify-content: space-between; gap: 14px; border-top: 1px solid var(--linia); padding-top: 5px; }
+  .b27-skladniki .num { white-space: nowrap; font-family: var(--mono); font-size: .78rem; }
+  .b27-wiersz-projekt td { background: var(--czerwien-tlo); font-weight: 600; }
+
+  #dz-tbody tr { cursor: pointer; }
+  #dz-tbody tr:hover td { background: var(--akcent-tlo); }
+  #dz-tbody tr[aria-selected='true'] td { background: var(--czerwien-tlo); }
+  .b27-dz-pasek { display: block; height: 4px; margin-top: 5px; background: var(--linia); border-radius: 2px; overflow: hidden; }
+  .b27-dz-pasek i { display: block; height: 100%; background: var(--czerwien); border-radius: 2px; }
+  .b27-plus { color: var(--blekit); }
+  .b27-minus { color: var(--zloto); }
+
+  .b27-zadania { display: grid; gap: 8px; margin-top: 14px; }
+  .b27-zadanie { border: 1px solid var(--linia); border-radius: var(--r); background: var(--papier-2); }
+  .b27-zadanie > summary { list-style: none; cursor: pointer; padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: baseline; }
+  .b27-zadanie > summary::-webkit-details-marker { display: none; }
+  .b27-zadanie > summary:hover { background: var(--akcent-tlo); }
+  .b27-zadanie[open] > summary { border-bottom: 1px solid var(--linia); }
+  .b27-z-nazwa { font-weight: 600; line-height: 1.35; text-wrap: pretty; }
+  .b27-z-kwota { font-family: var(--mono); font-weight: 600; white-space: nowrap; text-align: right; }
+  .b27-z-kwota small { display: block; font-weight: 400; font-size: .74rem; color: var(--tekst-3); }
+  .b27-z-meta { grid-column: 1 / -1; font-size: .8rem; color: var(--tekst-3); }
+  .b27-z-trafienie { grid-column: 1 / -1; font-size: .84rem; color: var(--tekst-2); }
+  .b27-z-trafienie mark, .b27-z-tresc mark { background: var(--czerwien-tlo); color: inherit; border-radius: 2px; padding: 0 2px; }
+  .b27-z-tresc { padding: 12px 14px 14px; display: grid; gap: 12px; }
+  .b27-etap { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; }
+  .b27-etap strong { font-weight: 600; }
+  .b27-etap .kw { font-family: var(--mono); font-size: .84rem; white-space: nowrap; text-align: right; }
+  .b27-etap p { grid-column: 1 / -1; margin: 0; font-size: .86rem; color: var(--tekst-2); white-space: pre-line; line-height: 1.5; }
+  .b27-z-zrodlo { font-size: .76rem; color: var(--tekst-3); }
+</style>
+
+<script>
+  import { slupkowy, fmt, podmien } from '../lib/wykresy.js';
+
+  const D = JSON.parse(document.querySelector('#b27-dane').textContent);
+  const $ = (s) => document.querySelector(s);
+  const mln = (n, m = 1) => `${fmt.liczba(n / 1e6, m)} mln zł`;
+  const znak = (n) => (n >= 0 ? '+' : '−');
+  const procZmiany = (a, z) => (z ? `${znak(a - z)}${fmt.liczba(Math.abs((a / z - 1) * 100), 1)}%` : '—');
+
+  // ---------- ceny stałe ----------
+  // Mnożnik, który sprowadza kwotę z danego roku do cen z 2027 r. Przed 2027 mnożymy przez
+  // inflację lat następnych, po 2027 dzielimy przez inflację lat, które dopiero nadejdą.
+  const ROK_CEN = 2027;
+  const lataInflacji = Object.keys(D.inflacja).map(Number);
+  const INFL_OD = Math.min(...lataInflacji);
+  function doCen2027(rok) {
+    let m = 1;
+    if (rok < ROK_CEN) for (let r = rok + 1; r <= ROK_CEN; r++) m *= 1 + D.inflacja[r].w / 100;
+    else for (let r = ROK_CEN + 1; r <= rok; r++) m /= 1 + D.inflacja[r].w / 100;
+    return m;
+  }
+  const maInflacje = (rok) => rok >= INFL_OD - 1 && rok <= Math.max(...lataInflacji);
+
+  // ---------- jedna wielkość, wszystkie lata ----------
+  const MIARY = {
+    wydatki: 'Wydatki', dochody: 'Dochody', wynik: 'Nadwyżka albo deficyt',
+    wydatkiMajatkowe: 'Wydatki majątkowe (inwestycje)', wydatkiBiezace: 'Wydatki bieżące', dlug: 'Dług na koniec roku',
+  };
+  /** Wartość i jej rodzaj dla danego roku; null, gdy źródła jej nie podają. */
+  function wartosc(miara, rok) {
+    const r = String(rok);
+    if (rok >= 2027) return D.prognoza[miara]?.[r] != null ? { v: D.prognoza[miara][r], rodzaj: rok === 2027 ? 'projekt' : 'prognoza' } : null;
+    if (rok === 2026) return D.plan2026[miara] != null ? { v: D.plan2026[miara], rodzaj: 'plan' } : null;
+    if (miara === 'wynik') {
+      const d = D.wykonanie.dochody[r], w = D.wykonanie.wydatki[r];
+      return d != null && w != null ? { v: d - w, rodzaj: 'wykonanie' } : null;
+    }
+    const v = D.wykonanie[miara]?.[r];
+    return v != null ? { v, rodzaj: 'wykonanie' } : null;
+  }
+
+  let miara = 'wydatki';
+  function rysujOs() {
+    const realnie = $('#oc-ceny').value === 'realne';
+    const [od, doK] = $('#oc-zakres').value.split('-').map(Number);
+    const dane = [];
+    for (let rok = od; rok <= doK; rok++) {
+      const w = wartosc(miara, rok);
+      if (!w || (realnie && !maInflacje(rok))) continue;
+      const v = realnie ? w.v * doCen2027(rok) : w.v;
+      dane.push([String(rok), v, `k-${w.rodzaj}`, rok === 2027 ? fmt.skrot(v) : null]);
+    }
+    podmien('#oc-wykres', (szer) => slupkowy(dane, { wysokosc: szer < 520 ? 240 : 300, szerokosc: szer }));
+    const uwagi = [];
+    if (miara === 'dlug') uwagi.push('Dług pokazujemy od 2026 r. — wcześniejszych lat nie ma w dokumentach projektu.');
+    if (miara === 'wydatkiBiezace') uwagi.push('GUS podaje wydatki bieżące od 2008 r.');
+    if (realnie) uwagi.push('Kwoty przeliczone na ceny z 2027 r.; lata 2026–2050 według założeń inflacji z dokumentów budżetowych.');
+    $('#oc-uwaga').textContent = uwagi.join(' ');
+    $('#oc-uwaga').hidden = !uwagi.length;
+  }
+  for (const btn of document.querySelectorAll('[data-miara]')) {
+    btn.addEventListener('click', () => {
+      miara = btn.dataset.miara;
+      for (const x of document.querySelectorAll('[data-miara]')) x.setAttribute('aria-pressed', String(x === btn));
+      rysujOs();
+    });
+  }
+  $('#oc-ceny').addEventListener('change', rysujOs);
+  $('#oc-zakres').addEventListener('change', rysujOs);
+
+  // ---------- projekt 2027 wobec wybranego roku ----------
+  const lataWykonania = Object.keys(D.wykonanie.wydatki).map(Number).sort((a, b) => b - a);
+  const wyborRoku = $('#oc-rok');
+  wyborRoku.append(new Option('2026 (plan)', '2026'));
+  for (const r of lataWykonania) wyborRoku.append(new Option(`${r} (wykonanie)`, String(r)));
+  function tabelaRoku() {
+    const rok = Number(wyborRoku.value);
+    $('#oc-th-rok').textContent = rok === 2026 ? 'Plan 2026' : `Wykonanie ${rok}`;
+    const wiersze = ['dochody', 'wydatki', 'wydatkiBiezace', 'wydatkiMajatkowe', 'wynik'].map((m) => {
+      const a = wartosc(m, rok), z = wartosc(m, 2027);
+      const tr = document.createElement('tr');
+      const komorki = [MIARY[m]];
+      const zeZnakiem = (v) => `${znak(v)}${fmt.kwota(Math.abs(v))}`;
+      if (!a) komorki.push('brak danych', fmt.kwota(z.v), '—', '—');
+      else if (m === 'wynik') {
+        // przy wyniku procent nie ma sensu (zmiana znaku), więc podajemy różnicę w złotych
+        const real = maInflacje(rok) ? a.v * doCen2027(rok) : null;
+        komorki.push(zeZnakiem(a.v), zeZnakiem(z.v), zeZnakiem(z.v - a.v), real == null ? '—' : zeZnakiem(z.v - real));
+      } else {
+        const real = maInflacje(rok) ? a.v * doCen2027(rok) : null;
+        komorki.push(fmt.kwota(a.v), fmt.kwota(z.v), procZmiany(z.v, a.v), real == null ? '—' : procZmiany(z.v, real));
+      }
+      komorki.forEach((t, i) => { const td = document.createElement('td'); td.textContent = t; if (i) td.className = 'num'; tr.append(td); });
+      return tr;
+    });
+    $('#oc-tbody').replaceChildren(...wiersze);
+    const w = wartosc('wydatki', rok);
+    const opis = $('#oc-opis-roku');
+    if (w && maInflacje(rok)) {
+      const real = w.v * doCen2027(rok);
+      opis.textContent = `Ceny wzrosły między ${rok} a 2027 r. o ${fmt.liczba((doCen2027(rok) - 1) * 100, 0)}%`
+        + `${rok >= 2025 ? ' (częściowo według prognozy)' : ''}. Wydatki z ${rok} r. to w cenach z 2027 r. ${fmt.kwota(real)}`
+        + ` — projekt na 2027 r. jest od nich ${real < D.prognoza.wydatki['2027'] ? 'wyższy' : 'niższy'} o ${fmt.liczba(Math.abs(D.prognoza.wydatki['2027'] / real - 1) * 100, 1)}%.`
+        + (rok === 2026 ? '' : ' Porównujemy tu jednak plan z wykonaniem.');
+    } else opis.textContent = 'Dla tego roku nie mamy wskaźnika cen GUS, więc zmiany realnej nie liczymy.';
+  }
+  wyborRoku.addEventListener('change', tabelaRoku);
+
+  // ---------- 2027 wobec 2026 w dziedzinach ----------
+  function rysujRoznice(klucz) {
+    const poz = D.dziedziny[klucz].pozycje.map((d) => ({ ...d, r: d.p2027 - d.p2026 })).sort((a, b) => b.r - a.r);
+    const maks = Math.max(...poz.map((d) => Math.abs(d.r)));
+    $('#rdr-lista').replaceChildren(...poz.map((d) => {
+      const li = document.createElement('li');
+      const w = (Math.abs(d.r) / maks) * 50;
+      const nazwa = Object.assign(document.createElement('span'), { className: 'b27-r-nazwa', textContent: d.nazwa });
+      const os = Object.assign(document.createElement('span'), { className: 'b27-r-os' });
+      const pasek = document.createElement('i');
+      pasek.className = d.r >= 0 ? 'plus' : 'minus';
+      pasek.style.width = `${w}%`;
+      pasek.style.left = d.r >= 0 ? '50%' : `${50 - w}%`;
+      os.append(pasek);
+      const wart = Object.assign(document.createElement('span'), { className: 'b27-r-wartosc', textContent: `${znak(d.r)}${mln(Math.abs(d.r))}` });
+      wart.append(Object.assign(document.createElement('small'), {
+        textContent: `${fmt.liczba(d.p2026 / 1e6, 0)} → ${fmt.liczba(d.p2027 / 1e6, 0)} mln · ${procZmiany(d.p2027, d.p2026)}`,
+      }));
+      li.append(nazwa, os, wart);
+      return li;
+    }));
+  }
+  for (const btn of document.querySelectorAll('[data-rdr]')) {
+    btn.addEventListener('click', () => {
+      for (const x of document.querySelectorAll('[data-rdr]')) x.setAttribute('aria-pressed', String(x === btn));
+      rysujRoznice(btn.dataset.rdr);
+    });
+  }
+
+  // ---------- działy: projekt 2027 wobec wybranego roku ----------
+  // GUS podaje osobno 18 działów; resztę (m.in. rezerwy w dziale 758) zbieramy w „pozostałe",
+  // licząc ją jako różnicę do wydatków ogółem — tak samo dla obu lat.
+  const KLUCZ_GUS = (kod) => (kod === '926' ? ['d926b', 'd926'] : [`d${kod}`]);
+  const histDzialu = (kod, rok) => {
+    for (const k of KLUCZ_GUS(kod)) { const v = D.dzialyHistoria[k]?.[rok]; if (v != null) return v; }
+    return null;
+  };
+  const zHistoria = D.dzialy2027.filter((d) => KLUCZ_GUS(d.kod).some((k) => D.dzialyHistoria[k]));
+  const bezHistorii = D.dzialy2027.filter((d) => !zHistoria.includes(d));
+  const lataDzialow = Object.keys(D.dzialyHistoria.d_ogolem).map(Number).sort((a, b) => b - a);
+  const wyborDz = $('#dz-rok');
+  for (const r of lataDzialow) wyborDz.append(new Option(`${r} (wykonanie)`, String(r)));
+  let wybranyDzial = null;
+
+  function tabelaDzialow() {
+    const rok = wyborDz.value, tryb = $('#dz-tryb').value;
+    const ogolemA = D.dzialyHistoria.d_ogolem[rok], ogolemZ = D.prognoza.wydatki['2027'];
+    const mnoznik = tryb === 'realne' ? doCen2027(Number(rok)) : 1;
+    $('#dz-th-rok').textContent = `Wykonanie ${rok}`;
+    const wiersze = zHistoria.map((d) => ({ kod: d.kod, nazwa: `${d.kod} · ${d.nazwa}`, a: histDzialu(d.kod, rok), z: d.kwota }));
+    const sumaA = wiersze.reduce((s, w) => s + (w.a ?? 0), 0);
+    wiersze.push({
+      kod: null, nazwa: `Pozostałe działy, w tym rezerwy (${bezHistorii.map((d) => d.kod).sort().join(', ')})`,
+      a: ogolemA - sumaA, z: bezHistorii.reduce((s, d) => s + d.kwota, 0),
+    });
+    wiersze.sort((x, y) => y.z - x.z);
+    wiersze.push({ kod: null, nazwa: 'Wydatki ogółem', a: ogolemA, z: ogolemZ, suma: true });
+    const maks = Math.max(...wiersze.filter((w) => !w.suma).map((w) => w.z));
+    $('#dz-tbody').replaceChildren(...wiersze.map((w) => {
+      const tr = document.createElement('tr');
+      if (w.suma) tr.className = 'b27-suma';
+      if (w.kod) { tr.dataset.kod = w.kod; tr.tabIndex = 0; tr.setAttribute('aria-selected', String(w.kod === wybranyDzial)); }
+      else tr.style.cursor = 'default';
+      const nazwa = document.createElement('td');
+      nazwa.textContent = w.nazwa;
+      if (!w.suma) {
+        const pasek = Object.assign(document.createElement('span'), { className: 'b27-dz-pasek' });
+        const i = document.createElement('i'); i.style.width = `${(w.z / maks) * 100}%`; pasek.append(i); nazwa.append(pasek);
+      }
+      let ta, tz, zm, klasa = '';
+      if (w.a == null) { ta = 'brak'; tz = tryb === 'udzial' ? fmt.proc((w.z / ogolemZ) * 100) : mln(w.z); zm = '—'; }
+      else if (tryb === 'udzial') {
+        const ua = (w.a / ogolemA) * 100, uz = (w.z / ogolemZ) * 100;
+        ta = fmt.proc(ua); tz = fmt.proc(uz);
+        zm = w.suma ? '—' : `${znak(uz - ua)}${fmt.liczba(Math.abs(uz - ua), 1)} pkt proc.`;
+        klasa = w.suma ? '' : uz >= ua ? 'b27-plus' : 'b27-minus';
+      } else {
+        const a = w.a * mnoznik;
+        ta = mln(a); tz = mln(w.z); zm = a > 0 ? procZmiany(w.z, a) : '—';
+        klasa = w.z >= a ? 'b27-plus' : 'b27-minus';
+      }
+      const komorki = [ta, tz, zm].map((t, i) => Object.assign(document.createElement('td'), { className: `num${i === 2 && klasa ? ` ${klasa}` : ''}`, textContent: t }));
+      tr.append(nazwa, ...komorki);
+      return tr;
+    }));
+    if (wybranyDzial) wykresDzialu(wybranyDzial);
+  }
+  function wykresDzialu(kod) {
+    wybranyDzial = kod;
+    const d = D.dzialy2027.find((x) => x.kod === kod);
+    const realnie = $('#dz-tryb').value === 'realne', udzial = $('#dz-tryb').value === 'udzial';
+    const dane = [...lataDzialow].reverse().map((r) => {
+      const v = histDzialu(kod, r);
+      if (v == null) return null;
+      const w = udzial ? (v / D.dzialyHistoria.d_ogolem[r]) * 100 : realnie ? v * doCen2027(r) : v;
+      return [String(r), w, 'k-wykonanie', null];
+    }).filter(Boolean);
+    const z = udzial ? (d.kwota / D.prognoza.wydatki['2027']) * 100 : d.kwota;
+    const format = udzial ? (n) => fmt.proc(n) : fmt.skrot;
+    dane.push(['2027', z, 'k-projekt', format(z)]);
+    $('#dz-szczegol').hidden = false;
+    $('#dz-szczegol-tytul').textContent = `${d.kod} · ${d.nazwa}${udzial ? ' — udział w wydatkach' : realnie ? ' — w cenach z 2027 r.' : ''}`;
+    podmien('#dz-wykres', (szer) => slupkowy(dane, { wysokosc: 220, szerokosc: szer, formatY: format }));
+    for (const tr of document.querySelectorAll('#dz-tbody tr[data-kod]')) tr.setAttribute('aria-selected', String(tr.dataset.kod === kod));
+  }
+  $('#dz-tbody').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-kod]'); if (tr) wykresDzialu(tr.dataset.kod); });
+  $('#dz-tbody').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const tr = e.target.closest('tr[data-kod]'); if (tr) { e.preventDefault(); wykresDzialu(tr.dataset.kod); }
+  });
+  wyborDz.addEventListener('change', tabelaDzialow);
+  $('#dz-tryb').addEventListener('change', tabelaDzialow);
+
+  // ---------- dług ----------
+  const dlug = [['2026', D.plan2026.dlug, 'k-plan', null]];
+  for (const [r, v] of Object.entries(D.prognoza.dlug)) if (Number(r) <= 2040) dlug.push([r, v, r === '2027' ? 'k-projekt' : 'k-prognoza', r === '2027' ? fmt.skrot(v) : null]);
+  podmien('#dl-wykres', (szer) => slupkowy(dlug, { wysokosc: 230, szerokosc: szer }));
+
+  // ---------- wyszukiwarka zadań ----------
+  const bezOgonkow = (s) => (s || '').toLowerCase()
+    .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e').replace(/ł/g, 'l')
+    .replace(/ń/g, 'n').replace(/ó/g, 'o').replace(/ś/g, 's').replace(/[żź]/g, 'z');
+  const escapuj = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const NA_STRONE = 30;
+  let zadania = null, typ = 'P', pokazane = NA_STRONE, wynik = [];
+
+  /**
+   * Zapytanie → rdzenie słów. Czytelnik wpisze „Bobrownicka", a w opisie stoi „w ul. Bobrownickiej",
+   * więc dłuższym słowom obcinamy końcówkę i szukamy po początku wyrazu. Wszystkie słowa muszą
+   * wystąpić. To zgrubne (złapie też wyrazy pokrewne), ale lepiej pokazać za dużo niż nic.
+   */
+  function rdzenie(zapytanie) {
+    return bezOgonkow(zapytanie).split(/[^a-z0-9]+/).filter((w) => w.length > 1)
+      .map((w) => (w.length >= 6 ? w.slice(0, -2) : w.length >= 4 ? w.slice(0, -1) : w));
+  }
+  const pasuje = (plaski, rdz) => rdz.every((r) => plaski.includes(r));
+  /** Zaznacza trafienia; pozycje liczymy na tekście bez ogonków (ta sama długość), wycinamy z oryginału. */
+  function zaznacz(tekst, rdz) {
+    if (!rdz?.length) return escapuj(tekst);
+    const plaski = bezOgonkow(tekst);
+    const zakresy = [];
+    for (const r of rdz) {
+      let k = -1;
+      while ((k = plaski.indexOf(r, k + 1)) !== -1) {
+        if (k > 0 && /[a-z0-9]/.test(plaski[k - 1])) continue;      // tylko początek wyrazu
+        let kon = k + r.length;
+        while (kon < plaski.length && /[a-z0-9]/.test(plaski[kon])) kon++;
+        zakresy.push([k, kon]);
+      }
+    }
+    if (!zakresy.length) return escapuj(tekst);
+    zakresy.sort((a, b) => a[0] - b[0]);
+    let out = '', i = 0;
+    for (const [od, doK] of zakresy) {
+      if (od < i) continue;
+      out += `${escapuj(tekst.slice(i, od))}<mark>${escapuj(tekst.slice(od, doK))}</mark>`;
+      i = doK;
+    }
+    return out + escapuj(tekst.slice(i));
+  }
+  function fragment(z, rdz) {
+    for (const t of [z.o, ...(z.d ?? []).flatMap((d) => [d.n, d.o])]) {
+      if (!t) continue;
+      const k = bezOgonkow(t).indexOf(rdz[0]);
+      if (k === -1) continue;
+      const od = Math.max(0, k - 70), doK = Math.min(t.length, k + rdz[0].length + 100);
+      return `${od ? '…' : ''}${zaznacz(t.slice(od, doK).replace(/\s+/g, ' '), rdz)}${doK < t.length ? '…' : ''}`;
+    }
+    return null;
+  }
+  function elementZadania(z, fraza) {
+    const det = document.createElement('details');
+    det.className = 'b27-zadanie';
+    const zm = z.r === 'B' && z.a ? `<small>${fmt.liczba(z.a / 1e6, 1)} mln w 2026 · ${procZmiany(z.b, z.a)}</small>` : '';
+    const wNazwie = !fraza.length || pasuje(bezOgonkow(`${z.n} ${z.k} ${z.j}`), fraza);
+    const traf = fraza.length && !wNazwie ? fragment(z, fraza) : null;
+    det.innerHTML = `<summary>
+        <span class="b27-z-nazwa">${zaznacz(z.n, fraza)}</span>
+        <span class="b27-z-kwota">${mln(z.b, z.b < 1e5 ? 3 : z.b < 1e7 ? 2 : 1)}${zm}</span>
+        <span class="b27-z-meta">${escapuj(z.k)} · ${zaznacz(z.j, fraza)}</span>
+        ${traf ? `<span class="b27-z-trafienie">${traf}</span>` : ''}
+      </summary>`;
+    // treść budujemy dopiero przy rozwinięciu — przy kilkuset zadaniach to realna różnica
+    det.addEventListener('toggle', () => {
+      if (!det.open || det.querySelector('.b27-z-tresc')) return;
+      const tresc = document.createElement('div');
+      tresc.className = 'b27-z-tresc';
+      const czesci = z.d?.length ? z.d : [{ n: '', b: z.b, a: z.a, o: z.o }];
+      tresc.innerHTML = czesci.map((d) => `<div class="b27-etap">
+          <strong>${zaznacz(d.n || z.n, fraza)}</strong>
+          <span class="kw">${d.b != null ? fmt.zl(d.b) : '—'}${z.r === 'B' && d.a != null ? ` <span class="drobne">(2026: ${fmt.zl(d.a)})</span>` : ''}</span>
+          ${d.o ? `<p>${zaznacz(d.o, fraza)}</p>` : ''}
+        </div>`).join('')
+        + `<p class="b27-z-zrodlo">Źródło: Materiały informacyjne do projektu budżetu na 2027 r., cz. 1, strona ${z.s} pliku PDF.</p>`;
+      det.append(tresc);
+    });
+    return det;
+  }
+  function filtruj() {
+    if (!zadania) return;
+    const fraza = rdzenie($('#z-fraza').value);
+    const jednostka = $('#z-jednostka').value;
+    let sort = $('#z-sort').value;
+    if (typ === 'P' && (sort === 'wzrost' || sort === 'spadek')) sort = 'kwota';
+    wynik = zadania.filter((z) => z.r === typ && (!jednostka || z.j === jednostka) && (!fraza.length || pasuje(z._s, fraza)));
+    const klucz = { kwota: (a, b) => b.b - a.b, nazwa: (a, b) => a.n.localeCompare(b.n, 'pl'),
+      wzrost: (a, b) => (b.b - (b.a ?? 0)) - (a.b - (a.a ?? 0)), spadek: (a, b) => (a.b - (a.a ?? 0)) - (b.b - (b.a ?? 0)) }[sort];
+    wynik.sort(klucz);
+    pokazane = NA_STRONE;
+    rysujZadania(fraza);
+    const p = new URLSearchParams(location.search);
+    for (const [k, v] of [['q', $('#z-fraza').value.trim()], ['typ', typ === 'P' ? '' : typ], ['jednostka', jednostka]]) v ? p.set(k, v) : p.delete(k);
+    history.replaceState(null, '', `${p.toString() ? `?${p}` : location.pathname}${location.hash}`);
+  }
+  function rysujZadania(fraza = rdzenie($('#z-fraza').value)) {
+    $('#z-lista').replaceChildren(...wynik.slice(0, pokazane).map((z) => elementZadania(z, fraza)));
+    const suma = wynik.reduce((s, z) => s + z.b, 0);
+    $('#z-licznik').textContent = wynik.length
+      ? `Znaleziono ${fmt.liczba(wynik.length)} ${fmt.odmien(wynik.length, ['zadanie', 'zadania', 'zadań'])} na łączną kwotę ${fmt.kwota(suma)} w 2027 r.`
+        + (fraza.length ? ' Kwota dotyczy całych zadań, a nie tylko fragmentu z szukanym słowem.' : '')
+      : 'Brak zadań dla tych kryteriów. Spróbuj krótszej frazy albo drugiej zakładki.';
+    const zostalo = wynik.length - pokazane;
+    $('#z-wiecej').hidden = zostalo <= 0;
+    $('#z-wiecej').textContent = `Pokaż kolejne ${Math.min(NA_STRONE, zostalo)} (z ${fmt.liczba(Math.max(zostalo, 0))} pozostałych)`;
+  }
+  function slownikJednostek() {
+    const sel = $('#z-jednostka'), biezaca = sel.value;
+    const nazwy = [...new Set(zadania.filter((z) => z.r === typ).map((z) => z.j))].sort((a, b) => a.localeCompare(b, 'pl'));
+    sel.replaceChildren(new Option('wszystkie', ''));
+    for (const n of nazwy) sel.append(new Option(n.length > 58 ? `${n.slice(0, 57)}…` : n, n));
+    if (nazwy.includes(biezaca)) sel.value = biezaca;
+    for (const o of $('#z-sort').options) o.hidden = o.dataset.tylko === 'B' && typ !== 'B';
+    if ($('#z-sort').selectedOptions[0]?.hidden) $('#z-sort').value = 'kwota';
+  }
+  async function wczytajZadania() {
+    if (zadania) return;
+    try {
+      const d = await (await fetch('/dane/budzet2027/zadania.json')).json();
+      for (const z of d.zadania) z._s = bezOgonkow([z.k, z.n, z.j, z.o, ...(z.d ?? []).flatMap((x) => [x.n, x.o])].filter(Boolean).join(' '));
+      zadania = d.zadania;
+      slownikJednostek();
+      const j = new URLSearchParams(location.search).get('jednostka');
+      if (j) $('#z-jednostka').value = j;
+      filtruj();
+    } catch {
+      $('#z-licznik').textContent = 'Nie udało się wczytać listy zadań. Odśwież stronę.';
+    }
+  }
+  for (const btn of document.querySelectorAll('[data-typ]')) {
+    btn.addEventListener('click', () => {
+      typ = btn.dataset.typ;
+      for (const x of document.querySelectorAll('[data-typ]')) x.setAttribute('aria-pressed', String(x === btn));
+      if (zadania) { slownikJednostek(); filtruj(); }
+    });
+  }
+  let timer;
+  $('#z-fraza').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(filtruj, 160); });
+  $('#z-jednostka').addEventListener('change', filtruj);
+  $('#z-sort').addEventListener('change', filtruj);
+  $('#z-wiecej').addEventListener('click', () => { pokazane += NA_STRONE; rysujZadania(); });
+
+  // stan z adresu: link do konkretnego wyszukiwania ma działać od razu
+  const adres = new URLSearchParams(location.search);
+  if (adres.get('q')) $('#z-fraza').value = adres.get('q');
+  if (adres.get('typ') === 'B') {
+    typ = 'B';
+    for (const x of document.querySelectorAll('[data-typ]')) x.setAttribute('aria-pressed', String(x.dataset.typ === 'B'));
+  }
+  // lista zadań jest duża — doczytujemy ją, gdy czytelnik zbliża się do wyszukiwarki albo przyszedł z linkiem
+  if (adres.get('q') || adres.get('jednostka') || location.hash === '#zadania') wczytajZadania();
+  else if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((wpisy) => { if (wpisy.some((w) => w.isIntersecting)) { io.disconnect(); wczytajZadania(); } }, { rootMargin: '600px' });
+    io.observe($('#zadania'));
+  } else wczytajZadania();
+
+  // ---------- start ----------
+  wyborRoku.value = String(lataWykonania[0]);
+  wyborDz.value = String(lataDzialow[0]);
+  rysujOs();
+  tabelaRoku();
+  tabelaDzialow();
+  // Wykresy i tabele powstają dopiero tutaj i przesuwają treść w dół, więc wejście z kotwicą
+  // (#dlug, #zadania…) lądowało za wysoko. Po narysowaniu wracamy we właściwe miejsce.
+  if (location.hash.length > 1) {
+    try { document.querySelector(location.hash)?.scrollIntoView(); } catch { /* kotwica spoza strony */ }
+  }
+</script>

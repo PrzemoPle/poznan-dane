@@ -1,6 +1,9 @@
 ---
 import Baza from '../layouts/Baza.astro';
 import bdl from '../../public/dane/bdl.json';
+import budzet2027 from '../../data/budzet2027/zbiorcze.json';
+
+const projekt2027 = budzet2027.projekt2027;
 import badam from '../../public/dane/badam.json';
 
 const p = bdl.miasta.poznan;
@@ -32,6 +35,12 @@ const lataBadam = [...new Set(budzetBadam.pozycje.flatMap((x) => Object.keys(x.w
     <p class="lid">
       Wykonanie budżetu od 1995 roku według sprawozdawczości GUS, zestawione z tabelami
       Urzędu Miasta. Dwa niezależne źródła w jednym miejscu — jeśli się rozjeżdżają, widać to od razu.
+    </p>
+    <p class="zapowiedz">
+      <span class="nav-znacznik">projekt</span>
+      Jest projekt budżetu na 2027 rok: {(projekt2027.wydatki / 1e9).toLocaleString('pl-PL', { maximumFractionDigits: 2 })} mld zł wydatków
+      i {(-projekt2027.wynik / 1e9).toLocaleString('pl-PL', { maximumFractionDigits: 2 })} mld zł deficytu.
+      <a href="/budzet-2027/">Zobacz i porównaj z poprzednimi latami</a>
     </p>
   </section>
 

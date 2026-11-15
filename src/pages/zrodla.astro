@@ -1,5 +1,6 @@
 ---
 import pbo from '../../data/pbo/pozycje.json';
+import budzet2027 from '../../data/budzet2027/zbiorcze.json';
 import Baza from '../layouts/Baza.astro';
 import katalog from '../../public/dane/katalog.json';
 import podsumowanie from '../../public/dane/podsumowanie.json';
@@ -83,6 +84,16 @@ const zrodla = [
     zakres: `${pbo.pozycje.length} niezakończonych projektów z edycji PBO16–PBO26, stan na ${pbo.meta.stan_na}`,
     metoda: 'Miasto publikuje co kwartał tabele PDF, osobno dla każdej edycji — bez danych do automatycznego pobrania. Każdą tabelę odczytano dwa razy niezależnie (parserem tabel i jako tekst PDF); poziom weryfikacji A, B albo C przy każdej pozycji mówi, czy odczyty się zgadzają. Liczbę pozycji w tabelach porównano z liczbą zwycięskich projektów z raportów ewaluacji.',
     zastrzezenia: 'Opisy stanu mają jedno źródło — tabele miasta. Tabela PBO26 ma rozjechany układ, więc część jej kwot jest niepewna i oznaczona; kwot PBO26 nie należy sumować. Dane aktualizujemy raz na kwartał, z ręczną kontrolą, a nie automatem.',
+  },
+  {
+    klucz: 'budzet2027',
+    nazwa: 'Projekt budżetu na 2027 r. i wieloletniej prognozy finansowej',
+    gospodarz: 'Prezydent Miasta Poznania',
+    url: budzet2027.meta.bip,
+    api: null,
+    zakres: `Projekt uchwały budżetowej z załącznikami, uzasadnienie, materiały informacyjne i projekt WPF na lata 2027–2050; stan na ${budzet2027.meta.stanNa.split('-').reverse().join('.')}`,
+    metoda: 'Dokumenty są plikami PDF, częściowo skanami. Tabele odczytano programowo i każdą sprawdzono sumami kontrolnymi: rozdziały do działu, działy do sekcji i do wydatków ogółem, wydatki bieżące i majątkowe do całości, dochody minus wydatki do wyniku w każdym roku prognozy, a dług — przez kredyty i spłaty. Odczyt przerywa się na pierwszej niezgodności.',
+    zastrzezenia: 'To projekt, nie uchwalony budżet — kwoty mogą się zmienić do głosowania Rady Miasta, a strona nie odświeża się sama. Porównania z 2026 r. odnoszą się do planu z 30 września, z latami wcześniejszymi — do wykonania według GUS. Od 2027 r. obowiązuje nowa klasyfikacja budżetowa, więc zestawienia według działów są przybliżone.',
   },
 ];
 ---

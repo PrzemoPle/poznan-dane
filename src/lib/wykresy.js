@@ -158,7 +158,12 @@ export function liniowy(serie, { wysokosc = 260, szerokosc = 900, formatY = fmt.
   return svg;
 }
 
-/** Pionowe słupki: dane = [[etykieta, wartość], …] */
+/**
+ * Pionowe słupki: dane = [[etykieta, wartość, klasa?, podpis?], …].
+ * `klasa` pozwala odróżnić w CSS słupki innego rodzaju (np. wykonanie, plan, prognoza)
+ * — wtedy kolor z arkusza stylów ma pierwszeństwo przed `kolor`. `podpis` to tekst nad
+ * wybranym słupkiem, dla wartości, które mają być widoczne bez najeżdżania kursorem.
+ */
 export function slupkowy(dane, {
   wysokosc = 240, szerokosc = 900, formatY = fmt.skrot,
   kolor = PALETA[0], kolorUjemny = '#1f5d8c',
@@ -184,18 +189,23 @@ export function slupkowy(dane, {
   }
 
   const co = krokEtykiet(dane.map((d) => d[0]), W);
-  dane.forEach(([etykieta, v], i) => {
+  dane.forEach(([etykieta, v, klasa, podpis], i) => {
     const cx = M.p + (i + 0.5) * (W / dane.length);
     const gora = v >= 0 ? y(v) : y(0);
     const wys = Math.abs(y(v) - y(0));
     const slupek = el('rect', {
       x: cx - szer / 2, y: gora, width: szer, height: Math.max(1, wys),
       fill: v >= 0 ? kolor : kolorUjemny, rx: 1,
-      class: v >= 0 ? 's-dodatni' : 's-ujemny',
+      class: `${v >= 0 ? 's-dodatni' : 's-ujemny'}${klasa ? ` ${klasa}` : ''}`,
       style: `--i:${i}`,
     });
     slupek.append(el('title', {}, `${etykieta}: ${formatY(v)}`));
     svg.append(slupek);
+    if (podpis) {
+      svg.append(el('text', {
+        x: cx, y: v >= 0 ? gora - 5 : gora + wys + 12, 'text-anchor': 'middle', class: 'podpis-slupka',
+      }, podpis));
+    }
     if (!(i % co) || i === dane.length - 1) {
       svg.append(el('text', { x: cx, y: wysokosc - 8, 'text-anchor': 'middle', 'font-size': 11 }, etykieta));
     }

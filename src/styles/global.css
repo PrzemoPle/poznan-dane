@@ -203,6 +203,26 @@ a:hover { color: var(--czerwien); }
 .nawigacja a:hover::after { transform: scaleX(.6); }
 .nawigacja a[aria-current='page'] { color: var(--atrament); font-weight: 600; }
 .nawigacja a[aria-current='page']::after { transform: scaleX(1); }
+/* Pozycja tymczasowa (projekt budżetu): obrys w kolorze akcentu i znacznik, żeby było widać,
+   że to nie jest stały dział serwisu. */
+.nawigacja a.wyrozniona {
+  color: var(--atrament); font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--czerwien);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.nawigacja a.wyrozniona:hover { background: var(--czerwien-tlo); }
+.nawigacja a.wyrozniona::after { display: none; }
+.nawigacja a.wyrozniona[aria-current='page'] { background: var(--czerwien-tlo); }
+.zapowiedz {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+  margin-top: 16px; padding: 10px 14px; max-width: 74ch;
+  border: 1px solid var(--czerwien); border-radius: var(--r); background: var(--czerwien-tlo);
+  font-size: .92rem;
+}
+.nav-znacznik {
+  font-family: var(--mono); font-size: .6rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--papier); background: var(--czerwien); padding: 2px 5px; border-radius: 2px; line-height: 1.2;
+}
 
 /* przełącznik motywu — trzy stany: auto, jasny, ciemny */
 .motyw {
@@ -534,6 +554,12 @@ section { margin: 56px 0; }
 /* ---------- wykresy ---------- */
 svg.wykres { display: block; width: 100%; height: auto; overflow: visible; }
 svg.wykres text { font-family: var(--mono); font-size: 10.5px; fill: var(--tekst-2); }
+svg.wykres text.podpis-slupka { font-weight: 600; fill: var(--tekst); }
+/* rodzaje słupków na osi czasu: to, co wykonano, różni się od planu, projektu i prognozy */
+svg.wykres rect.k-wykonanie { fill: var(--blekit); }
+svg.wykres rect.k-plan { fill: var(--tekst-3); }
+svg.wykres rect.k-projekt { fill: var(--czerwien); }
+svg.wykres rect.k-prognoza { fill: var(--czerwien-tlo); stroke: var(--czerwien); stroke-width: 1.2; stroke-dasharray: 3 2; }
 
 @media (prefers-reduced-motion: no-preference) {
   /* linia rysuje się od lewej (pathLength=1 ustawiane w JS) */
@@ -563,10 +589,11 @@ svg.wykres text { font-family: var(--mono); font-size: 10.5px; fill: var(--tekst
 @keyframes rosnij-x { from { scale: 0 1; } to { scale: 1 1; } }
 
 /* ---------- responsywność ---------- */
-/* Siedem pozycji menu i przełącznik motywu nie mieszczą się obok logo poniżej ~1120 px:
-   menu zawijało się, a przełącznik spadał pod spód. W tym zakresie menu dostaje własny
-   rząd pod logo — w jednej linii, a gdy i tak brakuje miejsca, przewijany w poziomie. */
-@media (max-width: 1120px) and (min-width: 721px) {
+/* Osiem pozycji menu (w tym wyróżniony „Budżet 2027") i przełącznik motywu nie mieszczą się
+   obok logo poniżej ~1280 px: menu zawijało się, a przełącznik spadał pod spód. W tym zakresie
+   menu dostaje własny rząd pod logo — w jednej linii, a gdy i tak brakuje miejsca, przewijany
+   w poziomie. Próg trzeba sprawdzić pomiarem po każdej zmianie liczby pozycji. */
+@media (max-width: 1279px) and (min-width: 721px) {
   .szczyt-rzad { height: auto; flex-wrap: wrap; row-gap: 2px; padding-block: 10px 6px; }
   .nawigacja {
     flex-basis: 100%; margin-left: 0; margin-inline: -12px;
@@ -602,5 +629,8 @@ svg.wykres text { font-family: var(--mono); font-size: 10.5px; fill: var(--tekst
   .nawigacja a[aria-current='page'] {
     background: var(--atrament); color: var(--papier); border-color: var(--atrament);
   }
+  .nawigacja a.wyrozniona { border-color: var(--czerwien); box-shadow: none; }
+  .nawigacja a.wyrozniona[aria-current='page'] { background: var(--czerwien); color: var(--papier); border-color: var(--czerwien); }
+  .nawigacja a.wyrozniona[aria-current='page'] .nav-znacznik { background: var(--papier); color: var(--czerwien); }
   section { margin: 40px 0; }
 }
