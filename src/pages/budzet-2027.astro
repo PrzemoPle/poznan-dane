@@ -442,14 +442,19 @@ const REZERWA_OSIEDLI = { wolne: 60628014, drogi: 52299206 };
 
   <section id="osiedla">
     <h2>Osiedla: sprawdź swoje albo porównaj dwa</h2>
-    <p class="drobne" style="margin-top:-8px;max-width:74ch">
-      Projekt budżetu nie dzieli inwestycji ogólnomiejskich ({mld(P.wydatkiMajatkowe)}) według osiedli —
-      przy linii tramwajowej, szkole czy moście dokumenty nie podają osiedla. Wprost przypisane do osiedli
-      są tylko zadania, które rady osiedli zleciły ze swoich pieniędzy wydziałom i jednostkom miasta,
-      razem z programem budowy dróg lokalnych: {mln(OS.meta.razem2027)} w 2027 r. w {OS.meta.pozycji} pozycjach,
-      z czego {mln(OS.meta.majatkowe2027)} to inwestycje (budowy, modernizacje, trwałe zakupy). Te pieniądze
-      pokazujemy poniżej.
-    </p>
+    <div class="b27-uwaga" role="note">
+      <p>
+        <span class="nav-znacznik">ograniczenie</span>
+        <strong>To nie są wszystkie pieniądze wydawane na osiedlach.</strong> Projekt budżetu nie dzieli
+        inwestycji ogólnomiejskich ({mld(P.wydatkiMajatkowe)}) na osiedla. Przy linii tramwajowej, szkole czy
+        moście dokumenty nie podają osiedla, więc takiego podziału nie da się rzetelnie zrobić.
+      </p>
+      <p>
+        Wprost przypisane do osiedli są tylko zadania zlecone przez rady osiedli i program budowy dróg
+        lokalnych: {mln(OS.meta.razem2027)} w 2027 r. w {OS.meta.pozycji} pozycjach, z czego {mln(OS.meta.majatkowe2027)} to
+        inwestycje (budowy, modernizacje, trwałe zakupy). Poniżej pokazujemy wyłącznie te pieniądze.
+      </p>
+    </div>
     <div class="karta cien" style="padding:16px 18px">
       <div class="siatka" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
         <label class="pole">Osiedle
@@ -700,6 +705,16 @@ const REZERWA_OSIEDLI = { wolne: 60628014, drogi: 52299206 };
   .b27-dz-pasek i { display: block; height: 100%; background: var(--czerwien); border-radius: 2px; }
   .b27-plus { color: var(--blekit); }
   .b27-minus { color: var(--zloto); }
+
+  /* zastrzeżenie, którego nie wolno przeoczyć — pełny rozmiar tekstu, nie drobny druk */
+  .b27-uwaga {
+    margin: 0 0 16px; padding: 14px 16px; max-width: 78ch;
+    border: 1px solid var(--czerwien); border-left-width: 4px; border-radius: var(--r);
+    background: var(--czerwien-tlo); color: var(--tekst); line-height: 1.55;
+  }
+  .b27-uwaga p { margin: 0; }
+  .b27-uwaga p + p { margin-top: 8px; }
+  .b27-uwaga .nav-znacznik { margin-right: 6px; }
 
   /* osiedla: panel jednego albo dwóch osiedli */
   .b27-os-panel { margin-top: 16px; display: grid; gap: 22px 32px; }
@@ -1196,7 +1211,7 @@ const REZERWA_OSIEDLI = { wolne: 60628014, drogi: 52299206 };
     return `<article class="b27-os-kol kpi">
         <h3>${escapuj(o.n)}</h3>
         <span class="wartosc">${zlote(d.razem)}</span>
-        <span class="opis">w 2027 r. · ${z.length} ${fmt.odmien(z.length, ['pozycja', 'pozycje', 'pozycji'])} w wykazie</span>
+        <span class="opis">w 2027 r. z pieniędzy osiedla · ${z.length} ${fmt.odmien(z.length, ['pozycja', 'pozycje', 'pozycji'])} · bez inwestycji ogólnomiejskich</span>
         <dl class="b27-os-liczby">
           <div><dt>Inwestycje</dt><dd>${zlote(d.inwestycje)}</dd></div>
           <div><dt>w tym drogi lokalne</dt><dd>${zlote(d.drogi)}</dd></div>
