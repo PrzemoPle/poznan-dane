@@ -589,11 +589,12 @@ svg.wykres rect.k-prognoza { fill: var(--czerwien-tlo); stroke: var(--czerwien);
 @keyframes rosnij-x { from { scale: 0 1; } to { scale: 1 1; } }
 
 /* ---------- responsywność ---------- */
-/* Osiem pozycji menu (w tym wyróżniony „Budżet 2027") i przełącznik motywu nie mieszczą się
-   obok logo poniżej ~1280 px: menu zawijało się, a przełącznik spadał pod spód. W tym zakresie
-   menu dostaje własny rząd pod logo — w jednej linii, a gdy i tak brakuje miejsca, przewijany
-   w poziomie. Próg trzeba sprawdzić pomiarem po każdej zmianie liczby pozycji. */
-@media (max-width: 1279px) and (min-width: 721px) {
+/* Dziewięć pozycji menu i przełącznik motywu potrzebują ok. 1225 px obok logo, a kolumna treści
+   ma najwyżej 1152 px — w jednym rzędzie z logo nie mieszczą się już przy żadnej szerokości okna
+   (ostatnia pozycja spadała pod spód). Dlatego od 721 px menu ma zawsze własny rząd pod logo:
+   w jednej linii, a gdy brakuje miejsca, przewijany w poziomie. Kolejne pozycje nie wymagają
+   już zmiany progu. */
+@media (min-width: 721px) {
   .szczyt-rzad { height: auto; flex-wrap: wrap; row-gap: 2px; padding-block: 10px 6px; }
   .nawigacja {
     flex-basis: 100%; margin-left: 0; margin-inline: -12px;

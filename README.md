@@ -148,6 +148,11 @@ src/lib/wykresy.js  wykresy SVG bez bibliotek zewnętrznych
   Aktualizacja ręczna raz na kwartał: układ tych tabel jest zawodny (PBO26 przesuwa kwoty
   między wierszami), więc automat pokazałby przestawione liczby.
 
+- **Migracje (`/migracje/`).** Przeprowadzki z Poznania i do Poznania 2020–2025 według GUS (Baza
+  Demografia + BDL). Zbiór `data/migracje/dane.json` zestawiono jednorazowo — opis pól, źródeł
+  i wykonanych kontroli w `data/migracje/README.md`. W repozytorium nie ma skryptu, który go
+  odtwarza; po publikacji danych za 2026 r. trzeba go zbudować od nowa.
+
 - **Budżet 2027 (`/budzet-2027/`).** Jednorazowy odczyt projektu budżetu i projektu WPF z plików
   PDF (stan na 13.11.2026), w tym wykazu zadań 42 osiedli; parsery i opis pułapek w `etl/budzet2027/`, dane w `data/budzet2027/`
   i `public/dane/budzet2027/`. Po autopoprawce albo uchwaleniu budżetu odczyt trzeba powtórzyć

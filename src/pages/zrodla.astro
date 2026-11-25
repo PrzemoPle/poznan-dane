@@ -86,6 +86,16 @@ const zrodla = [
     zastrzezenia: 'Opisy stanu mają jedno źródło — tabele miasta. Tabela PBO26 ma rozjechany układ, więc część jej kwot jest niepewna i oznaczona; kwot PBO26 nie należy sumować. Dane aktualizujemy raz na kwartał, z ręczną kontrolą, a nie automatem.',
   },
   {
+    klucz: 'migracje',
+    nazwa: 'Migracje wewnętrzne: przeprowadzki z Poznania i do Poznania',
+    gospodarz: 'Główny Urząd Statystyczny',
+    url: 'https://demografia.stat.gov.pl/bazademografia/Tables.aspx',
+    api: 'https://bdl.stat.gov.pl/api/v1',
+    zakres: 'Macierz migracji na pobyt stały między gminami (Baza Demografia, tabl. 2g), migracje według dzielnic, wieku i kierunków (tabl. 14), tablica bilansowa dzielnic oraz sumy miasta i nowe mieszkania z Banku Danych Lokalnych; lata 2020–2025',
+    metoda: 'Tablice GUS pobrano w listopadzie 2026 r. i zestawiono w jeden zbiór. GUS ukrywa komórki z 1–2 osobami; ich łączną liczbę znamy z sum, więc dzielimy ją po równo między ukryte kierunki i oznaczamy takie wartości jako szacunkowe. Roczne sumy z macierzy porównano z Bankiem Danych Lokalnych — zgadzają się z dokładnością do kilku osób.',
+    zastrzezenia: 'To statystyka meldunków, a nie faktycznych przeprowadzek — osób mieszkających bez zameldowania nie obejmuje. Dla pojedynczej dzielnicy GUS podaje gminę docelową tylko w powiecie poznańskim. Zbiór nie odświeża się sam: po publikacji danych za kolejny rok trzeba go zestawić ponownie.',
+  },
+  {
     klucz: 'budzet2027',
     nazwa: 'Projekt budżetu na 2027 r. i wieloletniej prognozy finansowej',
     gospodarz: 'Prezydent Miasta Poznania',

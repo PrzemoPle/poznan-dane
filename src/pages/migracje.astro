@@ -1,0 +1,1087 @@
+---
+import Baza from '../layouts/Baza.astro';
+import D from '../../data/migracje/dane.json';
+
+// Liczby w nagłówku liczymy przy budowaniu z tych samych danych, których używają wykresy:
+// strona ma treść także bez JavaScriptu, a tekst nie może rozjechać się z mapą.
+const Y = D.Y;
+const T = (k) => D.tot[k];
+const pl = (n, m = 0) => n.toLocaleString('pl-PL', { maximumFractionDigits: m, minimumFractionDigits: m }).replace('-', '−');
+const zeZnakiem = (n, m = 0) => `${n > 0 ? '+' : ''}${pl(n, m)}`;
+const suma = (k) => Y.reduce((a, y) => a + T(k)[y], 0);
+const wymeldowania = suma('80123');
+const zameldowania = suma('80121');
+let doPowiatu = 0;
+for (const [kod, g] of Object.entries(D.flows)) if (kod.startsWith('3021')) for (const v of g.v) doPowiatu += v[0];
+const rok = Y.at(-1), rokPoprz = Y.at(-2);
+const wym = T('80123')[rok], wymPoprz = T('80123')[rokPoprz];
+const zam = T('80121')[rok], zamPoprz = T('80121')[rokPoprz];
+const saldo = zam - wym, saldoPoprz = zamPoprz - wymPoprz;
+const najlepsze = Y.every((y) => T('80121')[y] - T('80123')[y] <= saldo);
+const ileGmin = Object.keys(D.flows).length;
+---
+
+<Baza
+  strona="migracje"
+  tytul="Migracje — gdzie przeprowadzają się poznaniacy"
+  opis={`W latach ${Y[0]}–${rok} z Poznania do innych gmin wymeldowało się ${pl(wymeldowania)} osób, a zameldowało ${pl(zameldowania)}. Interaktywna mapa kierunków, wiek, dzielnice i bilans z resztą kraju.`}
+>
+  <section style="margin-top:44px">
+    <p class="nadtytul">Migracje · meldunki na pobyt stały {Y[0]}–{rok}</p>
+    <h1>Gdzie przeprowadzają się poznaniacy</h1>
+    <p class="lid">
+      W latach {Y[0]}–{rok} z Poznania do innych gmin wymeldowało się {pl(wymeldowania)} mieszkańców,
+      a zameldowało {pl(zameldowania)} nowych. Około {Math.round((doPowiatu / wymeldowania) * 100)}% wyprowadzek
+      kończy się tuż za granicą miasta, w powiecie poznańskim.
+    </p>
+    <p class="drobne" style="max-width:74ch">
+      Dane Głównego Urzędu Statystycznego o zmianach zameldowania. Kto mieszka bez meldunku, nie jest w nich
+      ujęty — co z tego wynika, opisujemy w części <a href="#metoda">Źródła i metoda</a>.
+    </p>
+  </section>
+
+  <section>
+    <div class="siatka mg-kpi">
+      <div class="karta kpi">
+        <span class="etykieta">Wymeldowania {rok}</span>
+        <span class="wartosc">{pl(wym)}</span>
+        <span class="opis">{zeZnakiem((wym / wymPoprz - 1) * 100, 1)}% wobec {rokPoprz} r.</span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">Zameldowania {rok}</span>
+        <span class="wartosc">{pl(zam)}</span>
+        <span class="opis">{zeZnakiem((zam / zamPoprz - 1) * 100, 1)}% wobec {rokPoprz} r.</span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">Saldo {rok}</span>
+        <span class="wartosc">{pl(saldo)}</span>
+        <span class="opis">{najlepsze ? `najmniejsza strata w latach ${Y[0]}–${rok}; ` : ''}rok wcześniej {pl(saldoPoprz)}</span>
+      </div>
+      <div class="karta kpi">
+        <span class="etykieta">Bilans {Y.length} lat</span>
+        <span class="wartosc">{pl(zameldowania - wymeldowania)}</span>
+        <span class="opis">średnio ok. {pl(Math.round((wymeldowania - zameldowania) / Y.length / 10) * 10)} osób rocznie na minus</span>
+      </div>
+    </div>
+  </section>
+
+  <nav class="mg-pasek" aria-label="Wybór roku">
+    <span class="mg-etykieta" id="mg-lata-opis">Rok</span>
+    <div class="mg-seg" id="mg-lata" role="group" aria-labelledby="mg-lata-opis"></div>
+    <button type="button" class="pigulka mg-graj" id="mg-graj" aria-pressed="false">
+      <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" /></svg><span>Odtwórz lata</span>
+    </button>
+    <button type="button" class="pigulka" id="mg-link">Kopiuj link do tego widoku</button>
+    <span class="drobne" id="mg-link-info" role="status"></span>
+  </nav>
+
+  <section class="mg-glowna" id="mapa">
+    <div class="mg-lewa">
+      <div class="karta mg-ster">
+        <div><span class="mg-etykieta" id="mg-tryb-opis">Mapa pokazuje</span><div class="mg-seg" id="mg-tryb" role="group" aria-labelledby="mg-tryb-opis"></div></div>
+        <div><span class="mg-etykieta" id="mg-skad-opis">Skąd</span><div class="mg-seg" id="mg-skad" role="group" aria-labelledby="mg-skad-opis"></div></div>
+        <label class="pole">Znajdź gminę
+          <input type="search" id="mg-szukaj" list="mg-gminy" autocomplete="off" placeholder="np. Dopiewo, Swarzędz, Gniezno" />
+          <datalist id="mg-gminy"></datalist>
+        </label>
+      </div>
+      <div id="mg-panel" aria-live="polite"></div>
+    </div>
+    <div class="mg-prawa">
+      <div class="mg-mapa" id="mg-mapa-ramka">
+        <svg id="mg-mapa" role="img" aria-label="Mapa aglomeracji poznańskiej z łukami przeprowadzek z Poznania do gmin"></svg>
+        <canvas id="mg-fx" aria-hidden="true"></canvas>
+        <div class="mg-tip" id="mg-tip"></div>
+        <button type="button" class="pigulka mg-fxbtn" id="mg-fxbtn" aria-pressed="true">Zatrzymaj ruch</button>
+      </div>
+      <div id="mg-legenda"></div>
+      <p class="drobne" style="margin:6px 0 0" id="mg-mapa-uwaga"></p>
+    </div>
+  </section>
+
+  <hr class="rozdz" />
+
+  <section id="wiek">
+    <h2>Kto wyjeżdża, a kto przyjeżdża</h2>
+    <p class="drobne mg-pod" id="mg-wiek-pod"></p>
+    <div class="mg-seg" id="mg-obszar" role="group" aria-label="Obszar" style="margin-bottom:14px"></div>
+    <div class="mg-dwa">
+      <div class="karta mg-fig" id="mg-piramida-ramka"><svg id="mg-piramida" role="img" aria-label="Piramida wieku osób, które wyprowadziły się z Poznania i przeprowadziły do Poznania"></svg><div class="mg-tip" id="mg-tip3"></div></div>
+      <div class="mg-fakty" id="mg-wiek-fakty"></div>
+    </div>
+  </section>
+
+  <hr class="rozdz" />
+
+  <section id="dzielnice">
+    <h2 id="mg-dz-tytul">Dzielnice Poznania</h2>
+    <p class="drobne mg-pod">GUS podaje migracje dla pięciu dawnych dzielnic, nie dla 42 osiedli. Kliknij dzielnicę, żeby zobaczyć jej łuki na mapie u góry i jej strumienie obok.</p>
+    <div class="mg-dwa mg-odwr">
+      <div>
+        <div class="mg-mapa" style="aspect-ratio:1000/1077" id="mg-miasto-ramka"><svg id="mg-miasto" role="img" aria-label="Mapa dzielnic Poznania z saldem migracji"></svg><div class="mg-tip" id="mg-tip2"></div></div>
+        <div id="mg-legenda2"></div>
+      </div>
+      <div class="karta mg-fig" id="mg-sankey-ramka"><h3 id="mg-sankey-tytul"></h3><svg id="mg-sankey" role="img" aria-label="Diagram przepływów z dzielnic Poznania do gmin"></svg><div class="mg-tip" id="mg-tip5"></div></div>
+    </div>
+  </section>
+
+  <hr class="rozdz" />
+
+  <section id="mieszkania">
+    <h2>Nowe mieszkania a przeprowadzki z Poznania</h2>
+    <p class="drobne mg-pod" id="mg-miesz-pod"></p>
+    <div class="mg-dwa">
+      <div class="karta mg-fig" id="mg-punkty-ramka"><svg id="mg-punkty" role="img" aria-label="Wykres punktowy: nowe mieszkania a przeprowadzki z Poznania w gminach powiatu poznańskiego"></svg><div class="mg-tip" id="mg-tip4"></div></div>
+      <div class="mg-fakty" id="mg-miesz-fakty"></div>
+    </div>
+  </section>
+
+  <hr class="rozdz" />
+
+  <section id="lata">
+    <h2 id="mg-lata-tytul">Rok po roku</h2>
+    <p class="drobne mg-pod">Wymeldowania z Poznania i zameldowania w Poznaniu w ruchu krajowym. Kliknij rok na wykresie, żeby przełączyć na niego całą stronę.</p>
+    <div class="mg-dwa">
+      <div class="karta mg-fig" id="mg-linie-ramka"><svg id="mg-linie" role="img" aria-label={`Wykres liniowy wymeldowań i zameldowań ${Y[0]}–${rok}`}></svg><div class="mg-tip" id="mg-tip6"></div></div>
+      <div class="mg-fakty" id="mg-lata-fakty"></div>
+    </div>
+    <h3 style="margin:34px 0 4px">17 gmin powiatu poznańskiego: wyprowadzki z Poznania w kolejnych latach</h3>
+    <p class="drobne" id="mg-male-uwaga" style="margin:0"></p>
+    <div class="mg-male" id="mg-male"></div>
+  </section>
+
+  <hr class="rozdz" />
+
+  <section id="kraj">
+    <h2 id="mg-kraj-tytul">Powiat, Wielkopolska, reszta kraju</h2>
+    <p class="drobne mg-pod" id="mg-kraj-pod"></p>
+    <div class="mg-dwa mg-odwr">
+      <div class="mg-fakty" id="mg-kraj-fakty"></div>
+      <div class="karta mg-fig">
+        <div class="mg-motyl" id="mg-motyl"></div>
+        <p class="drobne" style="margin:10px 0 0">Lewa strona: wyprowadzki z Poznania. Prawa: przeprowadzki do Poznania. Ostatnia kolumna: bilans dla Poznania.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rozdz" />
+
+  <section id="tabela">
+    <h2>Wszystkie kierunki w Wielkopolsce</h2>
+    <p class="drobne mg-pod" id="mg-tab-pod"></p>
+    <div class="karta cien" style="padding:16px 18px">
+      <div class="mg-tab-ster">
+        <label class="pole" style="max-width:360px;flex:1 1 240px">Szukaj gminy albo powiatu
+          <input type="search" id="mg-tab-fraza" placeholder="np. Kórnik, powiat gnieźnieński" autocomplete="off" />
+        </label>
+        <button type="button" class="pigulka" id="mg-csv">Pobierz dane gmin (CSV)</button>
+      </div>
+      <div class="tabela-otok mg-tab-otok" style="margin-top:12px">
+        <table id="mg-tabela">
+          <thead>
+            <tr>
+              <th class="sortowalna" data-sort="n">Gmina</th>
+              <th class="sortowalna mg-waskie" data-sort="p">Powiat</th>
+              <th class="num sortowalna" data-sort="o">Z Poznania</th>
+              <th class="num sortowalna" data-sort="i">Do Poznania</th>
+              <th class="num sortowalna" data-sort="b">Bilans</th>
+            </tr>
+          </thead>
+          <tbody id="mg-tbody"></tbody>
+        </table>
+      </div>
+      <p class="drobne" id="mg-tab-licznik" style="margin:10px 0 0" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <hr class="rozdz" />
+
+  <section id="metoda">
+    <h2>Źródła i metoda</h2>
+    <div class="siatka k2" style="align-items:start">
+      <div>
+        <h3>Skąd są dane</h3>
+        <ul>
+          <li>Kierunki: GUS, Baza Demografia, tabl. 2g — macierz migracji wewnętrznych na pobyt stały między wszystkimi
+            gminami w Polsce, {Y[0]}–{rok} (<a href="https://demografia.stat.gov.pl/bazademografia/Tables.aspx" rel="noopener">demografia.stat.gov.pl</a>).
+            Poznań jest w niej podzielony na 5 dzielnic.</li>
+          <li>Wiek i rodzaj kierunku: GUS, Baza Demografia, tabl. 14 — migracje w Poznaniu według dzielnic, wieku i kierunków.</li>
+          <li>Dzielnice: GUS, tablica bilansowa 00PA (stan i ruch ludności według podziału administracyjnego; lata 2020 i 2021
+            w wersji po spisie powszechnym 2021).</li>
+          <li>Sumy dla miasta i nowe mieszkania: GUS, Bank Danych Lokalnych (<a href="https://bdl.stat.gov.pl" rel="noopener">bdl.stat.gov.pl</a>) —
+            zameldowania i wymeldowania w ruchu wewnętrznym, mieszkania oddane do użytkowania na 1000 ludności.</li>
+          <li>Granice: gminy i powiaty z Państwowego Rejestru Granic (GUGiK, 2025); osiedla Poznania z OpenStreetMap.
+            Dzielnice to suma osiedli przypisanych do dawnych dzielnic.</li>
+        </ul>
+        <p class="drobne">Dane pobrano w listopadzie 2026 r. Sumy roczne z macierzy porównaliśmy z Bankiem Danych Lokalnych:
+          wymeldowania i zameldowania zgadzają się w każdym roku z dokładnością do kilku osób (różnica wynika z komórek ukrytych przez GUS).</p>
+      </div>
+      <div>
+        <h3>Jak czytać liczby</h3>
+        <ul>
+          <li><strong>Migracja to zmiana zameldowania</strong> na pobyt stały między gminami. Kto mieszka bez meldunku, nie jest
+            ujęty — liczby pokazują więc ruch meldunków, a nie wszystkie faktyczne przeprowadzki.</li>
+          <li><strong>GUS ukrywa komórki z 1–2 osobami.</strong> Ich łączną liczbę znamy z sum, więc dzielimy ją po równo
+            ({pl(Math.min(...Object.values(D.avgOut), ...Object.values(D.avgIn)), 2)}–{pl(Math.max(...Object.values(D.avgOut), ...Object.values(D.avgIn)), 2)} osoby
+            na komórkę). Przy małych kierunkach liczby są szacunkiem — oznaczamy je znakiem ≈.</li>
+          <li><strong>Bilans z gminą</strong> to przeprowadzki z gminy do Poznania minus wyprowadzki z Poznania do gminy.
+            Wynik ujemny oznacza, że Poznań traci.</li>
+          <li><strong>Wiek i dzielnice</strong> liczymy bez przeprowadzek wewnątrz Poznania.</li>
+          <li><strong>Mieszkania a przeprowadzki</strong> to korelacja, a nie dowód przyczyny.</li>
+          <li><strong>Dla pojedynczej dzielnicy</strong> GUS pozwala wskazać gminę docelową tylko w powiecie poznańskim.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</Baza>
+
+<style is:global>
+  /* Kolory serii jak w reszcie serwisu: ubytek — złoto, przyrost — błękit. Odcienie skal powstają
+     z tych samych tokenów (color-mix), więc same przechodzą między motywem jasnym i ciemnym. */
+  :root {
+    --mg-out: var(--zloto);
+    --mg-in: var(--blekit);
+    --mg-lad: var(--papier-2);
+    --mg-zero: color-mix(in srgb, var(--tekst-3) 10%, var(--papier-2));
+    --mg-miasto: color-mix(in srgb, var(--tekst-2) 42%, var(--papier-2));
+    --mg-s1: color-mix(in srgb, var(--tekst-2) 14%, var(--papier-2));
+    --mg-s2: color-mix(in srgb, var(--tekst-2) 25%, var(--papier-2));
+    --mg-s3: color-mix(in srgb, var(--tekst-2) 37%, var(--papier-2));
+    --mg-s4: color-mix(in srgb, var(--tekst-2) 50%, var(--papier-2));
+    --mg-s5: color-mix(in srgb, var(--tekst-2) 64%, var(--papier-2));
+    --mg-s6: color-mix(in srgb, var(--tekst-2) 80%, var(--papier-2));
+    --mg-n1: color-mix(in srgb, var(--zloto) 26%, var(--papier-2));
+    --mg-n2: color-mix(in srgb, var(--zloto) 48%, var(--papier-2));
+    --mg-n3: color-mix(in srgb, var(--zloto) 74%, var(--papier-2));
+    --mg-n4: var(--zloto);
+    --mg-p1: color-mix(in srgb, var(--blekit) 26%, var(--papier-2));
+    --mg-p2: color-mix(in srgb, var(--blekit) 48%, var(--papier-2));
+    --mg-p3: color-mix(in srgb, var(--blekit) 74%, var(--papier-2));
+    --mg-p4: var(--blekit);
+    --mg-czastka: color-mix(in srgb, var(--zloto) 40%, var(--atrament));
+    --mg-gora: 64px;
+  }
+  html:has(.mg-pasek) { scroll-padding-top: calc(var(--mg-gora) + 64px); }
+
+  .mg-kpi { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .mg-kpi .wartosc { white-space: nowrap; }
+  .mg-etykieta { display: block; margin-bottom: 5px; font-family: var(--mono); font-size: .68rem; font-weight: 600; color: var(--tekst-3); text-transform: uppercase; letter-spacing: .1em; }
+  .mg-seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mg-seg button:disabled { opacity: .4; cursor: not-allowed; }
+  .mg-pod { margin: -8px 0 16px; max-width: 74ch; }
+
+  /* pasek lat: przykleja się pod nagłówkiem serwisu i steruje całą stroną */
+  .mg-pasek {
+    position: sticky; top: var(--mg-gora); z-index: 40;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+    margin-top: 28px; padding: 9px 0;
+    background: color-mix(in srgb, var(--papier) 93%, transparent); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--linia);
+  }
+  .mg-pasek .mg-etykieta { margin: 0; }
+  .mg-graj svg { width: 11px; height: 11px; fill: currentColor; }
+
+  .mg-glowna { display: grid; grid-template-columns: minmax(300px, .78fr) minmax(0, 1.55fr); gap: 18px clamp(20px, 3vw, 40px); align-items: start; margin-top: 22px; }
+  .mg-lewa { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .mg-ster { display: flex; flex-direction: column; gap: 14px; padding: 16px 18px; }
+  .mg-prawa { position: sticky; top: calc(var(--mg-gora) + 62px); min-width: 0; }
+  .mg-mapa { position: relative; width: 100%; aspect-ratio: 1000 / 946; background: var(--mg-lad); border: 1px solid var(--linia); border-radius: var(--r); overflow: hidden; }
+  .mg-mapa svg, .mg-mapa canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .mg-mapa canvas { pointer-events: none; }
+  .mg-fxbtn { position: absolute; right: 10px; bottom: 10px; z-index: 2; background: color-mix(in srgb, var(--papier-2) 90%, transparent); }
+
+  .mg-gm { stroke: var(--mg-lad); stroke-width: .7; vector-effect: non-scaling-stroke; cursor: pointer; }
+  /* przejście koloru włączamy dopiero po pierwszym narysowaniu — inaczej mapa startuje od czerni */
+  svg.mg-plynnie .mg-gm, svg.mg-plynnie .mg-cdz { transition: fill .35s; }
+  .mg-gm:hover { stroke: var(--atrament); stroke-width: 1.6; }
+  .mg-wybor { fill: none; stroke: var(--czerwien); stroke-width: 2.4; vector-effect: non-scaling-stroke; pointer-events: none; }
+  .mg-pow { fill: none; stroke: var(--tekst-3); stroke-width: .7; stroke-opacity: .45; vector-effect: non-scaling-stroke; pointer-events: none; }
+  .mg-pow.pp { stroke: var(--atrament); stroke-opacity: .75; stroke-width: 1.3; stroke-dasharray: 5 4; }
+  .mg-dz { fill: var(--mg-miasto); stroke: var(--mg-lad); stroke-width: 1.2; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill .2s; }
+  .mg-dz:hover { fill: color-mix(in srgb, var(--mg-miasto) 70%, var(--atrament)); }
+  .mg-dz.on { fill: color-mix(in srgb, var(--mg-out) 60%, var(--mg-miasto)); }
+  .mg-lukC { fill: none; stroke: var(--mg-lad); stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: .92; pointer-events: none; }
+  .mg-luk { fill: none; stroke: var(--mg-out); stroke-linecap: round; vector-effect: non-scaling-stroke; pointer-events: none; transition: opacity .2s; }
+  .mg-luk.do { stroke: var(--mg-in); }
+  svg.hl .mg-luk { opacity: .18; } svg.hl .mg-lukC { opacity: .2; } svg.hl .mg-luk.on { opacity: 1; }
+  .mg-kropka { fill: var(--mg-out); stroke: var(--mg-lad); stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
+  .mg-zrodlo { fill: var(--atrament); stroke: var(--mg-lad); stroke-width: 2; vector-effect: non-scaling-stroke; pointer-events: none; }
+  .mg-mapa svg text, .mg-fig svg text { paint-order: stroke; stroke: var(--mg-lad); stroke-linejoin: round; fill: var(--tekst); font-family: var(--mono); pointer-events: none; }
+  .mg-mapa svg text.v, .mg-fig svg text.v { fill: var(--tekst-2); }
+
+  .mg-tip { position: absolute; z-index: 3; pointer-events: none; display: none; min-width: 190px; max-width: 290px; padding: 9px 11px; background: var(--papier-2); border: 1px solid var(--linia-mocna); border-radius: var(--r); box-shadow: var(--cien-hover); font-size: .82rem; line-height: 1.45; color: var(--tekst-2); }
+  .mg-tip b { font-weight: 600; color: var(--tekst); }
+  .mg-tip .mg-iskry { display: flex; align-items: flex-end; gap: 3px; height: 34px; margin-top: 6px; }
+  .mg-tip .mg-iskry i { display: block; width: 12px; background: var(--mg-out); border-radius: 2px 2px 0 0; opacity: .5; }
+  .mg-tip .mg-iskry i.cur { opacity: 1; }
+  /* liczby zostają w kolorze tekstu; serię wskazuje kwadrat przed nimi */
+  .mg-o::before, .mg-i::before { content: ''; display: inline-block; width: .6em; height: .6em; margin-right: .35em; border-radius: 1px; vertical-align: .02em; }
+  .mg-o::before { background: var(--mg-out); }
+  .mg-i::before { background: var(--mg-in); }
+
+  .mg-leg-tytul { margin-top: 12px; font-size: .8rem; color: var(--tekst-3); }
+  .mg-leg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); max-width: 460px; margin-top: 5px; }
+  .mg-leg i { display: block; height: 10px; }
+  .mg-leg span { display: block; padding-top: 3px; font-family: var(--mono); font-size: .68rem; color: var(--tekst-2); white-space: nowrap; }
+  .mg-leg-konce { display: flex; justify-content: space-between; max-width: 460px; font-size: .76rem; color: var(--tekst-3); }
+
+  .mg-karta { padding: 16px 18px; border-top: 2px solid var(--atrament); }
+  .mg-karta h3 { margin: 0 0 4px; }
+  .mg-karta h3 small { font-family: var(--sans); font-size: .8rem; font-weight: 400; letter-spacing: 0; color: var(--tekst-3); }
+  .mg-duze { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 10px 0 12px; }
+  .mg-duze div { font-size: .78rem; color: var(--tekst-3); }
+  .mg-duze b { display: block; font-family: var(--mono); font-weight: 600; font-size: 1.35rem; letter-spacing: -.03em; line-height: 1.2; color: var(--atrament); white-space: nowrap; }
+  .mg-slupki { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; align-items: end; height: 86px; margin: 6px 0 2px; }
+  .mg-slupki div { display: flex; gap: 2px; align-items: flex-end; height: 100%; }
+  .mg-slupki i { display: block; flex: 1; border-radius: 2px 2px 0 0; }
+  .mg-slupki .a { background: var(--mg-out); } .mg-slupki .b { background: var(--mg-in); }
+  .mg-slupki.sel div { opacity: .4; } .mg-slupki.sel div.cur { opacity: 1; }
+  .mg-lata-os { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; font-family: var(--mono); font-size: .68rem; color: var(--tekst-3); text-align: center; }
+  .mg-poziome { display: grid; grid-template-columns: 7.4em minmax(0, 1fr) 3.6em; gap: 5px 8px; align-items: center; font-size: .84rem; margin-top: 6px; }
+  .mg-poziome i { display: block; height: 8px; background: var(--mg-out); border-radius: 2px; }
+  .mg-poziome .n { text-align: right; font-family: var(--mono); font-size: .8rem; }
+  .mg-wroc { all: unset; cursor: pointer; margin-top: 10px; font-size: .84rem; color: var(--blekit); text-decoration: underline; text-underline-offset: 3px; }
+  .mg-wroc:hover { color: var(--czerwien); }
+  .mg-wroc:focus-visible { outline: 2px solid var(--czerwien); outline-offset: 2px; }
+  .mg-rank { list-style: none; margin: 8px 0 0; padding: 0; }
+  .mg-rank button { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 1.7em minmax(0, 1fr) auto; gap: 3px 8px; align-items: baseline; width: 100%; padding: 7px 6px; cursor: pointer; border-radius: var(--r); font-size: .92rem; }
+  .mg-rank button:hover { background: var(--akcent-tlo); }
+  .mg-rank button:focus-visible { outline: 2px solid var(--czerwien); outline-offset: -2px; }
+  .mg-rank .k { font-family: var(--mono); font-size: .76rem; color: var(--tekst-3); }
+  .mg-rank .v { font-family: var(--mono); font-size: .84rem; font-weight: 600; }
+  .mg-rank .t { grid-column: 2 / 4; height: 4px; background: var(--linia); border-radius: 2px; overflow: hidden; }
+  .mg-rank .t i { display: block; height: 100%; background: var(--mg-out); border-radius: 2px; }
+  .mg-rank .t i.pos { background: var(--mg-in); }
+
+  .mg-dwa { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: clamp(22px, 3.4vw, 52px); align-items: start; }
+  .mg-dwa.mg-odwr { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); }
+  .mg-fig { position: relative; padding: 16px 18px; min-width: 0; }
+  .mg-fig svg { display: block; width: 100%; }
+  .mg-fig h3 { margin: 0 0 10px; font-size: 1rem; }
+  .mg-fakty { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .mg-fakt b { display: block; font-family: var(--mono); font-weight: 600; font-size: clamp(1.5rem, 2.6vw, 2.1rem); letter-spacing: -.04em; line-height: 1.1; color: var(--atrament); }
+  .mg-fakt span { display: block; margin-top: 4px; max-width: 38ch; color: var(--tekst-2); font-size: .92rem; }
+  .mg-stos { display: flex; gap: 2px; height: 26px; margin: 6px 0; }
+  .mg-stos i { display: block; height: 100%; border-radius: 2px; }
+  .mg-stos-leg { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .82rem; color: var(--tekst-2); }
+  .mg-stos-leg span::before { content: ''; display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; background: var(--c); }
+
+  .mg-male { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 10px; margin-top: 14px; }
+  .mg-maly { all: unset; box-sizing: border-box; cursor: pointer; display: block; padding: 12px 12px 10px; border: 1px solid var(--linia); border-radius: var(--r); background: var(--papier-2); transition: border-color .15s ease, box-shadow .2s ease; }
+  .mg-maly:hover { border-color: var(--linia-mocna); box-shadow: var(--cien); }
+  .mg-maly:focus-visible { outline: 2px solid var(--czerwien); outline-offset: 2px; }
+  .mg-maly[aria-pressed='true'] { border-color: var(--czerwien); }
+  .mg-maly h3 { display: flex; justify-content: space-between; gap: 8px; margin: 0; font-size: .95rem; }
+  .mg-maly h3 em { font-family: var(--mono); font-style: normal; font-weight: 400; font-size: .78rem; color: var(--tekst-3); }
+  .mg-maly-s { display: flex; align-items: flex-end; gap: 4px; height: 58px; margin: 8px 0 4px; border-bottom: 1px solid var(--linia); }
+  .mg-maly-s i { display: block; flex: 1; background: var(--mg-s4); border-radius: 2px 2px 0 0; }
+  .mg-maly-s i.cur { background: var(--mg-out); }
+  .mg-maly small { display: block; font-family: var(--mono); font-size: .7rem; color: var(--tekst-2); }
+
+  .mg-motyl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(8.5em, auto) minmax(0, 1fr) 4.4em; gap: 5px 12px; align-items: center; font-size: .84rem; }
+  .mg-motyl .h { font-family: var(--mono); font-size: .64rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--tekst-3); }
+  .mg-motyl .l { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
+  .mg-motyl .r { display: flex; align-items: center; gap: 6px; }
+  .mg-motyl .l i, .mg-motyl .r i { display: block; height: 12px; border-radius: 2px; min-width: 1px; }
+  .mg-motyl .l i { background: var(--mg-out); } .mg-motyl .r i { background: var(--mg-in); }
+  .mg-motyl .c { text-align: center; white-space: nowrap; }
+  .mg-motyl .s { text-align: right; font-family: var(--mono); font-size: .8rem; font-weight: 600; white-space: nowrap; }
+  .mg-motyl small { font-family: var(--mono); font-size: .72rem; color: var(--tekst-2); white-space: nowrap; }
+
+  .mg-tab-ster { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  .mg-tab-otok { max-height: 520px; overflow-y: auto; }
+  #mg-tbody tr { cursor: pointer; }
+  #mg-tbody tr[aria-selected='true'] td { background: var(--czerwien-tlo); }
+  #mg-tbody td small { color: var(--tekst-3); }
+
+  @media (prefers-reduced-motion: reduce) { svg.mg-plynnie .mg-gm, svg.mg-plynnie .mg-cdz { transition: none; } .mg-fxbtn { display: none; } }
+  @media (max-width: 1000px) {
+    .mg-glowna { grid-template-columns: minmax(0, 1fr); }
+    .mg-prawa { position: static; order: -1; }
+    .mg-dwa, .mg-dwa.mg-odwr { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 720px) {
+    .mg-pasek { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+    .mg-pasek::-webkit-scrollbar { display: none; }
+    .mg-pasek .mg-etykieta, #mg-link, #mg-link-info { display: none; }
+    .mg-pasek .mg-seg { flex-wrap: nowrap; }
+    .mg-pasek button { flex: none; }
+    .mg-graj { order: -1; }
+    .mg-graj span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .mg-male { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mg-motyl { grid-template-columns: minmax(0, 1fr) minmax(6.6em, auto) minmax(0, 1fr) 3.8em; gap: 4px 8px; font-size: .78rem; }
+    .mg-waskie { display: none; }
+    #mg-tabela th, #mg-tabela td { padding: 8px 7px; }
+    #mg-tabela th { letter-spacing: .02em; white-space: normal; line-height: 1.25; }
+    #mg-tabela td:first-child { overflow-wrap: anywhere; }
+    .mg-fig { padding: 12px; }
+  }
+</style>
+
+<script>
+  import { fmt } from '../lib/wykresy.js';
+  import D from '../../data/migracje/dane.json';
+
+  const Y = D.Y, ALL = Y.length, F = D.flows, T = (k) => D.tot[k];
+  const DZN = ['Grunwald', 'Jeżyce', 'Nowe Miasto', 'Stare Miasto', 'Wilda'];
+  const TRYBY = ['out', 'net', 'chg'], TRYBY_ADRES = ['wyprowadzki', 'bilans', 'zmiana'];
+  const POWIAT = '3021', POZNAN = '306401';
+  const ZAKRES = `${Y[0]}–${Y[ALL - 1]}`;
+  const S = {
+    yi: ALL, mode: 'out', dz: -1, sel: null, hov: null, area: 'Poznań', play: null,
+    fx: !matchMedia('(prefers-reduced-motion: reduce)').matches, sort: 'o', kier: 'desc',
+  };
+  const $ = (s) => document.querySelector(s);
+  // „−0" po zaokrągleniu wygląda jak błąd, więc wartości bliskie zera pokazujemy jako 0
+  const nf = (n, d = 0) => fmt.liczba(Math.abs(n) < 0.5 * 10 ** -d ? 0 : n, d).replace('-', '−');
+  const sg = (n, d = 0) => (Math.round(n * 10 ** d) > 0 ? '+' : '') + nf(n, d);
+  const pct = (n) => `${sg(n * 100, 1)}%`;
+  const yrs = () => (S.yi === ALL ? [...Y.keys()] : [S.yi]);
+  const yLab = () => (S.yi === ALL ? `w latach ${ZAKRES}` : `w ${Y[S.yi]} r.`);
+  const YL = () => (S.yi === ALL ? ZAKRES : String(Y[S.yi]));
+  const cap = (s) => s[0].toUpperCase() + s.slice(1);
+  const approx = (h, v) => (h > 0 && v < 100 ? '≈' : '');
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const short = (n) => n.replace('Tarnowo Podgórne', 'Tarnowo P.').replace('Murowana Goślina', 'Murowana G.');
+  const bezOgonkow = (s) => (s || '').toLowerCase()
+    .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e').replace(/ł/g, 'l')
+    .replace(/ń/g, 'n').replace(/ó/g, 'o').replace(/ś/g, 's').replace(/[żź]/g, 'z');
+  const slug = (s) => bezOgonkow(s).replace(/[^a-z0-9]+/g, '-');
+
+  /* ---------- wartości ---------- */
+  function gsum(c, ys = yrs()) {
+    let o = 0, i = 0, ho = 0, hi = 0;
+    for (const k of ys) { const v = F[c] && F[c].v[k]; if (!v) continue; o += v[0]; i += v[1]; ho += v[3]; hi += v[5]; }
+    return { o, i, ho, hi, n: i - o };
+  }
+  /** Wyprowadzki z jednej dzielnicy do gminy; GUS podaje je tylko dla powiatu poznańskiego. */
+  function dzOut(c, z, ys = yrs()) {
+    if (!c.startsWith(POWIAT)) return null;
+    let o = 0, h = 0;
+    for (const k of ys) {
+      const p = D.dz[DZN[z]][k].pp[c];
+      if (p === undefined) continue;
+      if (p < 0) { o += D.avgOut[Y[k]]; h++; } else o += p;      // wartość ujemna = komórka ukryta przez GUS
+    }
+    return { o, ho: h };
+  }
+  const cmpYears = () => ((S.yi === ALL || S.yi === 0) ? [0, ALL - 1] : [S.yi - 1, S.yi]);
+  function val(c) {
+    if (S.dz >= 0) { const r = dzOut(c, S.dz); return r ? r.o : null; }
+    if (S.mode === 'chg') { const [a, b] = cmpYears(); return F[c] ? F[c].v[b][0] - F[c].v[a][0] : 0; }
+    const s = gsum(c); return S.mode === 'out' ? s.o : s.n;
+  }
+  const isOut = () => S.mode === 'out' || S.dz >= 0;
+  const TH = { o1: [1, 5, 20, 60, 200, 400], oA: [1, 25, 100, 300, 1000, 2000], n1: [3, 15, 60, 200], nA: [10, 50, 250, 1000], c: [3, 10, 30, 60] };
+  function fill(v) {
+    if (v == null) return 'url(#mg-kreski)';
+    const r = Math.round(v);
+    if (isOut()) {
+      const t = S.yi === ALL ? TH.oA : TH.o1; let k = -1;
+      t.forEach((x, i) => { if (r >= x) k = i; });
+      return k < 0 ? 'var(--mg-zero)' : `var(--mg-s${k + 1})`;
+    }
+    const t = S.mode === 'chg' ? TH.c : (S.yi === ALL ? TH.nA : TH.n1); let k = -1;
+    t.forEach((x, i) => { if (Math.abs(r) >= x) k = i; });
+    if (k < 0) return 'var(--mg-zero)';
+    const strata = S.mode === 'chg' ? r > 0 : r < 0;
+    return strata ? `var(--mg-n${k + 1})` : `var(--mg-p${k + 1})`;
+  }
+  const komorki = (cells) => `<div class="mg-leg">${cells.map((c) => `<div><i style="background:${c[0]}"></i><span>${c[1]}</span></div>`).join('')}</div>`;
+  function legend() {
+    if (isOut()) {
+      const t = S.yi === ALL ? TH.oA : TH.o1;
+      const cells = [['var(--mg-zero)', '0']].concat(t.map((x, i) => [`var(--mg-s${i + 1})`, `${nf(x)}+`]));
+      return `<div class="mg-leg-tytul">Kolor gminy i grubość łuku: osoby wymeldowane ${S.dz >= 0 ? `z dzielnicy ${DZN[S.dz]}` : 'z Poznania'} ${yLab()}</div>${komorki(cells)}`;
+    }
+    const t = S.mode === 'chg' ? TH.c : (S.yi === ALL ? TH.nA : TH.n1);
+    const neg = S.mode === 'chg' ? '+' : '−', pos = S.mode === 'chg' ? '−' : '+';
+    const cells = [...t].reverse().map((x, i) => [`var(--mg-n${t.length - i})`, neg + nf(x)])
+      .concat([['var(--mg-zero)', '0']], t.map((x, i) => [`var(--mg-p${i + 1})`, pos + nf(x)]));
+    const [a, b] = cmpYears();
+    const ttl = S.mode === 'chg' ? `Zmiana liczby wyprowadzek: ${Y[b]} wobec ${Y[a]}` : `Bilans wymiany z Poznaniem ${yLab()}`;
+    const caps = S.mode === 'chg' ? ['więcej wyprowadzek', 'mniej wyprowadzek'] : ['Poznań traci', 'Poznań zyskuje'];
+    return `<div class="mg-leg-tytul">${ttl}</div>${komorki(cells)}<div class="mg-leg-konce"><span>${caps[0]}</span><span>${caps[1]}</span></div>`;
+  }
+
+  /* ---------- sterowanie ---------- */
+  function seg(el, items, cur, on, dis = []) {
+    el.innerHTML = items.map((t, i) => `<button type="button" class="pigulka" aria-pressed="${i === cur}" data-i="${i}"${dis.includes(i) ? ' disabled' : ''}>${t}</button>`).join('');
+    el.onclick = (e) => { const b = e.target.closest('button'); if (b && !b.disabled) on(+b.dataset.i); };
+  }
+  function controls() {
+    seg($('#mg-lata'), Y.map(String).concat(['Razem']), S.yi, (i) => { stopPlay(); S.yi = i; render(); });
+    $('#mg-lata').lastElementChild.setAttribute('aria-label', `Lata ${ZAKRES} razem`);
+    seg($('#mg-tryb'), ['Wyprowadzki', 'Bilans', 'Zmiana rok do roku'], TRYBY.indexOf(S.mode), (i) => { S.mode = TRYBY[i]; if (i) S.dz = -1; render(); });
+    seg($('#mg-skad'), ['Cały Poznań'].concat(DZN), S.dz + 1, (i) => setDz(i - 1));
+    seg($('#mg-obszar'), ['Cały Poznań'].concat(DZN), S.area === 'Poznań' ? 0 : DZN.indexOf(S.area) + 1, (i) => { S.area = i ? DZN[i - 1] : 'Poznań'; pyramid(); doAdresu(); });
+  }
+  function setDz(z) { S.dz = z; if (z >= 0) { S.mode = 'out'; if (S.sel && !S.sel.startsWith(POWIAT)) S.sel = null; } render(); }
+  function stopPlay() {
+    if (S.play) { clearInterval(S.play); S.play = null; }
+    $('#mg-graj').setAttribute('aria-pressed', 'false'); $('#mg-graj span').textContent = 'Odtwórz lata';
+  }
+  $('#mg-graj').onclick = () => {
+    if (S.play) { stopPlay(); return; }
+    $('#mg-graj').setAttribute('aria-pressed', 'true'); $('#mg-graj span').textContent = 'Zatrzymaj';
+    S.yi = 0; render();
+    S.play = setInterval(() => { if (S.yi >= ALL - 1) { stopPlay(); return; } S.yi++; render(); }, 1600);
+  };
+  // strzałki w lewo i w prawo przełączają rok, gdy fokus jest na pasku lat
+  $('#mg-lata').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault(); stopPlay();
+    S.yi = Math.min(ALL, Math.max(0, S.yi + (e.key === 'ArrowRight' ? 1 : -1)));
+    render();
+    $('#mg-lata').children[S.yi]?.focus();
+  });
+  const names = Object.keys(F).map((c) => [F[c].n, c]).sort((a, b) => a[0].localeCompare(b[0], 'pl'));
+  $('#mg-gminy').innerHTML = names.map((n) => `<option value="${esc(n[0])}">`).join('');
+  $('#mg-szukaj').addEventListener('input', (e) => {
+    const v = e.target.value.trim().toLowerCase();
+    const hit = names.find((n) => n[0].toLowerCase() === v);
+    if (hit) selectG(hit[1]);
+  });
+  function selectG(c) { if (!F[c]) return; S.sel = c; if (S.dz >= 0 && !c.startsWith(POWIAT)) S.dz = -1; render(); }
+  const doMapy = () => $('#mg-mapa-ramka').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+
+  /* ---------- stan w adresie: każdy widok da się podlinkować ---------- */
+  function zAdresu() {
+    const p = new URLSearchParams(location.search);
+    const r = Y.indexOf(Number(p.get('rok'))); if (r >= 0) S.yi = r;
+    const m = TRYBY_ADRES.indexOf(p.get('mapa')); if (m >= 0) S.mode = TRYBY[m];
+    const z = DZN.findIndex((n) => slug(n) === p.get('dzielnica')); if (z >= 0) { S.dz = z; S.mode = 'out'; }
+    const g = p.get('gmina'); if (g && F[g] && (S.dz < 0 || g.startsWith(POWIAT))) S.sel = g;
+    const a = DZN.find((n) => slug(n) === p.get('wiek')); if (a) S.area = a;
+  }
+  function doAdresu() {
+    const p = new URLSearchParams();
+    if (S.yi < ALL) p.set('rok', Y[S.yi]);
+    if (S.mode !== 'out') p.set('mapa', TRYBY_ADRES[TRYBY.indexOf(S.mode)]);
+    if (S.dz >= 0) p.set('dzielnica', slug(DZN[S.dz]));
+    if (S.sel) p.set('gmina', S.sel);
+    if (S.area !== 'Poznań') p.set('wiek', slug(S.area));
+    history.replaceState(null, '', `${p.toString() ? `?${p}` : location.pathname}${location.hash}`);
+  }
+  $('#mg-link').onclick = async () => {
+    try { await navigator.clipboard.writeText(location.href.split('#')[0]); $('#mg-link-info').textContent = 'Skopiowano.'; }
+    catch { $('#mg-link-info').textContent = 'Skopiuj adres z paska przeglądarki.'; }
+    setTimeout(() => { $('#mg-link-info').textContent = ''; }, 2500);
+  };
+
+  /* ---------- mapa ---------- */
+  const M = D.map, svg = $('#mg-mapa'), tf = M.tf, box = $('#mg-mapa-ramka');
+  const GM = {}; M.gm.forEach((g) => { GM[g.c] = g; });
+  svg.setAttribute('viewBox', `0 0 ${M.w} ${M.h}`);
+  svg.innerHTML = `<defs><pattern id="mg-kreski" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="var(--mg-zero)"/><line x1="0" y1="0" x2="0" y2="7" stroke="var(--linia-mocna)" stroke-width="2.5"/></pattern></defs>
+    <g>${M.gm.map((g) => `<path d="${g.d}" data-c="${g.c}" class="mg-gm"/>`).join('')}</g>
+    <g>${M.pow.map((p) => `<path d="${p.d}" class="mg-pow${p.c === POWIAT ? ' pp' : ''}"/>`).join('')}</g>
+    <g transform="translate(${tf[1]} ${tf[2]}) scale(${tf[0]})">${D.city.dz.map((z, i) => `<path d="${z.d}" data-z="${i}" class="mg-dz"/>`).join('')}</g>
+    <g id="mg-gS"></g><g id="mg-gA"></g><g id="mg-gL"></g>`;
+  const gA = $('#mg-gA'), gL = $('#mg-gL');
+  let ARCS = [];
+  const nameOf = (c) => (F[c] ? F[c].n : (c === POZNAN ? 'Poznań' : c));
+  const bez = (a, t) => { const u = 1 - t; return [u * u * a.x1 + 2 * u * t * a.cx + t * t * a.x2, u * u * a.y1 + 2 * u * t * a.cy + t * t * a.y2]; };
+  function drawMap() {
+    const k = (svg.clientWidth || 700) / M.w, narrow = svg.clientWidth < 520;
+    for (const p of svg.querySelectorAll('.mg-gm')) { const c = p.dataset.c; p.setAttribute('fill', c === POZNAN ? 'var(--mg-miasto)' : fill(val(c))); }
+    $('#mg-gS').innerHTML = S.sel && GM[S.sel] ? `<path class="mg-wybor" d="${GM[S.sel].d}"/>` : '';
+    svg.querySelectorAll('.mg-dz').forEach((p, i) => p.classList.toggle('on', i === S.dz));
+    const items = M.gm.filter((g) => g.c !== POZNAN).map((g) => ({ g, v: val(g.c) })).filter((x) => x.v != null);
+    const fs = 11.5 / k, sw = 3.4 / k;
+    const lab = (x, y, t, v, an) => (narrow
+      ? `<text x="${x}" y="${y}" font-size="${fs}" stroke-width="${sw}" text-anchor="${an}" font-weight="600">${t}${v ? ` <tspan class="v" font-weight="400">${v}</tspan>` : ''}</text>`
+      : `<text x="${x}" y="${y}" font-size="${fs}" stroke-width="${sw}" text-anchor="${an}" font-weight="600">${t}</text>${v ? `<text class="v" x="${x}" y="${y + fs * 1.2}" font-size="${fs * .95}" stroke-width="${sw}" text-anchor="${an}">${v}</text>` : ''}`);
+    const rad = (g, t, v) => {
+      const dx = g.x - M.poz[0], dy = g.y - M.poz[1], L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, off = 11 / k;
+      const an = ux > .35 ? 'start' : ux < -.35 ? 'end' : 'middle';
+      const y = g.y + uy * off + (uy > .35 ? fs * .9 : uy < -.35 ? -fs * (narrow ? .3 : 1.3) : -fs * .4);
+      const w = (narrow ? t.length + (v ? v.length + 1 : 0) : Math.max(t.length, v ? v.length : 0)) * fs * .62, pad = 4 / k;
+      let x = g.x + ux * off;
+      if (an === 'end') x = Math.max(x, w + pad); else if (an === 'start') x = Math.min(x, M.w - w - pad); else x = Math.min(Math.max(x, w / 2 + pad), M.w - w / 2 - pad);
+      return lab(x, y, t, v, an);
+    };
+    let a = '', l = '';
+    ARCS = [];
+    if (isOut()) {
+      items.sort((p, q) => q.v - p.v);
+      const max = items[0] ? items[0].v : 1;
+      const top = items.filter((x) => x.v >= max * 0.035).slice(0, 26);
+      if (S.sel && GM[S.sel] && !top.find((x) => x.g.c === S.sel)) { const s = items.find((x) => x.g.c === S.sel); if (s && s.v > 0) top.push(s); }
+      const o = S.dz >= 0 ? D.dzPts[DZN[S.dz]] : M.poz;
+      for (const x of [...top].reverse()) {
+        const x1 = o[0], y1 = o[1], x2 = x.g.x, y2 = x.g.y, dx = x2 - x1, dy = y2 - y1;
+        const arc = { c: x.g.c, v: x.v, x1, y1, x2, y2, cx: (x1 + x2) / 2 - dy * .22, cy: (y1 + y2) / 2 + dx * .22, w: 1.3 + 8.5 * Math.sqrt(x.v / max) };
+        ARCS.push(arc);
+        const d = `M${x1} ${y1}Q${arc.cx.toFixed(1)} ${arc.cy.toFixed(1)} ${x2} ${y2}`;
+        a += `<path class="mg-lukC" d="${d}" stroke-width="${(arc.w + 3.2).toFixed(2)}"/><path class="mg-luk${x.g.c === S.sel ? ' on' : ''}" data-c="${x.g.c}" d="${d}" stroke-width="${arc.w.toFixed(2)}"/><circle class="mg-kropka" cx="${x2}" cy="${y2}" r="${((2.2 + arc.w * .45) / k).toFixed(2)}"/>`;
+      }
+      // dla wybranej gminy dokładamy łuk w drugą stronę: przeprowadzki do Poznania
+      if (S.sel && GM[S.sel] && S.dz < 0) {
+        const s = gsum(S.sel);
+        if (s.i > 0) {
+          const g = GM[S.sel], x1 = g.x, y1 = g.y, x2 = o[0], y2 = o[1], dx = x2 - x1, dy = y2 - y1, w = 1.3 + 8.5 * Math.sqrt(s.i / max);
+          const d = `M${x1} ${y1}Q${((x1 + x2) / 2 - dy * .22).toFixed(1)} ${((y1 + y2) / 2 + dx * .22).toFixed(1)} ${x2} ${y2}`;
+          a += `<path class="mg-lukC" d="${d}" stroke-width="${w + 3.2}"/><path class="mg-luk do on" data-c="${S.sel}" d="${d}" stroke-width="${w}"/>`;
+        }
+      }
+      a += `<circle class="mg-zrodlo" cx="${o[0]}" cy="${o[1]}" r="${(5 / k).toFixed(2)}"/>`;
+      const ile = narrow ? 5 : 8;
+      top.slice(0, ile).forEach((x) => { l += rad(x.g, narrow ? short(nameOf(x.g.c)) : nameOf(x.g.c), nf(x.v)); });
+      if (S.sel && GM[S.sel] && !top.slice(0, ile).find((x) => x.g.c === S.sel)) l += rad(GM[S.sel], nameOf(S.sel), nf(val(S.sel) || 0));
+    } else {
+      items.sort((p, q) => p.v - q.v);
+      const neg = S.mode === 'chg' ? items.slice(-(narrow ? 3 : 5)).reverse().filter((x) => x.v > 0) : items.slice(0, narrow ? 4 : 6);
+      const pos = S.mode === 'chg' ? items.slice(0, narrow ? 3 : 5).filter((x) => x.v < 0) : items.slice(narrow ? -2 : -3).filter((x) => x.v > 0);
+      const pokazane = neg.concat(pos);
+      pokazane.forEach((x) => { l += rad(x.g, nameOf(x.g.c), sg(x.v)); });
+      if (S.sel && GM[S.sel] && !pokazane.find((x) => x.g.c === S.sel)) l += rad(GM[S.sel], nameOf(S.sel), sg(val(S.sel) || 0));
+    }
+    l += lab(M.poz[0], M.poz[1] + 38 / k, 'Poznań', '', 'middle');
+    gA.innerHTML = a; gL.innerHTML = l;
+    svg.classList.toggle('hl', !!(S.hov || S.sel) && isOut());
+    setParticles();
+    $('#mg-legenda').innerHTML = legend();
+    $('#mg-mapa-uwaga').textContent = S.dz >= 0
+      ? 'Dla pojedynczej dzielnicy GUS pozwala wskazać gminę docelową tylko w powiecie poznańskim; pozostałe gminy są zakreskowane.'
+      : 'Przerywana linia: granica powiatu poznańskiego. Kliknij gminę albo dzielnicę Poznania.';
+  }
+  function hoverArcs(c) {
+    S.hov = c;
+    svg.classList.toggle('hl', !!(c || S.sel) && isOut());
+    svg.querySelectorAll('.mg-luk').forEach((p) => p.classList.toggle('on', p.dataset.c === (c || S.sel)));
+  }
+
+  /* cząsteczki: kropki płyną po łukach, im większy przepływ, tym ich więcej */
+  const cv = $('#mg-fx'), cx = cv.getContext('2d');
+  const probe = document.createElement('span');
+  probe.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;color:var(--mg-czastka)';
+  document.body.appendChild(probe);
+  let PARTS = [], lastT = 0, visible = true, ptCol = '#7a5a1c';
+  function sizeCanvas() {
+    const r = devicePixelRatio || 1, W = box.clientWidth, H = box.clientHeight;
+    if (cv.width !== Math.round(W * r)) { cv.width = Math.round(W * r); cv.height = Math.round(H * r); }
+    cx.setTransform(r, 0, 0, r, 0, 0);
+  }
+  function setParticles() {
+    ptCol = getComputedStyle(probe).color;
+    PARTS = [];
+    if (!ARCS.length) return;
+    const max = Math.max(...ARCS.map((a) => a.v));
+    for (const a of ARCS) { const n = Math.max(1, Math.round(a.v / max * 20)); for (let i = 0; i < n; i++) PARTS.push({ a, t: Math.random(), sp: .12 + Math.random() * .08 }); }
+    sizeCanvas();
+  }
+  function frame(ts) {
+    const dt = Math.min(.05, (ts - lastT) / 1000 || 0); lastT = ts;
+    if (visible) {
+      const W = box.clientWidth, k = W / M.w; cx.clearRect(0, 0, W, box.clientHeight);
+      if (S.fx && isOut()) {
+        const focus = S.hov || S.sel; cx.fillStyle = ptCol;
+        for (const p of PARTS) {
+          p.t += p.sp * dt; if (p.t > 1) p.t -= 1;
+          if (focus && p.a.c !== focus) continue;
+          const [x, y] = bez(p.a, p.t); cx.globalAlpha = Math.sin(Math.PI * p.t) * .95;
+          cx.beginPath(); cx.arc(x * k, y * k, 1.3 + p.a.w * .16, 0, 6.2832); cx.fill();
+        }
+        cx.globalAlpha = 1;
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  new IntersectionObserver((es) => { visible = es[0].isIntersecting; }).observe(box);
+  const fxb = $('#mg-fxbtn');
+  const fxLabel = () => { fxb.setAttribute('aria-pressed', String(S.fx)); fxb.textContent = S.fx ? 'Zatrzymaj ruch' : 'Pokaż ruch'; };
+  fxb.onclick = () => { S.fx = !S.fx; fxLabel(); }; fxLabel();
+
+  /* podpowiedź */
+  const tip = $('#mg-tip');
+  function spark(c, cur) {
+    const v = F[c].v.map((x) => x[0]), mx = Math.max(1, ...v);
+    return `<div class="mg-iskry">${v.map((x, k) => `<i class="${k === cur ? 'cur' : ''}" style="height:${Math.max(2, x / mx * 100)}%"></i>`).join('')}</div><div style="font-size:.72rem">wyprowadzki ${ZAKRES}</div>`;
+  }
+  function tipG(c) {
+    if (c === POZNAN) return '<b>Poznań</b><br>kliknij dzielnicę, żeby zobaczyć jej kierunki';
+    if (!F[c]) return 'Gmina spoza Wielkopolski albo bez przeprowadzek z Poznania w tych latach';
+    const s = gsum(c), f = F[c];
+    if (S.dz >= 0) { const r = dzOut(c, S.dz); return `<b>${esc(nameOf(c))}</b><br>${r ? `z dzielnicy ${DZN[S.dz]} ${yLab()}: <b class="mg-o">${approx(r.ho, r.o)}${nf(r.o)}</b>` : 'dla dzielnic GUS podaje tylko powiat poznański'}`; }
+    if (S.mode === 'chg') { const [a, b] = cmpYears(); return `<b>${esc(f.n)}</b><br>wyprowadzki ${Y[a]}: ${nf(f.v[a][0])}, ${Y[b]}: ${nf(f.v[b][0])}<br>zmiana: <b>${sg(f.v[b][0] - f.v[a][0])}</b>${spark(c, b)}`; }
+    return `<b>${esc(f.n)}</b> · ${esc(f.p)}<br>${cap(yLab())}: z Poznania <b class="mg-o">${approx(s.ho, s.o)}${nf(s.o)}</b>, do Poznania <b class="mg-i">${approx(s.hi, s.i)}${nf(s.i)}</b><br>bilans dla Poznania: <b>${sg(s.n)}</b>${spark(c, S.yi === ALL ? -1 : S.yi)}`;
+  }
+  function placeTip(t, host, e) {
+    const r = host.getBoundingClientRect();
+    let x = e.clientX - r.left + 14, y = e.clientY - r.top + 14;
+    t.style.display = 'block';
+    if (x + t.offsetWidth > r.width) x = e.clientX - r.left - t.offsetWidth - 14;
+    if (y + t.offsetHeight > r.height) y = e.clientY - r.top - t.offsetHeight - 14;
+    t.style.left = `${Math.max(4, x)}px`; t.style.top = `${Math.max(4, y)}px`;
+  }
+  svg.addEventListener('pointermove', (e) => {
+    const z = e.target.closest('.mg-dz');
+    if (z) {
+      const i = +z.dataset.z, s = dzStats(i);
+      tip.innerHTML = `<b>${DZN[i]}</b><br>${cap(yLab())}: poza Poznań <b class="mg-o">${nf(s.eo)}</b>, spoza Poznania <b class="mg-i">${nf(s.ei)}</b><br>kliknij, żeby zobaczyć łuki z tej dzielnicy`;
+      placeTip(tip, box, e); if (S.hov) hoverArcs(null); return;
+    }
+    const p = e.target.closest('.mg-gm');
+    if (!p) { tip.style.display = 'none'; if (S.hov) hoverArcs(null); return; }
+    tip.innerHTML = tipG(p.dataset.c); placeTip(tip, box, e);
+    if (S.hov !== p.dataset.c) hoverArcs(p.dataset.c);
+  });
+  svg.addEventListener('pointerleave', () => { tip.style.display = 'none'; hoverArcs(null); });
+  svg.addEventListener('click', (e) => {
+    const z = e.target.closest('.mg-dz'); if (z) { setDz(S.dz === +z.dataset.z ? -1 : +z.dataset.z); return; }
+    const p = e.target.closest('.mg-gm'); if (!p || p.dataset.c === POZNAN) return;
+    if (S.sel === p.dataset.c) { S.sel = null; render(); } else selectG(p.dataset.c);
+  });
+
+  /* ---------- panel: karta gminy albo ranking ---------- */
+  function panel() {
+    let h = '';
+    if (S.sel && F[S.sel]) {
+      const c = S.sel, f = F[c], s = gsum(c), cur = S.yi === ALL ? -1 : S.yi;
+      const mx = Math.max(1, ...f.v.map((v) => Math.max(v[0], v[1])));
+      const yy = S.yi === ALL ? ALL - 1 : S.yi, prev = yy > 0 ? f.v[yy - 1][0] : null, now = f.v[yy][0];
+      h += `<div class="karta mg-karta"><h3>${esc(f.n)} <small>${esc(f.p)}</small></h3>
+        <div class="mg-duze"><div><b class="mg-o">${approx(s.ho, s.o)}${nf(s.o)}</b>z Poznania</div><div><b class="mg-i">${approx(s.hi, s.i)}${nf(s.i)}</b>do Poznania</div><div><b>${sg(s.n)}</b>bilans ${YL()}</div></div>
+        <div class="mg-slupki${cur >= 0 ? ' sel' : ''}">${f.v.map((v, k) => `<div class="${k === cur ? 'cur' : ''}" title="${Y[k]}: z Poznania ${nf(v[0])}, do Poznania ${nf(v[1])}"><i class="a" style="height:${Math.max(1, v[0] / mx * 100)}%"></i><i class="b" style="height:${Math.max(1, v[1] / mx * 100)}%"></i></div>`).join('')}</div>
+        <div class="mg-lata-os">${Y.map((y) => `<span>${y}</span>`).join('')}</div>`;
+      if (prev !== null) h += `<p class="drobne" style="margin:8px 0 0">Wyprowadzki ${Y[yy]} wobec ${Y[yy - 1]}: ${sg(now - prev)} (${prev >= 20 ? pct(now / prev - 1) : 'mała liczba'}).</p>`;
+      if (c.startsWith(POWIAT)) {
+        const per = DZN.map((n, z) => [n, dzOut(c, z).o]); const m2 = Math.max(1, ...per.map((p) => p[1]));
+        h += `<p class="mg-etykieta" style="margin:16px 0 4px">Z której dzielnicy ${yLab()}</p>${per.map((p) => `<div class="mg-poziome"><span>${p[0]}</span><i style="width:${p[1] / m2 * 100}%"></i><span class="n">${nf(p[1])}</span></div>`).join('')}`;
+        const pp = D.pp[c];
+        if (pp) { const dw = pp.dw.reduce((a, b) => a + b) / ALL; h += `<p class="drobne" style="margin:10px 0 0">Nowe mieszkania: średnio ${nf(dw, 1)} rocznie na 1000 mieszkańców. Ludność gminy: ${nf(pp.p20)} w 2020 r., ${nf(pp.p25)} w 2025 r. (${pct(pp.p25 / pp.p20 - 1)}).</p>`; }
+      }
+      h += '<button class="mg-wroc" type="button" id="mg-odznacz">Wróć do listy kierunków</button></div>';
+    } else {
+      const items = Object.keys(F).map((c) => ({ c, v: val(c) })).filter((x) => x.v != null && Math.abs(x.v) >= .5);
+      let list, title;
+      if (isOut()) { items.sort((a, b) => b.v - a.v); list = items.slice(0, 10); title = S.dz >= 0 ? `Z dzielnicy ${DZN[S.dz]} ${yLab()}` : `Dokąd najczęściej ${yLab()}`; }
+      else if (S.mode === 'chg') { const [a, b] = cmpYears(); items.sort((p, q) => q.v - p.v); list = items.slice(0, 5).concat(items.slice(-5).reverse()); title = `Największe zmiany: ${Y[b]} wobec ${Y[a]}`; }
+      else { items.sort((a, b) => a.v - b.v); list = items.slice(0, 6).concat(items.slice(-4).reverse().filter((x) => x.v > 0)); title = `Bilans ${yLab()}: najwięcej na minus i na plus`; }
+      const mx = Math.max(1, ...list.map((x) => Math.abs(x.v)));
+      h += `<div class="karta mg-karta"><h3>${title}</h3><ol class="mg-rank">${list.map((x, k) => { const posC = S.mode === 'chg' ? x.v < 0 : x.v > 0; return `<li><button type="button" data-c="${x.c}"><span class="k">${k + 1}.</span><span>${esc(F[x.c].n)}</span><span class="v">${isOut() ? nf(x.v) : sg(x.v)}</span><span class="t"><i class="${!isOut() && posC ? 'pos' : ''}" style="width:${Math.abs(x.v) / mx * 100}%"></i></span></button></li>`; }).join('')}</ol><p class="drobne" style="margin:8px 0 0">Kliknij gminę, żeby zobaczyć jej kartę. Pełna lista jest w <a href="#tabela">tabeli wszystkich kierunków</a>.</p></div>`;
+    }
+    $('#mg-panel').innerHTML = h;
+    const u = $('#mg-odznacz'); if (u) u.onclick = () => { S.sel = null; $('#mg-szukaj').value = ''; render(); };
+    const rk = $('#mg-panel .mg-rank');
+    if (rk) {
+      rk.onclick = (e) => { const b = e.target.closest('button'); if (b) selectG(b.dataset.c); };
+      rk.onpointerover = (e) => { const b = e.target.closest('button'); hoverArcs(b ? b.dataset.c : null); };
+      rk.onpointerleave = () => hoverArcs(null);
+    }
+  }
+
+  /* ---------- wiek ---------- */
+  const AG = D.ages;
+  function ageSum(area, ys = yrs()) {
+    const n = AG.labels.length, a = Array.from({ length: n }, () => [0, 0]); const dir = Array(8).fill(0);
+    for (const k of ys) { const r = AG.d[Y[k]][area]; r.a.forEach((v, i) => { a[i][0] += v[0]; a[i][1] += v[1]; }); r.dir.forEach((v, i) => { dir[i] += v; }); }
+    return { a, dir };
+  }
+  function pyramid() {
+    controls();
+    const s = $('#mg-piramida'), W = s.parentNode.clientWidth - 36 || 600, rows = AG.labels.length, rh = W < 520 ? 20 : 24, H = rows * rh + 46;
+    s.setAttribute('viewBox', `0 0 ${W} ${H}`); s.setAttribute('height', H);
+    const { a, dir } = ageSum(S.area), mid = W / 2, lw = W < 520 ? 44 : 58, mx = Math.max(...a.flat());
+    const sc = (v) => (mid - lw / 2 - 6) * v / mx;
+    const waski = W < 520;
+    let h = `<text x="${mid - lw / 2 - 8}" y="16" text-anchor="end" font-size="11" stroke-width="0" class="v">${waski ? 'z Poznania' : 'wyprowadzki z Poznania'}</text><text x="${mid + lw / 2 + 8}" y="16" font-size="11" stroke-width="0" class="v">${waski ? 'do Poznania' : 'przeprowadzki do Poznania'}</text>`;
+    for (let i = 0; i < rows; i++) {
+      const r = rows - 1 - i, y = 28 + i * rh, v = a[r];
+      h += `<g data-r="${r}"><rect x="${mid - lw / 2 - sc(v[1])}" y="${y + 2}" width="${sc(v[1])}" height="${rh - 5}" rx="2" fill="var(--mg-out)"/><rect x="${mid + lw / 2}" y="${y + 2}" width="${sc(v[0])}" height="${rh - 5}" rx="2" fill="var(--mg-in)"/><text x="${mid}" y="${y + rh / 2 + 4}" text-anchor="middle" font-size="11" stroke-width="0" class="v">${AG.labels[r]}</text><rect x="0" y="${y}" width="${W}" height="${rh}" fill="transparent"/></g>`;
+    }
+    s.innerHTML = h;
+    const to = a.reduce((x, v) => x + v[1], 0), ti = a.reduce((x, v) => x + v[0], 0);
+    const kid = [0, 1, 2].reduce((x, i) => x + a[i][1], 0), kidIn = [0, 1, 2].reduce((x, i) => x + a[i][0], 0);
+    const par = [6, 7, 8].reduce((x, i) => x + a[i][1], 0);
+    const yng = [4, 5].reduce((x, i) => x + a[i][0], 0), yngO = [4, 5].reduce((x, i) => x + a[i][1], 0);
+    const where = S.area === 'Poznań' ? 'z Poznania' : `z dzielnicy ${S.area}`;
+    $('#mg-wiek-pod').textContent = `Wiek osób, które ${yLab()} wymeldowały się ${where} do innej gminy oraz zameldowały w ${S.area === 'Poznań' ? 'Poznaniu' : 'tej dzielnicy'} spoza miasta. Najedź na wiersz, żeby zobaczyć liczby.`;
+    const vo = dir[4] + dir[5] + dir[6] + dir[7];
+    const czesci = [[dir[5], 'var(--mg-out)', 'na wieś w Wielkopolsce'], [dir[4], 'var(--mg-s5)', 'do miast w Wielkopolsce'], [dir[6] + dir[7], 'var(--mg-s3)', 'do innych województw']];
+    $('#mg-wiek-fakty').innerHTML = `<div class="mg-fakt"><b>${Math.round(kid / to * 100)}%</b><span>wyprowadzających się to dzieci do 14 lat (${nf(kid)} dzieci). Wśród przyjeżdżających: ${Math.round(kidIn / ti * 100)}%.</span></div>
+      <div class="mg-fakt"><b>${Math.round(par / to * 100)}%</b><span>wyprowadzających się ma 30–44 lata.</span></div>
+      <div class="mg-fakt"><b>${Math.round(yng / ti * 100)}%</b><span>przyjeżdżających ma 20–29 lat. W tym wieku przyjechało ${nf(yng)} osób, a wyjechało ${nf(yngO)}.</span></div>
+      <div><p class="mg-etykieta">Dokąd wyjeżdżają</p><div class="mg-stos">${czesci.map((x) => `<i style="width:${x[0] / vo * 100}%;background:${x[1]}" title="${x[2]}: ${nf(x[0])}"></i>`).join('')}</div><div class="mg-stos-leg">${czesci.map((x) => `<span style="--c:${x[1]}">${x[2]} ${Math.round(x[0] / vo * 100)}%</span>`).join('')}</div><p class="drobne" style="margin:8px 0 0">„Wieś" w rozumieniu GUS obejmuje też podmiejskie osiedla, np. w gminach Dopiewo czy Komorniki.</p></div>`;
+    const tp = $('#mg-tip3'), host = $('#mg-piramida-ramka');
+    s.onpointermove = (e) => {
+      const g = e.target.closest('[data-r]'); if (!g) { tp.style.display = 'none'; return; }
+      const r = +g.dataset.r;
+      tp.innerHTML = `<b>${AG.labels[r]} lat</b><br>wyprowadzki: <b class="mg-o">${nf(a[r][1])}</b><br>przeprowadzki: <b class="mg-i">${nf(a[r][0])}</b><br>bilans: <b>${sg(a[r][0] - a[r][1])}</b>`;
+      placeTip(tp, host, e);
+    };
+    s.onpointerleave = () => { tp.style.display = 'none'; };
+  }
+
+  /* ---------- dzielnice: mapa + strumienie ---------- */
+  function dzStats(z, ys = yrs()) {
+    const r = D.dz[DZN[z]]; let eo = 0, ei = 0, pop = 0; const pp = {};
+    for (const k of ys) { const x = r[k]; eo += x.eo; ei += x.ei; pop += x.pop; for (const c in x.pp) pp[c] = (pp[c] || 0) + (x.pp[c] < 0 ? D.avgOut[Y[k]] : x.pp[c]); }
+    pop /= ys.length;
+    return { eo, ei, net: ei - eo, pop, rate: (ei - eo) / pop / ys.length * 1000, pp };
+  }
+  const C = D.city, csvg = $('#mg-miasto');
+  csvg.setAttribute('viewBox', `0 0 ${C.w} ${C.h}`);
+  csvg.innerHTML = `<g>${C.dz.map((z, i) => `<path d="${z.d}" data-z="${i}" class="mg-cdz" style="stroke:var(--mg-lad);stroke-width:3;vector-effect:non-scaling-stroke;cursor:pointer"/>`).join('')}</g><g>${C.os.map((o) => `<path d="${o.d}" fill="none" style="stroke:var(--mg-lad);stroke-opacity:.5;stroke-width:.7;vector-effect:non-scaling-stroke;pointer-events:none"/>`).join('')}</g><g id="mg-cSel"></g><g id="mg-cL"></g>`;
+  const DT = [0.5, 1.5, 3, 5];
+  const dfill = (v) => { let k = -1; DT.forEach((x, i) => { if (Math.abs(v) >= x) k = i; }); return k < 0 ? 'var(--mg-zero)' : (v < 0 ? `var(--mg-n${k + 1})` : `var(--mg-p${k + 1})`); };
+  function cityMap() {
+    const k = (csvg.clientWidth || 400) / C.w, st = DZN.map((_, z) => dzStats(z));
+    csvg.querySelectorAll('.mg-cdz').forEach((p, i) => p.setAttribute('fill', dfill(st[i].rate)));
+    $('#mg-cSel').innerHTML = S.dz >= 0 ? `<path d="${C.dz[S.dz].d}" fill="none" style="stroke:var(--czerwien);stroke-width:3;vector-effect:non-scaling-stroke;pointer-events:none"/>` : '';
+    $('#mg-cL').innerHTML = C.dz.map((z, i) => `<text x="${z.x}" y="${z.y}" text-anchor="middle" font-size="${13 / k}" stroke-width="${4 / k}" font-weight="600">${z.n}</text><text x="${z.x}" y="${z.y + 16 / k}" text-anchor="middle" font-size="${12 / k}" stroke-width="${4 / k}">${sg(st[i].rate, 1)}‰</text>`).join('');
+    const cells = [...DT].reverse().map((x, i) => [`var(--mg-n${DT.length - i})`, `−${nf(x, 1)}`]).concat([['var(--mg-zero)', '0']], DT.map((x, i) => [`var(--mg-p${i + 1})`, `+${nf(x, 1)}`]));
+    $('#mg-legenda2').innerHTML = `<div class="mg-leg-tytul">Saldo z resztą kraju na 1000 mieszkańców${S.yi === ALL ? ', średnio rocznie' : ''}</div>${komorki(cells)}<div class="mg-leg-konce"><span>dzielnica traci</span><span>zyskuje</span></div>`;
+    const best = st.map((s, i) => [i, s.rate]).sort((a, b) => b[1] - a[1]);
+    $('#mg-dz-tytul').textContent = best[0][1] > 0
+      ? `Dzielnice: ${DZN[best[0][0]]} zyskuje mieszkańców, ${DZN[best[4][0]]} traci najszybciej`
+      : `Dzielnice: każda traci mieszkańców, najszybciej ${DZN[best[4][0]]}`;
+  }
+  const tip2 = $('#mg-tip2'), cbox = $('#mg-miasto-ramka');
+  csvg.addEventListener('pointermove', (e) => {
+    const p = e.target.closest('.mg-cdz'); if (!p) { tip2.style.display = 'none'; return; }
+    const i = +p.dataset.z, s = dzStats(i);
+    tip2.innerHTML = `<b>${DZN[i]}</b> · ok. ${nf(Math.round(s.pop / 1000))} tys. mieszkańców<br>${cap(yLab())}: poza Poznań <b class="mg-o">${nf(s.eo)}</b>, spoza Poznania <b class="mg-i">${nf(s.ei)}</b><br>saldo: <b>${sg(s.net)}</b> (${sg(s.rate, 1)}‰ rocznie)`;
+    placeTip(tip2, cbox, e);
+  });
+  csvg.addEventListener('pointerleave', () => { tip2.style.display = 'none'; });
+  csvg.addEventListener('click', (e) => { const p = e.target.closest('.mg-cdz'); if (p) setDz(S.dz === +p.dataset.z ? -1 : +p.dataset.z); });
+  function sankey() {
+    const s = $('#mg-sankey'), W = s.parentNode.clientWidth - 36 || 600, narrow = W < 560, H = narrow ? 560 : 470;
+    s.setAttribute('viewBox', `0 0 ${W} ${H}`); s.setAttribute('height', H);
+    const st = DZN.map((_, z) => dzStats(z));
+    const tot = {}; st.forEach((x) => { for (const c in x.pp) tot[c] = (tot[c] || 0) + x.pp[c]; });
+    const top = Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 7).map((x) => x[0]);
+    const R = top.map((c) => ({ id: c, n: short(F[c].n) })).concat([{ id: 'pp', n: 'inne w powiecie' }, { id: 'x', n: 'poza powiatem' }]);
+    const flow = (z, id) => {
+      const x = st[z];
+      if (id === 'pp') return Object.entries(x.pp).filter(([c]) => !top.includes(c)).reduce((a, b) => a + b[1], 0);
+      if (id === 'x') return Math.max(0, x.eo - Object.values(x.pp).reduce((a, b) => a + b, 0));
+      return x.pp[id] || 0;
+    };
+    const F2 = DZN.map((_, z) => R.map((r) => flow(z, r.id)));
+    const L = DZN.map((n, z) => F2[z].reduce((a, b) => a + b, 0)), Rv = R.map((_, j) => F2.reduce((a, row) => a + row[j], 0));
+    const total = L.reduce((a, b) => a + b, 0);
+    const fs = narrow ? 10.5 : 11.5, cw = fs * .62, nw = 12, gap = 7, top0 = 22;
+    const ml = Math.max(...DZN.map((n) => n.length)) * cw + 14;
+    const mr = nw + 12 + (narrow ? Math.max(...R.map((r, j) => Math.max(r.n.length, nf(Rv[j]).length))) : Math.max(...R.map((r, j) => r.n.length + 1 + nf(Rv[j]).length))) * cw;
+    const scL = (H - top0 - 8 - gap * 4) / total, scR = (H - top0 - 8 - gap * (R.length - 1)) / total;
+    const x0 = ml, x1 = W - mr;
+    let yl = top0; const LY = L.map((v) => { const y = yl; yl += v * scL + gap; return y; });
+    let yr = top0; const RY = Rv.map((v) => { const y = yr; yr += v * scR + gap; return y; });
+    const offL = LY.slice(), offR = RY.slice();
+    let h = `<text x="${x0}" y="12" font-size="10.5" stroke-width="0" class="v" text-anchor="middle">dzielnica</text><text x="${x1 + nw}" y="12" font-size="10.5" stroke-width="0" class="v" text-anchor="middle">dokąd</text>`;
+    DZN.forEach((n, z) => R.forEach((r, j) => {
+      const v = F2[z][j]; if (v <= 0) return;
+      const a0 = offL[z], a1 = a0 + v * scL, b0 = offR[j], b1 = b0 + v * scR; offL[z] = a1; offR[j] = b1;
+      const xm = (x0 + nw + x1) / 2;
+      h += `<path data-z="${z}" data-j="${j}" data-v="${v}" d="M${x0 + nw} ${a0}C${xm} ${a0} ${xm} ${b0} ${x1} ${b0}L${x1} ${b1}C${xm} ${b1} ${xm} ${a1} ${x0 + nw} ${a1}Z" fill="${j < 7 ? 'var(--mg-out)' : 'var(--mg-s5)'}" fill-opacity="${S.dz < 0 ? .5 : S.dz === z ? .75 : .07}" style="cursor:pointer"/>`;
+    }));
+    DZN.forEach((n, z) => { h += `<rect x="${x0}" y="${LY[z]}" width="${nw}" height="${Math.max(2, L[z] * scL)}" fill="var(--atrament)" data-z="${z}" style="cursor:pointer"/><text x="${x0 - 8}" y="${LY[z] + L[z] * scL / 2}" text-anchor="end" font-size="${fs}" stroke-width="3" font-weight="600" dy="-2">${n}</text><text x="${x0 - 8}" y="${LY[z] + L[z] * scL / 2 + fs}" text-anchor="end" font-size="${fs - 1}" stroke-width="3" class="v" dy="-2">${nf(L[z])}</text>`; });
+    R.forEach((r, j) => {
+      const y = RY[j] + Rv[j] * scR / 2;
+      h += `<rect x="${x1}" y="${RY[j]}" width="${nw}" height="${Math.max(2, Rv[j] * scR)}" fill="${j < 7 ? 'var(--mg-out)' : 'var(--mg-s5)'}"/>${narrow
+        ? `<text x="${x1 + nw + 8}" y="${y - 1}" font-size="${fs}" stroke-width="3">${esc(r.n)}</text><text x="${x1 + nw + 8}" y="${y + fs - 1}" font-size="${fs - 1}" stroke-width="3" class="v">${nf(Rv[j])}</text>`
+        : `<text x="${x1 + nw + 8}" y="${y + 4}" font-size="${fs}" stroke-width="3">${esc(r.n)} <tspan class="v">${nf(Rv[j])}</tspan></text>`}`;
+    });
+    s.innerHTML = h;
+    $('#mg-sankey-tytul').textContent = `Wymeldowania z dzielnic poza Poznań ${yLab()}: ${nf(total)}`;
+    s.onclick = (e) => { const t = e.target.closest('[data-z]'); if (t) setDz(S.dz === +t.dataset.z ? -1 : +t.dataset.z); };
+    const tp = $('#mg-tip5'), host = $('#mg-sankey-ramka');
+    s.onpointermove = (e) => {
+      const t = e.target.closest('path[data-j]'); if (!t) { tp.style.display = 'none'; return; }
+      const z = +t.dataset.z, j = +t.dataset.j, v = +t.dataset.v;
+      tp.innerHTML = `<b>${DZN[z]} → ${esc(R[j].n)}</b><br>${cap(yLab())}: <b class="mg-o">${nf(v)}</b> osób<br>${nf(v / L[z] * 100, 1)}% wymeldowań z tej dzielnicy`;
+      placeTip(tp, host, e);
+    };
+    s.onpointerleave = () => { tp.style.display = 'none'; };
+  }
+
+  /* ---------- mieszkania a przeprowadzki ---------- */
+  function scatter() {
+    const s = $('#mg-punkty'), W = s.parentNode.clientWidth - 36 || 600, narrow = W < 560, H = narrow ? 360 : 440;
+    s.setAttribute('viewBox', `0 0 ${W} ${H}`); s.setAttribute('height', H);
+    const ys = yrs();
+    const pts = Object.keys(D.pp).map((c) => {
+      const p = D.pp[c], pop = (p.p20 + p.p25) / 2;
+      const dw = ys.reduce((a, k) => a + p.dw[k], 0) / ys.length;
+      return { c, n: F[c].n, x: dw, y: gsum(c, ys).o / ys.length / pop * 1000, pop: p.p25 };
+    });
+    const ml = 40, mr = 16, mt = 20, mb = 46, iw = W - ml - mr, ih = H - mt - mb;
+    const xM = Math.ceil(Math.max(...pts.map((p) => p.x)) / 5) * 5, yM = Math.ceil(Math.max(...pts.map((p) => p.y)) / 5) * 5;
+    const xv = (v) => ml + iw * v / xM, yv = (v) => mt + ih * (1 - v / yM), rv = (p) => 4 + 11 * Math.sqrt(p.pop / 60000);
+    let h = '';
+    for (let t = 0; t <= yM; t += 5) h += `<line x1="${ml}" x2="${W - mr}" y1="${yv(t)}" y2="${yv(t)}" stroke="var(--linia)"/><text x="${ml - 8}" y="${yv(t) + 4}" text-anchor="end" font-size="10.5" stroke-width="0" class="v">${t}</text>`;
+    for (let t = 0; t <= xM; t += 5) h += `<text x="${xv(t)}" y="${H - mb + 18}" text-anchor="middle" font-size="10.5" stroke-width="0" class="v">${t}</text>`;
+    h += `<text x="${ml + iw / 2}" y="${H - 6}" text-anchor="middle" font-size="10.5" stroke-width="0" class="v">${narrow ? 'nowe mieszkania rocznie na 1000 mieszk.' : 'nowe mieszkania rocznie na 1000 mieszkańców gminy'}</text>`;
+    h += `<text x="${ml}" y="${mt - 8}" font-size="10.5" stroke-width="0" class="v">${narrow ? 'z Poznania rocznie na 1000 mieszk.' : 'przeprowadzki z Poznania rocznie na 1000 mieszkańców gminy'}</text>`;
+    const n = pts.length, mx = pts.reduce((a, p) => a + p.x, 0) / n, my = pts.reduce((a, p) => a + p.y, 0) / n;
+    const sxy = pts.reduce((a, p) => a + (p.x - mx) * (p.y - my), 0), sxx = pts.reduce((a, p) => a + (p.x - mx) ** 2, 0), syy = pts.reduce((a, p) => a + (p.y - my) ** 2, 0);
+    const b = sxy / sxx, a0 = my - b * mx, r = sxy / Math.sqrt(sxx * syy);
+    h += `<line x1="${xv(0)}" y1="${yv(Math.max(0, a0))}" x2="${xv(xM)}" y2="${yv(Math.min(yM, a0 + b * xM))}" stroke="var(--tekst-3)" stroke-dasharray="5 5"/>`;
+    for (const p of [...pts].sort((p, q) => q.pop - p.pop)) h += `<circle cx="${xv(p.x)}" cy="${yv(p.y)}" r="${rv(p)}" fill="var(--mg-out)" fill-opacity="${p.c === S.sel ? 1 : .78}" stroke="${p.c === S.sel ? 'var(--czerwien)' : 'var(--mg-lad)'}" stroke-width="${p.c === S.sel ? 2.5 : 2}" data-c="${p.c}" style="cursor:pointer"/>`;
+    const placed = [];
+    for (const p of [...pts].sort((p, q) => q.y - p.y)) {
+      const t = narrow ? short(p.n) : p.n, w = t.length * 6.9, x = xv(p.x), y = yv(p.y), rr = rv(p);
+      const cand = [[x + rr + 4, y + 4, 'start'], [x - rr - 4, y + 4, 'end'], [x, y - rr - 5, 'middle'], [x, y + rr + 14, 'middle']];
+      for (const [lx, ly, an] of cand) {
+        const xa = an === 'start' ? lx : an === 'end' ? lx - w : lx - w / 2, bb = [xa, ly - 11, xa + w, ly + 3];
+        if (bb[0] < 2 || bb[2] > W - 2 || bb[1] < 0 || bb[3] > H - mb) continue;
+        if (placed.some((q) => !(bb[2] < q[0] || bb[0] > q[2] || bb[3] < q[1] || bb[1] > q[3]))) continue;
+        placed.push(bb); h += `<text x="${lx}" y="${ly}" text-anchor="${an}" font-size="11" stroke-width="3.5">${esc(t)}</text>`; break;
+      }
+    }
+    s.innerHTML = h;
+    const tp = $('#mg-tip4'), host = $('#mg-punkty-ramka');
+    s.onpointermove = (e) => {
+      const c = e.target.closest('[data-c]'); if (!c) { tp.style.display = 'none'; if (S.hov) hoverArcs(null); return; }
+      const p = pts.find((q) => q.c === c.dataset.c);
+      tp.innerHTML = `<b>${esc(p.n)}</b><br>nowe mieszkania: <b>${nf(p.x, 1)}</b> na 1000 mieszk. rocznie<br>z Poznania: <b class="mg-o">${nf(p.y, 1)}</b> na 1000 mieszk. rocznie<br>ludność 2025: ${nf(p.pop)}`;
+      placeTip(tp, host, e);
+    };
+    s.onpointerleave = () => { tp.style.display = 'none'; };
+    s.onclick = (e) => { const c = e.target.closest('[data-c]'); if (c) { selectG(c.dataset.c); doMapy(); } };
+    const top3 = [...pts].sort((p, q) => q.y - p.y).slice(0, 3).map((p) => p.n);
+    $('#mg-miesz-pod').textContent = `Każde kółko to gmina powiatu poznańskiego; wielkość kółka to liczba mieszkańców. ${cap(yLab())} najwięcej przeprowadzek z Poznania w przeliczeniu na mieszkańca przyjęły: ${top3.join(', ')}.`;
+    const grow = Object.keys(D.pp).map((c) => [F[c].n, D.pp[c].p25 / D.pp[c].p20 - 1]).sort((a, b) => b[1] - a[1]);
+    $('#mg-miesz-fakty').innerHTML = `<div class="mg-fakt"><b>r = ${nf(r, 2)}</b><span>Siła związku między liczbą nowych mieszkań a przeprowadzkami z Poznania (1 to pełna zgodność). To korelacja, nie dowód przyczyny.</span></div>
+      <div class="mg-fakt"><b>${pct(grow[0][1])}</b><span>Tyle w latach 2020–2025 przybyło mieszkańców w gminie ${esc(grow[0][0])}. Dalej: ${esc(grow[1][0])} (${pct(grow[1][1])}) i ${esc(grow[2][0])} (${pct(grow[2][1])}).</span></div>
+      <p class="drobne" style="margin:0">Kliknij kółko, żeby zobaczyć gminę na mapie.</p>`;
+  }
+
+  /* ---------- rok po roku ---------- */
+  function lines() {
+    const s = $('#mg-linie'), W = s.parentNode.clientWidth - 36 || 600, H = 300;
+    s.setAttribute('viewBox', `0 0 ${W} ${H}`); s.setAttribute('height', H);
+    const out = Y.map((y) => T('80123')[y]), inn = Y.map((y) => T('80121')[y]);
+    const ml = 44, mr = W < 520 ? 78 : 108, mt = 14, mb = 30, iw = W - ml - mr, ih = H - mt - mb;
+    const hi = Math.ceil(Math.max(...out) / 1000) * 1000, lo = Math.floor(Math.min(...inn) / 1000) * 1000;
+    const xv = (i) => ml + iw * i / (ALL - 1), yv = (v) => mt + ih * (1 - (v - lo) / (hi - lo));
+    let h = '';
+    for (let t = lo; t <= hi; t += 1000) h += `<line x1="${ml}" x2="${W - mr}" y1="${yv(t)}" y2="${yv(t)}" stroke="var(--linia)"/><text x="${ml - 8}" y="${yv(t) + 4}" text-anchor="end" font-size="10.5" stroke-width="0" class="v">${nf(t)}</text>`;
+    Y.forEach((y, i) => { h += `<text x="${xv(i)}" y="${H - 8}" text-anchor="middle" font-size="10.5" stroke-width="0" class="v">${W < 420 && i % 2 ? '' : y}</text>`; });
+    const pts = (a) => a.map((v, i) => `${xv(i)},${yv(v)}`).join(' ');
+    h += `<polygon points="${pts(out)} ${pts(inn).split(' ').reverse().join(' ')}" fill="var(--mg-out)" opacity=".12"/>`;
+    h += '<line id="mg-linie-kreska" y1="' + mt + '" y2="' + (mt + ih) + '" stroke="var(--tekst-3)" stroke-dasharray="3 3" visibility="hidden"/>';
+    if (S.yi < ALL) h += `<line x1="${xv(S.yi)}" x2="${xv(S.yi)}" y1="${mt}" y2="${mt + ih}" stroke="var(--atrament)" stroke-dasharray="3 3"/>`;
+    h += `<polyline points="${pts(out)}" fill="none" stroke="var(--mg-out)" stroke-width="2" stroke-linejoin="round"/><polyline points="${pts(inn)}" fill="none" stroke="var(--mg-in)" stroke-width="2" stroke-linejoin="round"/>`;
+    out.forEach((v, i) => { h += `<circle cx="${xv(i)}" cy="${yv(v)}" r="${S.yi === i ? 6 : 4}" fill="var(--mg-out)" stroke="var(--mg-lad)" stroke-width="2"/>`; });
+    inn.forEach((v, i) => { h += `<circle cx="${xv(i)}" cy="${yv(v)}" r="${S.yi === i ? 6 : 4}" fill="var(--mg-in)" stroke="var(--mg-lad)" stroke-width="2"/>`; });
+    const lx = xv(ALL - 1) + 10;
+    h += `<text x="${lx}" y="${yv(out[ALL - 1]) - 2}" font-size="11" font-weight="600" stroke-width="3">${nf(out[ALL - 1])}</text><text x="${lx}" y="${yv(out[ALL - 1]) + 12}" font-size="10.5" stroke-width="3" class="v">${W < 520 ? 'wymeld.' : 'wymeldowania'}</text><text x="${lx}" y="${yv(inn[ALL - 1]) + 6}" font-size="11" font-weight="600" stroke-width="3">${nf(inn[ALL - 1])}</text><text x="${lx}" y="${yv(inn[ALL - 1]) + 20}" font-size="10.5" stroke-width="3" class="v">${W < 520 ? 'zameld.' : 'zameldowania'}</text>`;
+    // niewidoczne pasy lat: cel najechania i kliknięcia jest dużo większy niż kropka
+    const pas = iw / (ALL - 1);
+    Y.forEach((y, i) => { h += `<rect data-i="${i}" x="${xv(i) - pas / 2}" y="${mt}" width="${pas}" height="${ih}" fill="transparent" style="cursor:pointer"/>`; });
+    s.innerHTML = h;
+    const tp = $('#mg-tip6'), host = $('#mg-linie-ramka'), kreska = $('#mg-linie-kreska');
+    s.onpointermove = (e) => {
+      const g = e.target.closest('[data-i]'); if (!g) { tp.style.display = 'none'; kreska.setAttribute('visibility', 'hidden'); return; }
+      const i = +g.dataset.i;
+      kreska.setAttribute('x1', xv(i)); kreska.setAttribute('x2', xv(i)); kreska.setAttribute('visibility', 'visible');
+      tp.innerHTML = `<b>${Y[i]}</b><br>wymeldowania: <b class="mg-o">${nf(out[i])}</b><br>zameldowania: <b class="mg-i">${nf(inn[i])}</b><br>saldo: <b>${sg(inn[i] - out[i])}</b><br>kliknij, żeby wybrać ten rok`;
+      placeTip(tp, host, e);
+    };
+    s.onpointerleave = () => { tp.style.display = 'none'; kreska.setAttribute('visibility', 'hidden'); };
+    s.onclick = (e) => { const g = e.target.closest('[data-i]'); if (!g) return; stopPlay(); S.yi = S.yi === +g.dataset.i ? ALL : +g.dataset.i; render(); };
+
+    const j = S.yi < ALL ? S.yi : ALL - 1;
+    const sal = Y.map((y, i) => inn[i] - out[i]), jy = Y[j], prev = j ? sal[j - 1] : T('80121')[Y[0] - 1] - T('80123')[Y[0] - 1];
+    $('#mg-lata-fakty').innerHTML = `<div class="mg-fakt"><b>${nf(sal[j])}</b><span>saldo migracji wewnętrznych w ${jy} r. (rok wcześniej ${nf(prev)}).</span></div>
+      <div class="mg-fakt"><b class="mg-o">${nf(out[j])}</b><span>wymeldowań w ${jy} r., ${pct(out[j] / (j ? out[j - 1] : T('80123')[Y[0] - 1]) - 1)} rok do roku.</span></div>
+      <div class="mg-fakt"><b class="mg-i">${nf(inn[j])}</b><span>zameldowań w ${jy} r., ${pct(inn[j] / (j ? inn[j - 1] : T('80121')[Y[0] - 1]) - 1)} rok do roku.</span></div>
+      <p class="drobne" style="margin:0">${S.yi === ALL ? 'Wybierz rok na pasku u góry albo kliknij go na wykresie, żeby porównać z poprzednim.' : 'Liczby dla roku wybranego na pasku u góry.'}</p>`;
+
+    const pp = Object.keys(F).filter((c) => c.startsWith(POWIAT)).map((c) => ({ c, v: F[c].v.map((x) => x[0]) }))
+      .sort((a, b) => b.v.reduce((x, y) => x + y) - a.v.reduce((x, y) => x + y));
+    const cur = S.yi < ALL ? S.yi : -1, yy = S.yi < ALL && S.yi > 0 ? S.yi : ALL - 1;
+    $('#mg-male').innerHTML = pp.map((r) => {
+      const mx = Math.max(...r.v), ch = r.v[yy] / r.v[yy - 1] - 1;
+      return `<button type="button" class="mg-maly" data-c="${r.c}" aria-pressed="${r.c === S.sel}"><h3><span>${esc(F[r.c].n)}</span><em>${nf(r.v.reduce((a, b) => a + b))}</em></h3><div class="mg-maly-s">${r.v.map((v, k) => `<i class="${k === cur || (cur < 0 && k === ALL - 1) ? 'cur' : ''}" style="height:${v / mx * 100}%" title="${Y[k]}: ${nf(v)}"></i>`).join('')}</div><small>${Y[yy]}: ${nf(r.v[yy])}, ${pct(ch)}</small></button>`;
+    }).join('');
+    $('#mg-male').onclick = (e) => { const b = e.target.closest('.mg-maly'); if (b) { selectG(b.dataset.c); doMapy(); } };
+    $('#mg-male-uwaga').textContent = `Liczby przy nazwach to suma ${ZAKRES}. Wyróżniony słupek: ${S.yi < ALL ? Y[S.yi] : Y[ALL - 1]}; pod wykresem zmiana wobec roku poprzedniego. Kliknij gminę, żeby pokazać ją na mapie.`;
+    const ppT = Y.map((_, k) => pp.reduce((a, r) => a + r.v[k], 0));
+    $('#mg-lata-tytul').textContent = out[ALL - 1] < out[ALL - 2] && ppT[ALL - 1] < ppT[ALL - 2] ? 'Rok po roku: odpływ słabnie' : 'Rok po roku';
+  }
+
+  /* ---------- kraj ---------- */
+  function country() {
+    const ys = yrs();
+    let pp = 0, rw = 0, ow = 0;
+    for (const c in F) { const n = gsum(c, ys).n; if (c.startsWith(POWIAT)) pp += n; else rw += n; }
+    const rows = Object.values(D.woj).map((o) => { let a = 0, b = 0; for (const k of ys) { a += o.v[k][0]; b += o.v[k][1]; } return { n: o.n, o: a, i: b }; }).sort((x, y) => (y.i - y.o) - (x.i - x.o));
+    rows.forEach((r) => { ow += r.i - r.o; });
+    const tot = ys.reduce((a, k) => a + T('80125')[Y[k]], 0);
+    const mx = Math.max(...rows.map((r) => Math.max(r.o, r.i)));
+    $('#mg-motyl').innerHTML = `<span class="h" style="text-align:right">z Poznania</span><span></span><span class="h">do Poznania</span><span class="h" style="text-align:right">bilans</span>${rows.map((r) => `<span class="l"><small>${nf(r.o)}</small><i style="width:${r.o / mx * 100}%"></i></span><span class="c">${r.n}</span><span class="r"><i style="width:${r.i / mx * 100}%"></i><small>${nf(r.i)}</small></span><span class="s">${sg(r.i - r.o)}</span>`).join('')}`;
+    const pos = Object.keys(F).filter((c) => !c.startsWith(POWIAT)).map((c) => [c, gsum(c, ys).n]).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const neg = rows.filter((r) => Math.round(r.i - r.o) < 0).map((r) => r.n);
+    $('#mg-kraj-tytul').textContent = pp < 0 && rw > 0 && ow > 0 ? 'Poznań traci na rzecz powiatu, zyskuje z reszty kraju' : 'Powiat, Wielkopolska, reszta kraju';
+    $('#mg-kraj-pod').textContent = `Bilans migracji wewnętrznych Poznania ${yLab()}: ${nf(tot)}. ${neg.length ? `Z innych województw na minus ${neg.length === 1 ? 'wychodzi tylko' : 'wychodzą'} ${neg.join(', ')}.` : 'Ze wszystkimi innymi województwami Poznań jest na plus.'}`;
+    $('#mg-kraj-fakty').innerHTML = `<div class="mg-fakt"><b>${sg(Math.round(pp))}</b><span>bilans z 17 gminami powiatu poznańskiego</span></div>
+      <div class="mg-fakt"><b>${sg(Math.round(rw))}</b><span>bilans z resztą Wielkopolski; najwięcej na plus: ${pos.map((p) => `${esc(F[p[0]].n)} (${sg(p[1])})`).join(', ')}</span></div>
+      <div class="mg-fakt"><b>${sg(Math.round(ow))}</b><span>bilans z innymi województwami</span></div>
+      <p class="drobne" style="margin:0">Części są sumą kierunków z macierzy GUS; ukryte komórki dodano szacunkowo, więc mogą różnić się od salda o kilka osób.</p>`;
+  }
+
+  /* ---------- tabela wszystkich kierunków ---------- */
+  function tabela() {
+    const ys = yrs(), q = bezOgonkow($('#mg-tab-fraza').value.trim());
+    let rows = Object.keys(F).map((c) => { const s = gsum(c, ys); return { c, n: F[c].n, p: F[c].p, o: s.o, i: s.i, b: s.n, ho: s.ho, hi: s.hi }; });
+    const wszystkich = rows.length;
+    if (q) rows = rows.filter((r) => bezOgonkow(`${r.n} ${r.p}`).includes(q));
+    const tekstowa = S.sort === 'n' || S.sort === 'p', znak = S.kier === 'asc' ? 1 : -1;
+    rows.sort((a, b) => znak * (tekstowa ? a[S.sort].localeCompare(b[S.sort], 'pl') : a[S.sort] - b[S.sort]) || a.n.localeCompare(b.n, 'pl'));
+    $('#mg-tbody').innerHTML = rows.map((r) => `<tr data-c="${r.c}" tabindex="0" aria-selected="${r.c === S.sel}"><td>${esc(r.n)}</td><td class="mg-waskie"><small>${esc(r.p.replace('powiat ', ''))}</small></td><td class="num">${approx(r.ho, r.o)}${nf(r.o)}</td><td class="num">${approx(r.hi, r.i)}${nf(r.i)}</td><td class="num">${sg(r.b)}</td></tr>`).join('')
+      || '<tr><td colspan="5" class="ladowanie">Brak gminy o takiej nazwie.</td></tr>';
+    for (const th of document.querySelectorAll('#mg-tabela th[data-sort]')) { if (th.dataset.sort === S.sort) th.dataset.kier = S.kier; else delete th.dataset.kier; }
+    $('#mg-tab-pod').textContent = `${wszystkich} gmin województwa wielkopolskiego, z którymi Poznań wymieniał mieszkańców ${yLab()}. Kliknij nagłówek kolumny, żeby ułożyć tabelę, albo wiersz, żeby pokazać gminę na mapie.`;
+    $('#mg-tab-licznik').textContent = q ? `Pokazano ${rows.length} z ${wszystkich} gmin.` : 'Znak ≈ oznacza wartość szacunkową (GUS ukrywa komórki z 1–2 osobami).';
+  }
+  $('#mg-tabela thead').addEventListener('click', (e) => {
+    const th = e.target.closest('th[data-sort]'); if (!th) return;
+    if (S.sort === th.dataset.sort) S.kier = S.kier === 'asc' ? 'desc' : 'asc';
+    else { S.sort = th.dataset.sort; S.kier = (S.sort === 'n' || S.sort === 'p') ? 'asc' : 'desc'; }
+    tabela();
+  });
+  const wybierzZTabeli = (e) => { const tr = e.target.closest('tr[data-c]'); if (tr) { selectG(tr.dataset.c); doMapy(); } };
+  $('#mg-tbody').addEventListener('click', wybierzZTabeli);
+  $('#mg-tbody').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); wybierzZTabeli(e); } });
+  let tabTimer;
+  $('#mg-tab-fraza').addEventListener('input', () => { clearTimeout(tabTimer); tabTimer = setTimeout(tabela, 120); });
+
+  /* ---------- CSV ---------- */
+  $('#mg-csv').onclick = () => {
+    const wiersze = [`teryt;gmina;powiat;${Y.flatMap((y) => [`z_Poznania_${y}`, `do_Poznania_${y}`]).join(';')}`];
+    for (const c of Object.keys(F).sort()) wiersze.push([c, F[c].n, F[c].p, ...F[c].v.flatMap((v) => [v[0], v[1]].map((x) => String(x).replace('.', ',')))].join(';'));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([`﻿${wiersze.join('\n')}`], { type: 'text/csv;charset=utf-8' }));
+    a.download = `migracje-poznan-${Y[0]}-${Y[ALL - 1]}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+
+  /* ---------- całość ---------- */
+  function render() { controls(); drawMap(); panel(); pyramid(); cityMap(); sankey(); scatter(); lines(); country(); tabela(); doAdresu(); }
+  // pasek lat przykleja się pod nagłówkiem serwisu, którego wysokość zależy od szerokości okna
+  const ustawGore = () => document.documentElement.style.setProperty('--mg-gora', `${document.querySelector('.szczyt')?.offsetHeight ?? 64}px`);
+  ustawGore();
+  addEventListener('resize', ustawGore);
+  zAdresu();
+  render();
+  requestAnimationFrame(() => requestAnimationFrame(() => { svg.classList.add('mg-plynnie'); csvg.classList.add('mg-plynnie'); }));
+  let szer = 0;
+  const ro = new ResizeObserver(() => {
+    // przerysowujemy tylko przy zmianie szerokości; zmiana wysokości (np. rozwinięta karta) nie zmienia wykresów
+    if (box.clientWidth === szer) return;
+    szer = box.clientWidth;
+    sizeCanvas(); drawMap(); pyramid(); cityMap(); sankey(); scatter(); lines();
+  });
+  ro.observe(box);
+  const mo = new MutationObserver(() => setParticles());
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-motyw'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => setParticles());
+  if (location.hash.length > 1) { try { document.querySelector(location.hash)?.scrollIntoView(); } catch { /* kotwica spoza strony */ } }
+</script>
