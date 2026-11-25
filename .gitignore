@@ -12,3 +12,6 @@ data/*.log
 social/*.png
 social/*.html
 social/*.mp4
+
+# pliki pośrednie Pythona
+__pycache__/
